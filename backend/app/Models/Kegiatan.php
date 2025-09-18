@@ -18,10 +18,10 @@ class Kegiatan extends Model
         'is_active',
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
-
+    /**
+     * [FIX] - Menambahkan relasi yang hilang.
+     * Mendefinisikan bahwa sebuah "Kegiatan" dimiliki oleh satu "KategoriUtama".
+     */
     public function kategoriUtama()
     {
 

@@ -76,6 +76,7 @@ function RencanaAksiPage() {
         setLoading(prev => ({ ...prev, rencana: true }));
         try {
             const response = await apiClient.get(`/rencana-aksi?kegiatan_id=${selectedKegiatan}`);
+            console.log(response.data.data);
             setRencanaAksiList(response.data.data);
         } catch (error) {
             console.error("Error fetching rencana aksi:", error);
@@ -124,6 +125,25 @@ function RencanaAksiPage() {
     const handleCloseProgressModal = () => {
         setIsProgressModalOpen(false);
         setSelectedRencanaAksi(null);
+    };
+
+    // [FIX] - Fungsi baru untuk mengupdate state setelah progress disimpan
+    const handleProgressSaved = (updatedRencanaAksi) => {
+        console.log('Data yang diterima dari server:', updatedRencanaAksi);
+        console.log('Progress terbaru:', updatedRencanaAksi.latest_progress);
+        setRencanaAksiList(currentList =>
+            currentList.map(item =>
+                item.id === updatedRencanaAksi.id ? {
+                    ...item,
+                    latest_progress: updatedRencanaAksi.latest_progress,
+                    // Pastikan semua field yang diperlukan diupdate
+                    status: updatedRencanaAksi.status,
+                    // ... field lainnya
+                } : item
+            )
+        );
+        // Kita tutup modal di sini setelah state berhasil diupdate
+        handleCloseProgressModal();
     };
 
     const handleDelete = async (id) => {
@@ -192,7 +212,6 @@ function RencanaAksiPage() {
                                     <td className="px-6 py-4">{item.status}</td>
                                     <td className="px-6 py-4">
                                         <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                            {/* [FIX] - Menggunakan item.latest_progress yang sekarang sudah tersedia */}
                                             <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${item.latest_progress || 0}%` }}></div>
                                         </div>
                                     </td>
@@ -209,6 +228,7 @@ function RencanaAksiPage() {
                 </div>
             }
             {isModalOpen && <RencanaAksiModal
+                isOpen={handleOpenModal}
                 currentData={currentItem}
                 kegiatanId={selectedKegiatan}
                 users={userList}
@@ -216,10 +236,14 @@ function RencanaAksiPage() {
                 onSave={fetchRencanaAksi}
             />}
             {isTodoModalOpen && <TodoModal rencanaAksi={selectedRencanaAksi} onClose={handleCloseTodoModal} onUpdate={fetchRencanaAksi} />}
-            {isProgressModalOpen && <ProgressModal rencanaAksi={selectedRencanaAksi} onClose={handleCloseProgressModal} onProgressUpdate={fetchRencanaAksi} />}
+            {isProgressModalOpen && <ProgressModal
+                isOpen={isProgressModalOpen}
+                rencanaAksi={selectedRencanaAksi}
+                onClose={handleCloseProgressModal}
+                onProgressUpdate={handleProgressSaved} // <-- Gunakan handler baru
+            />}
         </div>
     );
 }
 
 export default RencanaAksiPage;
-

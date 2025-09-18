@@ -132,35 +132,35 @@ gantt
 
 ### Reporting System
 - [x] **Laporan Bulanan**
-  - [] Generate monthly progress reports
-  - [] Summary of completed tasks
-  - [] Analysis of overdue tasks
-  - [] Performance metrics
-- [] **Laporan Tahunan**
-  - [] Year-end summary reports
-  - [] Comparative analysis year-over-year
-  - [] Achievement highlights
+  - [x] Generate monthly progress reports
+  - [x] Summary of completed tasks
+  - [x] Analysis of overdue tasks
+  - [x] Performance metrics
+- [x] **Laporan Tahunan**
+  - [x] Year-end summary reports
+  - [x] Comparative analysis year-over-year
+  - [x] Achievement highlights
 
 ### Export Functionality
-- [ ] **Data Export**
-  - [ ] Export to PDF functionality
-  - [ ] Export to Excel/CSV
-  - [ ] Custom report formatting
-  - [ ] Scheduled report generation
+- [x] **Data Export**
+  - [x] Export to PDF functionality
+  - [x] Export to Excel/CSV
+  - [x] Custom report formatting
+  - [x] Scheduled report generation
 
 ### ✅ Fase 4: Advanced Features (6-7 Minggu)
 
 #### Template Management
-- [ ] **Template System**
-  - [ ] CRUD program templates
-  - [ ] Copy program from previous year
-  - [ ] Modify templates for new year
-  - [ ] Mark templates as favorites
+- [x] **Template System**
+  - [x] CRUD program templates
+  - [x] Copy program from previous year
+  - [x] Modify templates for new year
+  - [x] Mark templates as favorites
 
-- [ ] **Template Application**
-  - [ ] Apply template to new program year
-  - [ ] Customize template during application
-  - [ ] Versioning of templates
+- [x] **Template Application**
+  - [x] Apply template to new program year
+  - [x] Customize template during application
+  - [x] Versioning of templates
 
 #### Audit Trail System
 - [ ] **Activity Logging**

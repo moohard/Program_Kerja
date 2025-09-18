@@ -13,7 +13,8 @@ import KegiatanPage from './pages/master/KegiatanPage';
 import RencanaAksiPage from './pages/RencanaAksiPage';
 import LaporanPage from './pages/LaporanPage';
 import LaporanMatriksPage from './pages/LaporanMatriksPage';
-
+import TemplateManagementPage from './pages/TemplateManagementPage';
+import AuditLogPage from './pages/AuditLogPage';
 
 
 function App() {
@@ -25,12 +26,15 @@ function App() {
                     <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/rencana-aksi" element={<RencanaAksiPage />} />
-                        <Route path="/laporan" element={<LaporanPage />} />
-                        <Route path="/laporan-matriks" element={<LaporanMatriksPage />} /> {/* <-- Tambahkan rute baru */}
+                        <Route path="/laporan" element={<Navigate to="/laporan/bulanan" />} />
+                        <Route path="/laporan/bulanan" element={<LaporanPage />} />
+                        <Route path="/laporan/matriks" element={<LaporanMatriksPage />} />
                         <Route path="/master/kategori-utama" element={<KategoriUtamaPage />} />
                         <Route path="/master/kegiatan" element={<KegiatanPage />} />
-                        <Route path="*" element={<Navigate to="/dashboard" />} />
+                        <Route path="/templates" element={<TemplateManagementPage />} />
+                        <Route path="/audit-logs" element={<AuditLogPage />} />
                     </Route>
+                    <Route path="*" element={<Navigate to="/dashboard" />} />
                 </Routes>
             </BrowserRouter>
         </AuthProvider>

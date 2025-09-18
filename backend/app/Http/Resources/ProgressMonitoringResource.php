@@ -20,15 +20,9 @@ class ProgressMonitoringResource extends JsonResource
             'id'                  => $this->id,
             'progress_percentage' => $this->progress_percentage,
             'keterangan'          => $this->keterangan,
-            'tanggal_monitoring'  => $this->tanggal_monitoring
-                ? $this->tanggal_monitoring->format('d-m-Y')
-                : NULL,
-
-            'created_at'          => $this->created_at
-                ? $this->created_at->format('d-m-Y H:i:s')
-                : NULL,
+            'tanggal_monitoring'  => $this->tanggalMonitoring?->format('d-m-Y'),
+            'created_at'          => $this->createdAt?->format('d-m-Y H:i:s'),
             'attachments'         => ProgressAttachmentResource::collection($this->whenLoaded('attachments')),
-
         ];
     }
 

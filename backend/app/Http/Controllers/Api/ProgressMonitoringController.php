@@ -5,70 +5,108 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProgressMonitoringRequest;
 use App\Http\Resources\ProgressMonitoringResource;
+use App\Http\Resources\RencanaAksiResource; // <-- Tambahkan ini
+use App\Models\ProgressMonitoring;
 use App\Models\RencanaAksi;
+use App\Models\AuditLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class ProgressMonitoringController extends Controller
-    {
+{
+
     public function index(RencanaAksi $rencanaAksi)
-        {
-        // Eager load relasi attachments
+    {
+
         $progressHistory = $rencanaAksi->progressMonitorings()
             ->with('attachments')
             ->orderBy('tanggal_monitoring', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
+
         return ProgressMonitoringResource::collection($progressHistory);
-        }
+    }
 
     public function store(StoreProgressMonitoringRequest $request, RencanaAksi $rencanaAksi)
-        {
+    {
+
+        $validated = $request->validated();
+        // [UPDATE] - Membuat tanggal laporan dari input tahun dan bulan
+        // Kita set tanggalnya menjadi akhir bulan
+        $reportDate = Carbon::create($validated['report_year'], $validated['report_month'])->endOfMonth();
         DB::beginTransaction();
- 
-        try {
- 
-            // 1. Panggil Stored Procedure untuk update progress dan status
-            DB::statement(
-                'CALL sp_update_progress(?, ?, ?, ?)',
+        try
+        {
+            // 1. Create progress monitoring
+            $progress = ProgressMonitoring::updateOrCreate(
                 [
-                    $rencanaAksi->id,
-                    $request->progress_percentage,
-                    $request->keterangan,
-                    Auth::id(),
+                    'rencana_aksi_id' => $rencanaAksi->id,
+                    'report_date'     => $reportDate,
+                ],
+                [
+                    'progress_percentage' => $validated['progress_percentage'],
+                    'keterangan'          => $validated['keterangan'],
+                    'tanggal_monitoring'  => now(), // Tanggal aktual kapan input dibuat
                 ],
             );
-            // 2. Ambil record progress yang baru saja dibuat oleh procedure
-            $latestProgress = $rencanaAksi->progressMonitorings()->latest('created_at')->first();
-            // 3. Jika ada file lampiran, proses dan simpan
-            if ($request->hasFile('attachments')) {
-                foreach ($request->file('attachments') as $file) {
-                    // Simpan file ke storage/app/public/attachments
-                    $path = $file->store('public/attachments');
 
-                    // Buat record di database
-                    $latestProgress->attachments()->create([
+            // 2. Update rencana aksi status
+            $highestProgress = $rencanaAksi->progressMonitorings()->max('progress_percentage');
+            $status          = match (TRUE)
+            {
+                $highestProgress == 100 => 'completed',
+                $highestProgress > 0    => 'in_progress',
+                default                 => 'planned'
+            };
+
+            $rencanaAksi->update([
+                'status'         => $status,
+                'actual_tanggal' => $highestProgress == 100 ? ($rencanaAksi->actual_tanggal ?? now()) : NULL
+            ]);
+
+            // 3. Process attachments
+            if ($request->hasFile('attachments'))
+            {
+                // Hapus lampiran lama jika ada (untuk laporan bulan ini)
+                $progress->attachments()->delete();
+                foreach ($request->file('attachments') as $file)
+                {
+                    $path = $file->store('public/attachments');
+                    $progress->attachments()->create([
                         'file_name' => $file->getClientOriginalName(),
-                        'file_path' => $path,
+                        'file_path' => str_replace('public/', '', $path),
                         'file_type' => $file->getClientMimeType(),
                         'file_size' => $file->getSize(),
                     ]);
-                    }
                 }
+            }
+
+            // 4. Audit log
+            AuditLog::create([
+                'user_id'    => Auth::id(),
+                'action'     => 'UPDATE',
+                'table_name' => 'rencana_aksi',
+                'record_id'  => $rencanaAksi->id,
+                'new_values' => json_encode([
+                    'progress' => $request->progress_percentage,
+                    'status'   => $status,
+                ]),
+            ]);
 
             DB::commit();
 
-            // Load relasi attachment sebelum mengembalikan response
-            $latestProgress->load('attachments');
+            // Refresh relationships
+            $rencanaAksi->refresh()->load([ 'assignedTo', 'latestProgress', 'progressMonitorings.attachments' ]);
 
-            return new ProgressMonitoringResource($latestProgress);
+            return new RencanaAksiResource($rencanaAksi);
 
-            }
-        catch (\Exception $e) {
+        } catch (\Exception $e)
+        {
             DB::rollBack();
-            // Optional: Log the error
-            // Log::error('Failed to store progress: ' . $e->getMessage());
-            return response()->json(['message' => 'Gagal menyimpan progress.'], 500);
-            }
+            \Log::error('Failed to store progress: ' . $e->getMessage());
+            return response()->json([ 'message' => 'Gagal menyimpan progress.' ], 500);
         }
     }
+
+}

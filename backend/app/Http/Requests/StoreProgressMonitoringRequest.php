@@ -13,7 +13,7 @@ class StoreProgressMonitoringRequest extends FormRequest
     public function authorize(): bool
     {
 
-        return TRUE; // Autorisasi akan dihandle di controller/policy jika perlu
+        return TRUE;
     }
 
     /**
@@ -26,9 +26,11 @@ class StoreProgressMonitoringRequest extends FormRequest
 
         return [
             'progress_percentage' => 'required|integer|min:0|max:100',
-            'keterangan'          => 'nullable|string|max:1000',
-            'attachments'         => 'nullable|array|max:5', // Batasi maksimal 5 file per upload
-            'attachments.*'       => 'file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx|max:2048', // Tipe file dan maks 2MB per file
+            'keterangan'          => 'nullable|string',
+            'report_year'         => 'required|integer|digits:4',
+            'report_month'        => 'required|integer|min:1|max:12',
+            'attachments'         => 'nullable|array',
+            'attachments.*'       => 'file|mimes:pdf,jpg,jpeg,png,xlsx,docx|max:2048', // Maks 2MB per file
         ];
     }
 

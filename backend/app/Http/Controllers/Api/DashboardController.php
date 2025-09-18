@@ -52,7 +52,7 @@ class DashboardController extends Controller
             ->with(['kegiatan.rencanaAksi.latestProgress'])
             ->orderBy('nomor')
             ->get();
-        
+
         return $categories->map(function ($kategori) {
             $allAksi = $kategori->kegiatan->flatMap(function($kg) {
                 return $kg->rencanaAksi;
@@ -78,7 +78,7 @@ class DashboardController extends Controller
 
     private function getUpcomingDeadlines($programKerjaId)
     {
-        return RencanaAksi::with('kegiatan:id,nama_kegiatan', 'assignedUser:id,name')
+        return RencanaAksi::with('kegiatan:id,nama_kegiatan', 'assignedTo:id,name')
             ->whereHas('kegiatan.kategoriUtama', function ($query) use ($programKerjaId) {
                 $query->where('program_kerja_id', $programKerjaId);
             })

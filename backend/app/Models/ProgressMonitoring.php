@@ -17,6 +17,8 @@ class ProgressMonitoring extends Model
         'progress_percentage',
         'keterangan',
         'tanggal_monitoring',
+        'report_date',
+
     ];
 
     /**
@@ -26,6 +28,8 @@ class ProgressMonitoring extends Model
      */
     protected $casts = [
         'tanggal_monitoring' => 'date',
+        'report_date'        => 'date',
+        'created_at'         => 'datetime',
     ];
 
     public $timestamps = FALSE; // We use created_at from DB default, no updated_at
@@ -45,11 +49,13 @@ class ProgressMonitoring extends Model
 
     public function rencanaAksi()
     {
+
         return $this->belongsTo(RencanaAksi::class, 'rencana_aksi_id');
     }
 
     public function attachments()
     {
+
         return $this->hasMany(ProgressAttachment::class, 'progress_monitoring_id');
     }
 

@@ -1,143 +1,202 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import apiClient from '../services/apiClient';
-import { FiCalendar, FiDownload } from 'react-icons/fi';
+import { FiDownload, FiPrinter } from 'react-icons/fi';
 
 const LaporanMatriksPage = () => {
     const currentYear = new Date().getFullYear();
     const [year, setYear] = useState(currentYear);
-    const [years, setYears] = useState([]);
-    const [data, setData] = useState([]);
+    const [reportData, setReportData] = useState({});
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [exporting, setExporting] = useState(false);
 
-    useEffect(() => {
-        // Buat daftar tahun dari tahun ini hingga 5 tahun ke belakang
-        const yearOptions = Array.from({ length: 6 }, (_, i) => currentYear - i);
-        setYears(yearOptions);
-        fetchReport(currentYear);
-    }, []);
-
-    const fetchReport = async (selectedYear) => {
+    const fetchReport = async () => {
+        if (!year) return;
         setLoading(true);
-        setError('');
-        setData([]);
         try {
-            const response = await apiClient.get('/reports/matrix', {
-                params: { year: selectedYear }
-            });
-            setData(response.data);
-        } catch (err) {
-            setError('Gagal memuat data laporan. ' + (err.response?.data?.message || err.message));
+            const response = await apiClient.get(`/reports/matrix?year=${year}`);
+            setReportData(response.data);
+        } catch (error) {
+            console.error("Error fetching matrix report:", error);
+            alert('Gagal memuat data laporan. Pastikan backend berjalan dan tidak ada error.');
+            setReportData({});
         } finally {
             setLoading(false);
         }
     };
 
-    const handleYearChange = (e) => {
-        const newYear = e.target.value;
-        setYear(newYear);
-        fetchReport(newYear);
+    useEffect(() => {
+        fetchReport();
+    }, [year]);
+
+    const processedData = useMemo(() => {
+        if (Object.keys(reportData).length === 0) return [];
+        return Object.entries(reportData).map(([kategoriNama, aksiList]) => {
+            const kegiatanGrouped = aksiList.reduce((acc, aksi) => {
+                const kegiatanId = aksi.kegiatan.nama_kegiatan; // Group by name for simplicity
+                if (!acc[kegiatanId]) {
+                    acc[kegiatanId] = {
+                        kegiatan_nama: aksi.kegiatan.nama_kegiatan,
+                        rencana_aksi: []
+                    };
+                }
+                acc[kegiatanId].rencana_aksi.push(aksi);
+                return acc;
+            }, {});
+
+            return {
+                kategori_nama: kategoriNama,
+                total_rows: aksiList.length,
+                kegiatan_list: Object.values(kegiatanGrouped)
+            };
+        });
+    }, [reportData]);
+
+    const handlePrint = () => {
+        window.print();
     };
 
-    const getStatusBadge = (status) => {
-        if (!status) return <td className="border px-2 py-2"></td>;
+    const handleExport = async (format) => {
+        setExporting(true);
+        try {
+            const response = await apiClient.get(`/reports/export-matrix?year=${year}&format=${format}`, {
+                responseType: 'blob', // Penting untuk menerima file
+            });
 
-        let bgColor = '';
-        switch (status) {
-            case 'completed': bgColor = 'bg-green-200 text-green-800'; break;
-            case 'in_progress': bgColor = 'bg-blue-200 text-blue-800'; break;
-            case 'delayed': bgColor = 'bg-red-200 text-red-800'; break;
-            case 'planned': bgColor = 'bg-yellow-200 text-yellow-800'; break;
-            default: bgColor = 'bg-gray-200 text-gray-800';
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            const extension = format === 'excel' ? 'xlsx' : 'zip';
+            link.setAttribute('download', `Laporan_Matriks_${year}.${extension}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+        } catch (error) {
+            console.error(`Error exporting to ${format}:`, error);
+            alert(`Gagal mengekspor laporan ke ${format}.`);
+        } finally {
+            setExporting(false);
         }
-        return <td className={`border px-2 py-2 text-center text-xs font-semibold ${bgColor}`}>{status.replace('_', ' ')}</td>;
-    }
+    };
 
-    const months = ["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGU", "SEP", "OKT", "NOV", "DES"];
+    const getProgressColor = (progress) => {
+        if (progress === null || progress === undefined) return 'bg-gray-50';
+        if (progress == 100) return 'bg-green-200 text-green-800';
+        if (progress > 0) return 'bg-yellow-200 text-yellow-800';
+        return 'bg-blue-200 text-blue-800';
+    };
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <h1 className="text-2xl font-bold mb-4">Laporan Matriks Tahunan</h1>
+            <style>
+                {`
+                    @media print {
+                        body * {
+                            visibility: hidden;
+                        }
+                        #print-area, #print-area * {
+                            visibility: visible;
+                        }
+                        #print-area {
+                            position: absolute;
+                            left: 0;
+                            top: 0;
+                            width: 100%;
+                        }
+                        .no-print {
+                            display: none;
+                        }
+                        table {
+                            -webkit-print-color-adjust: exact;
+                            color-adjust: exact;
+                        }
+                    }
+                `}
+            </style>
 
-            {/* Filter */}
-            <div className="flex items-center space-x-4 mb-6 bg-gray-50 p-4 rounded-lg">
-                <div className="flex items-center">
-                    <FiCalendar className="text-gray-500 mr-2" />
+            <div className="flex justify-between items-center mb-6 no-print">
+                <h1 className="text-2xl font-bold">Laporan Matriks Kinerja</h1>
+                <div className="flex items-center space-x-4">
                     <select
                         value={year}
-                        onChange={handleYearChange}
+                        onChange={(e) => setYear(e.target.value)}
                         className="p-2 border rounded-md"
                     >
-                        {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        {[0, 1, 2, 3, 4].map(i => <option key={currentYear - i} value={currentYear - i}>{currentYear - i}</option>)}
                     </select>
+                    <button
+                        onClick={() => handleExport('excel')}
+                        disabled={exporting}
+                        className="flex items-center bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-green-300"
+                    >
+                        <FiDownload className="mr-2" /> {exporting ? 'Mengekspor...' : 'Ekspor Excel'}
+                    </button>
+                    <button
+                        onClick={handlePrint}
+                        className="flex items-center bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+                    >
+                        <FiPrinter className="mr-2" /> Cetak / Simpan PDF
+                    </button>
                 </div>
-                <button
-                    onClick={() => window.print()}
-                    className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-                >
-                    <FiDownload className="mr-2" />
-                    Cetak / Simpan PDF
-                </button>
             </div>
 
-            {loading && <p>Memuat data...</p>}
-            {error && <p className="text-red-500">{error}</p>}
-
-            {/* Tabel Laporan */}
-            {!loading && data.length > 0 && (
-                <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th rowSpan="2" className="border px-2 py-2 text-center align-middle w-10">NO</th>
-                                <th rowSpan="2" className="border px-2 py-2 text-center align-middle w-1/6">Kegiatan Utama</th>
-                                <th rowSpan="2" className="border px-2 py-2 text-center align-middle w-1/6">Kegiatan</th>
-                                <th rowSpan="2" className="border px-2 py-2 text-center align-middle w-1/4">Rencana Aksi Kegiatan</th>
-                                <th colSpan="12" className="border px-2 py-2 text-center">SCHEDULE TIME</th>
-                                <th rowSpan="2" className="border px-2 py-2 text-center align-middle">TARGET (%)</th>
-                                <th rowSpan="2" className="border px-2 py-2 text-center align-middle">OUTPUT</th>
-                                <th rowSpan="2" className="border px-2 py-2 text-center align-middle">PENANGGUNG JAWAB</th>
-                                <th rowSpan="2" className="border px-2 py-2 text-center align-middle">Terlaksana / Belum Terlaksana</th>
+            {loading ? <div className="flex justify-center py-10"><div className="loader"></div></div> :
+                <div id="print-area" className="overflow-x-auto">
+                    <h2 className="text-xl font-semibold text-center mb-4">PROGRAM KERJA TAHUN {year}</h2>
+                    <table className="min-w-full bg-white border-collapse border border-gray-400 text-xs">
+                        <thead className="bg-gray-100 font-bold">
+                            <tr className="text-center">
+                                <th rowSpan="2" className="border p-2">NO</th>
+                                <th rowSpan="2" className="border p-2">Kegiatan Utama</th>
+                                <th rowSpan="2" className="border p-2">Kegiatan</th>
+                                <th rowSpan="2" className="border p-2">Rencana Aksi</th>
+                                <th colSpan="12" className="border p-2">PROGRESS BULANAN (%)</th>
+                                <th rowSpan="2" className="border p-2">OUTPUT</th>
+                                <th rowSpan="2" className="border p-2">P. JAWAB</th>
+                                <th rowSpan="2" className="border p-2">STATUS AKHIR</th>
                             </tr>
-                            <tr>
-                                {months.map(m => <th key={m} className="border px-1 py-2 text-center text-xs w-12">{m}</th>)}
+                            <tr className="text-center">
+                                {["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGS", "SEP", "OKT", "NOV", "DES"].map(m => (
+                                    <th key={m} className="border p-1 w-12">{m}</th>
+                                ))}
                             </tr>
                         </thead>
                         <tbody>
-                            {data.map((kategori, katIndex) => (
-                                <React.Fragment key={kategori.kategori_id}>
-                                    {kategori.kegiatan.map((kegiatan, kegIndex) => (
-                                        <React.Fragment key={kegiatan.kegiatan_id}>
-                                            {kegiatan.rencana_aksi.map((aksi, aksiIndex) => (
-                                                <tr key={aksi.id}>
-                                                    {kegIndex === 0 && aksiIndex === 0 && (
-                                                        <td rowSpan={kategori.kegiatan.reduce((acc, curr) => acc + curr.rencana_aksi.length, 0)} className="border px-2 py-2 text-center align-top">{kategori.kategori_nomor}</td>
-                                                    )}
-                                                    {aksiIndex === 0 && (
-                                                        <td rowSpan={kegiatan.rencana_aksi.length} className="border px-2 py-2 align-top">{kategori.kategori_nama}</td>
-                                                    )}
-                                                    {aksiIndex === 0 && (
-                                                        <td rowSpan={kegiatan.rencana_aksi.length} className="border px-2 py-2 align-top">{kegiatan.kegiatan_nama}</td>
-                                                    )}
-                                                    <td className="border px-2 py-2">{aksi.deskripsi}</td>
-                                                    {Object.values(aksi.schedule_time).map((status, monthIndex) => getStatusBadge(status, monthIndex))}
-                                                    <td className="border px-2 py-2 text-center">{aksi.target}</td>
-                                                    <td className="border px-2 py-2">{aksi.output}</td>
-                                                    <td className="border px-2 py-2">{aksi.penanggung_jawab}</td>
-                                                    <td className="border px-2 py-2">{aksi.terlaksana}</td>
-                                                </tr>
-                                            ))}
-                                        </React.Fragment>
-                                    ))}
-                                </React.Fragment>
-                            ))}
+                            {processedData.flatMap((kategoriData, katIndex) =>
+                                kategoriData.kegiatan_list.flatMap((kegiatanData, kegIndex) =>
+                                    kegiatanData.rencana_aksi.map((item, itemIndex) => (
+                                        <tr key={item.id}>
+                                            {kegIndex === 0 && itemIndex === 0 && <td rowSpan={kategoriData.total_rows} className="border p-2 text-center align-top">{katIndex + 1}</td>}
+                                            {kegIndex === 0 && itemIndex === 0 && <td rowSpan={kategoriData.total_rows} className="border p-2 align-top">{kategoriData.kategori_nama}</td>}
+                                            {itemIndex === 0 && <td rowSpan={kegiatanData.rencana_aksi.length} className="border p-2 align-top">{kegiatanData.kegiatan_nama}</td>}
+
+                                            <td className="border p-2">{item.deskripsi_aksi}</td>
+
+                                            {/* [UPDATE] - Logika baru untuk menampilkan progress bulanan */}
+                                            {Array.from({ length: 12 }, (_, i) => {
+                                                const month = i + 1;
+                                                const progress = item.monthly_progress[month] ?? null;
+                                                return (
+                                                    <td key={month} className={`border p-2 text-center font-semibold ${getProgressColor(progress)}`}>
+                                                        {progress !== null ? `${progress}%` : '-'}
+                                                    </td>
+                                                );
+                                            })}
+
+                                            <td className="border p-2">{item.catatan}</td>
+                                            <td className="border p-2">{item.assigned_to?.name || '-'}</td>
+                                            <td className="border p-2 text-center">{item.status.replace('_', ' ')}</td>
+                                        </tr>
+                                    ))
+                                )
+                            )}
                         </tbody>
                     </table>
                 </div>
-            )}
-            {!loading && data.length === 0 && !error && <p>Tidak ada data laporan untuk tahun yang dipilih.</p>}
+            }
         </div>
     );
 };
 
 export default LaporanMatriksPage;
+

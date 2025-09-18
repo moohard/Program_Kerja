@@ -11,20 +11,23 @@ use Illuminate\Http\Request;
 
 class RencanaAksiController extends Controller
 {
+
     public function index(Request $request)
     {
-        $request->validate(['kegiatan_id' => 'required|exists:kegiatan,id']);
-        
+
+        $request->validate([ 'kegiatan_id' => 'required|exists:kegiatan,id' ]);
+
         $rencanaAksi = RencanaAksi::where('kegiatan_id', $request->kegiatan_id)
-            ->with(['assignedTo:id,name', 'progressMonitorings.attachments'])
+            ->with([ 'assignedTo:id,name', 'progressMonitorings.attachments','latestProgress' ])
             ->latest()
             ->get();
-            
+
         return RencanaAksiResource::collection($rencanaAksi);
     }
 
     public function store(StoreRencanaAksiRequest $request)
     {
+
         $validated = $request->validated();
 
         // Ambil bulan-bulan yang dijadwalkan dan urutkan
@@ -32,13 +35,13 @@ class RencanaAksiController extends Controller
         sort($months);
 
         $rencanaAksi = RencanaAksi::create([
-            'kegiatan_id' => $validated['kegiatan_id'],
+            'kegiatan_id'    => $validated['kegiatan_id'],
             'deskripsi_aksi' => $validated['deskripsi_aksi'],
-            'assigned_to' => $validated['assigned_to'],
-            'priority' => $validated['priority'],
-            'catatan' => $validated['catatan'],
-            'jadwal_tipe' => 'periodik', // Asumsikan tipe periodik untuk multi-bulan
-            'jadwal_config' => ['months' => $months],
+            'assigned_to'    => $validated['assigned_to'],
+            'priority'       => $validated['priority'],
+            'catatan'        => $validated['catatan'],
+            'jadwal_tipe'    => 'periodik', // Asumsikan tipe periodik untuk multi-bulan
+            'jadwal_config'  => [ 'months' => $months ],
             // Set target_tanggal ke hari pertama dari bulan pertama yang dipilih
             'target_tanggal' => "{$validated['year']}-{$months[0]}-01",
         ]);
@@ -48,23 +51,26 @@ class RencanaAksiController extends Controller
 
     public function show(RencanaAksi $rencanaAksi)
     {
+
         return new RencanaAksiResource($rencanaAksi->load(relations: 'assignedTo'));
     }
 
     public function update(UpdateRencanaAksiRequest $request, RencanaAksi $rencanaAksi)
     {
+
         $validated = $request->validated();
-        
+
         // Jika ada jadwal baru, proses seperti saat 'store'
-        if (isset($validated['schedule_months'])) {
+        if (isset($validated['schedule_months']))
+        {
             $months = $validated['schedule_months'];
             sort($months);
 
-            $validated['jadwal_config'] = ['months' => $months];
-            $year = $validated['year'] ?? date('Y', strtotime($rencanaAksi->target_tanggal));
+            $validated['jadwal_config']  = [ 'months' => $months ];
+            $year                        = $validated['year'] ?? date('Y', strtotime($rencanaAksi->target_tanggal));
             $validated['target_tanggal'] = "{$year}-{$months[0]}-01";
         }
-        
+
         $rencanaAksi->update($validated);
 
         return new RencanaAksiResource($rencanaAksi);
@@ -72,7 +78,9 @@ class RencanaAksiController extends Controller
 
     public function destroy(RencanaAksi $rencanaAksi)
     {
+
         $rencanaAksi->delete();
         return response()->noContent();
     }
+
 }

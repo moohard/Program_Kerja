@@ -1,140 +1,192 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/apiClient';
 
-function ProgressModal({ rencanaAksi, onClose, onProgressUpdate }) {
-    const [history, setHistory] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const [percentage, setPercentage] = useState(rencanaAksi.latest_progress || 0);
+const ProgressModal = ({ isOpen, onClose, onProgressUpdate, rencanaAksi }) => {
+    const currentYear = new Date().getFullYear();
+    const [progress, setProgress] = useState('');
     const [keterangan, setKeterangan] = useState('');
-    const [attachments, setAttachments] = useState([]); // State untuk file
+    const [attachments, setAttachments] = useState([]);
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState({});
 
-    const fetchHistory = useCallback(async () => {
-        setLoading(true);
-        try {
-            const response = await apiClient.get(`/rencana-aksi/${rencanaAksi.id}/progress`);
-            setHistory(response.data.data);
-        } catch (error) { console.error("Gagal memuat histori progress:", error); }
-        finally { setLoading(false); }
-    }, [rencanaAksi.id]);
+    // [UPDATE] - State baru untuk bulan dan tahun laporan
+    const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
+    const [reportYear, setReportYear] = useState(currentYear);
 
-    useEffect(() => { fetchHistory(); }, [fetchHistory]);
+    const months = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+
+    useEffect(() => {
+        const fetchHistory = async () => {
+            if (isOpen && rencanaAksi) {
+                try {
+                    const response = await apiClient.get(`/rencana-aksi/${rencanaAksi.id}/progress`);
+                    setHistory(response.data.data);
+                } catch (error) {
+                    console.error("Failed to fetch progress history", error);
+                }
+            }
+        };
+        fetchHistory();
+        setProgress('');
+        setKeterangan('');
+        setAttachments([]);
+        setErrors({});
+        setReportMonth(new Date().getMonth() + 1);
+        setReportYear(currentYear);
+    }, [isOpen, rencanaAksi, currentYear]);
 
     const handleFileChange = (e) => {
-        if (e.target.files.length > 5) {
-            alert("Anda hanya bisa mengunggah maksimal 5 file.");
-            e.target.value = null; // Reset input file
-        } else {
-            setAttachments(Array.from(e.target.files));
-        }
+        setAttachments([...e.target.files]);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsSubmitting(true);
+        setLoading(true);
+        setErrors({});
 
         const formData = new FormData();
-        formData.append('progress_percentage', percentage);
+        formData.append('progress_percentage', progress);
         formData.append('keterangan', keterangan);
+        // [UPDATE] - Kirim bulan dan tahun laporan ke backend
+        formData.append('report_year', reportYear);
+        formData.append('report_month', reportMonth);
         attachments.forEach(file => {
             formData.append('attachments[]', file);
         });
+
         try {
-            // Kirim sebagai multipart/form-data
-            await apiClient.post(`/rencana-aksi/${rencanaAksi.id}/progress`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+            const response = await apiClient.post(`/rencana-aksi/${rencanaAksi.id}/progress`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
-            onProgressUpdate();
+            onProgressUpdate(response.data.data);
             onClose();
         } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Gagal menyimpan progress.';
-            alert(errorMessage);
+            if (error.response && error.response.status === 422) {
+                setErrors(error.response.data.errors);
+            } else {
+                console.error("Submit error:", error);
+                alert('Terjadi kesalahan saat menyimpan progress.');
+            }
         } finally {
-            setIsSubmitting(false);
+            setLoading(false);
         }
     };
-    const fixAttachmentUrl = (url) => {
-        // Jika URL sudah lengkap, biarkan seperti itu
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            return url;
-        }
 
-        // Jika URL relative, tambahkan base URL backend
-        if (url.startsWith('/storage/')) {
-            return `http://localhost:8000${url}`;
-        }
+    if (!isOpen) return null;
 
-        return url;
-    };
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 overflow-y-auto pt-10">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl mb-10">
-                <h2 className="text-xl font-bold mb-2">Lapor & Lihat Progress</h2>
-                <p className="text-sm text-gray-600 mb-6">{rencanaAksi.deskripsi_aksi}</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                <h2 className="text-xl font-bold mb-4">Laporan Progress: {rencanaAksi?.deskripsi_aksi}</h2>
 
-                <form onSubmit={handleSubmit} className="mb-8 p-4 border rounded-lg">
-                    {/* ... (Input Range Progress) ... */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Progress Saat Ini: {percentage}%</label>
-                        <input type="range" min="0" max="100" value={percentage} onChange={(e) => setPercentage(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />
-                    </div>
-                    {/* ... (Textarea Keterangan) ... */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Keterangan</label>
-                        <textarea value={keterangan} onChange={(e) => setKeterangan(e.target.value)} rows="3" className="mt-1 block w-full border-gray-300 rounded-md" placeholder="Contoh: Telah menyelesaikan draf awal..."></textarea>
-                    </div>
+                <div className="flex-grow overflow-y-auto pr-4 -mr-4 mb-4">
+                    <form onSubmit={handleSubmit} className="space-y-4 bg-gray-50 p-4 rounded-lg border">
+                        {/* [UPDATE] - Form untuk memilih periode laporan */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="report_month" className="block text-sm font-medium text-gray-700">Bulan Laporan</label>
+                                <select
+                                    id="report_month"
+                                    value={reportMonth}
+                                    onChange={(e) => setReportMonth(e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                                >
+                                    {months.map((name, index) => (
+                                        <option key={index + 1} value={index + 1}>{name}</option>
+                                    ))}
+                                </select>
+                                {errors.report_month && <p className="text-red-500 text-xs mt-1">{errors.report_month[0]}</p>}
+                            </div>
+                            <div>
+                                <label htmlFor="report_year" className="block text-sm font-medium text-gray-700">Tahun Laporan</label>
+                                <select
+                                    id="report_year"
+                                    value={reportYear}
+                                    onChange={(e) => setReportYear(e.target.value)}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                                >
+                                    {[0, 1, 2].map(i => <option key={currentYear - i} value={currentYear - i}>{currentYear - i}</option>)}
+                                </select>
+                                {errors.report_year && <p className="text-red-500 text-xs mt-1">{errors.report_year[0]}</p>}
+                            </div>
+                        </div>
 
-                    {/* Input File Baru */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Unggah Bukti (Opsional)</label>
-                        <input type="file" multiple onChange={handleFileChange} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
-                        <p className="text-xs text-gray-500 mt-1">Maks 5 file. Tipe: PDF, DOC, XLS, JPG, PNG. Maks 2MB/file.</p>
-                    </div>
+                        <div>
+                            <label htmlFor="progress" className="block text-sm font-medium text-gray-700">Progress (%)</label>
+                            <input
+                                type="number"
+                                id="progress"
+                                value={progress}
+                                onChange={(e) => setProgress(e.target.value)}
+                                min="0" max="100"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                            />
+                            {errors.progress_percentage && <p className="text-red-500 text-xs mt-1">{errors.progress_percentage[0]}</p>}
+                        </div>
+                        <div>
+                            <label htmlFor="keterangan" className="block text-sm font-medium text-gray-700">Keterangan</label>
+                            <textarea
+                                id="keterangan"
+                                value={keterangan}
+                                onChange={(e) => setKeterangan(e.target.value)}
+                                rows="3"
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="attachments" className="block text-sm font-medium text-gray-700">Upload Bukti (Opsional)</label>
+                            <input
+                                type="file"
+                                id="attachments"
+                                multiple
+                                onChange={handleFileChange}
+                                className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                            />
+                        </div>
+                        <div className="text-right">
+                            <button type="submit" disabled={loading} className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300">
+                                {loading ? 'Menyimpan...' : 'Simpan Progress'}
+                            </button>
+                        </div>
+                    </form>
 
-                    <button type="submit" disabled={isSubmitting} className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400">
-                        {isSubmitting ? 'Menyimpan...' : 'Simpan Laporan Progress'}
-                    </button>
-                </form>
-
-                <h3 className="text-lg font-semibold mb-4">Histori Laporan</h3>
-                <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                    {loading ? <div className="flex justify-center p-4"><div className="loader w-8 h-8"></div></div> :
-                        history.length > 0 ? history.map(item => (
-                            <div key={item.id} className="p-3 bg-gray-50 rounded-md border">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-bold text-indigo-600">{item.progress_percentage}%</span>
-                                    <span className="text-xs text-gray-500">{item.tanggal_monitoring}</span>
-                                </div>
-                                {item.keterangan && <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{item.keterangan}</p>}
-
-                                {/* Tampilkan Daftar Lampiran */}
-                                {item.attachments && item.attachments.length > 0 && (
-                                    <div className="mt-3 border-t pt-2">
-                                        <h4 className="text-xs font-semibold text-gray-600">Lampiran:</h4>
-                                        <ul className="list-disc list-inside mt-1">
+                    <div className="mt-6">
+                        <h3 className="text-lg font-semibold mb-2">Riwayat Progress</h3>
+                        <ul className="space-y-3">
+                            {history.map(item => (
+                                <li key={item.id} className="text-sm border-b pb-2">
+                                    {/* [UPDATE] - Tampilkan tanggal laporan */}
+                                    <p><strong>{item.progress_percentage}%</strong> dilaporkan untuk <strong>{item.report_date_formatted}</strong></p>
+                                    <p className="text-gray-600">{item.keterangan}</p>
+                                    {item.attachments.length > 0 && (
+                                        <ul className="mt-1 list-disc list-inside">
                                             {item.attachments.map(file => (
-                                                <li key={file.id} className="text-sm">
-                                                    <a href={fixAttachmentUrl(file.url)} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
-                                                        {file.file_name} ({file.file_size_kb} KB)
+                                                <li key={file.id}>
+                                                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                                                        {file.file_name}
                                                     </a>
                                                 </li>
                                             ))}
                                         </ul>
-                                    </div>
-                                )}
-                            </div>
-                        )) : <p className="text-sm text-gray-500 text-center">Belum ada laporan progress.</p>
-                    }
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 </div>
 
-                <div className="flex justify-end mt-6">
-                    <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded-md">Tutup</button>
+                <div className="flex-shrink-0 text-right pt-4 border-t">
+                    <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">
+                        Tutup
+                    </button>
                 </div>
             </div>
         </div>
     );
-}
+};
 
 export default ProgressModal;
-
