@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class RencanaAksi extends Model
-{
-
+    {
     use HasFactory;
 
     protected $table = 'rencana_aksi';
@@ -26,40 +25,40 @@ class RencanaAksi extends Model
         'priority',
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
     protected $casts = [
-        'target_tanggal' => 'date',
-        'actual_tanggal' => 'date',
-        'jadwal_config'  => 'array',
+        'target_tanggal' => 'date', // Pastikan ini ada
+        'actual_tanggal' => 'date', // Pastikan ini ada
+        'jadwal_config'  => 'array', // <-- Tambahkan baris ini
     ];
 
     public function kegiatan()
-    {
-
+        {
         return $this->belongsTo(Kegiatan::class);
-    }
+        }
 
-    public function assignedUser()
-    {
-
+    public function assignedTo()
+        {
         return $this->belongsTo(User::class, 'assigned_to');
-    }
+        }
 
     public function todoItems()
-    {
-
+        {
         return $this->hasMany(TodoItem::class);
-    }
+        }
 
-    public function progressMonitoring()
-    {
+    public function progressMonitorings()
+        {
+        return $this->hasMany(ProgressMonitoring::class, 'rencana_aksi_id')->orderBy('tanggal_monitoring', 'desc');
+        }
 
-        return $this->hasMany(ProgressMonitoring::class,'rencana_aksi_id');
-    }
-
+    // Juga tambahkan relationship latestProgress jika diperlukan
     public function latestProgress()
-    {
-
-        return $this->hasOne(ProgressMonitoring::class)->latestOfMany();
+        {
+        return $this->hasOne(ProgressMonitoring::class, 'rencana_aksi_id')->latestOfMany();
+        }
     }
-
-}

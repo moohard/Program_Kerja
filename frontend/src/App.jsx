@@ -11,6 +11,10 @@ import DashboardPage from './pages/DashboardPage';
 import KategoriUtamaPage from './pages/master/KategoriUtamaPage';
 import KegiatanPage from './pages/master/KegiatanPage';
 import RencanaAksiPage from './pages/RencanaAksiPage';
+import LaporanPage from './pages/LaporanPage';
+import LaporanMatriksPage from './pages/LaporanMatriksPage';
+
+
 
 function App() {
     return (
@@ -21,6 +25,8 @@ function App() {
                     <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
                         <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/rencana-aksi" element={<RencanaAksiPage />} />
+                        <Route path="/laporan" element={<LaporanPage />} />
+                        <Route path="/laporan-matriks" element={<LaporanMatriksPage />} /> {/* <-- Tambahkan rute baru */}
                         <Route path="/master/kategori-utama" element={<KategoriUtamaPage />} />
                         <Route path="/master/kegiatan" element={<KegiatanPage />} />
                         <Route path="*" element={<Navigate to="/dashboard" />} />

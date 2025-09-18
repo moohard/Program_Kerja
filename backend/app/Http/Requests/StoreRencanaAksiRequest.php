@@ -3,31 +3,27 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreRencanaAksiRequest extends FormRequest
 {
-
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
-
-        return TRUE;
+        return true;
     }
-
     public function rules(): array
     {
-
         return [
-            'kegiatan_id'    => 'required|integer|exists:kegiatan,id',
-            'nomor_aksi'     => 'nullable|string|max:10',
+            'kegiatan_id' => 'required|exists:kegiatan,id',
             'deskripsi_aksi' => 'required|string',
-            'target_tanggal' => 'nullable|date',
-            'catatan'        => 'nullable|string',
-            'assigned_to'    => 'nullable|integer|exists:users,id',
-            'jadwal_tipe'    => [ 'required', Rule::in([ 'insidentil', 'periodik', 'rutin' ]) ],
-            'jadwal_config'  => 'nullable|json',
-            'priority'       => [ 'required', Rule::in([ 'low', 'medium', 'high' ]) ],
+            'assigned_to' => 'nullable|exists:users,id',
+            'priority' => 'required|in:low,medium,high',
+            'catatan' => 'nullable|string',
+            'schedule_months' => 'required|array|min:1',
+            'schedule_months.*' => 'integer|min:1|max:12',
+            'year' => 'required|integer|min:2020|max:2099',
         ];
     }
-
 }

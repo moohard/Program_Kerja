@@ -3,7 +3,7 @@ import apiClient from '../services/apiClient';
 import RencanaAksiModal from '../components/modals/RencanaAksiModal';
 import TodoModal from '../components/modals/TodoModal';
 import ProgressModal from '../components/modals/ProgressModal';
-
+import { FiPlus } from 'react-icons/fi';
 
 function RencanaAksiPage() {
     const [kategoriList, setKategoriList] = useState([]);
@@ -14,77 +14,99 @@ function RencanaAksiPage() {
     const [selectedKategori, setSelectedKategori] = useState('');
     const [selectedKegiatan, setSelectedKegiatan] = useState('');
 
-    const [loading, setLoading] = useState({ kegiatan: false, rencana: false });
+    const [loading, setLoading] = useState({ kategori: false, kegiatan: false, rencana: false });
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
 
     const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
     const [selectedRencanaAksi, setSelectedRencanaAksi] = useState(null);
+
     const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
 
-
+    // Fetch Kategori Utama
     useEffect(() => {
-        apiClient.get('/kategori-utama').then(res => setKategoriList(res.data.data));
-        apiClient.get('/users').then(res => setUserList(res.data.data));
+        const fetchKategori = async () => {
+            setLoading(prev => ({ ...prev, kategori: true }));
+            try {
+                const response = await apiClient.get('/kategori-utama');
+                setKategoriList(response.data.data);
+            } catch (error) {
+                console.error("Error fetching kategori utama:", error);
+            } finally {
+                setLoading(prev => ({ ...prev, kategori: false }));
+            }
+        };
+        fetchKategori();
     }, []);
 
-    const handleKategoriChange = (e) => {
-        const kategoriId = e.target.value;
-        setSelectedKategori(kategoriId);
-        setSelectedKegiatan('');
-        setRencanaAksiList([]);
-        if (kategoriId) {
-            setLoading(prev => ({ ...prev, kegiatan: true }));
-            apiClient.get(`/kegiatan?kategori_id=${kategoriId}`).then(res => {
-                setKegiatanList(res.data.data);
-            }).finally(() => setLoading(prev => ({ ...prev, kegiatan: false })));
-        } else {
-            setKegiatanList([]);
-        }
-    };
+    // Fetch Users
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const response = await apiClient.get('/users');
+                setUserList(response.data.data);
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        };
+        fetchUsers();
+    }, []);
 
-    const fetchRencanaAksi = useCallback(async () => {
-        if (!selectedKegiatan) {
-            setRencanaAksiList([]);
-            return;
+    // Fetch Kegiatan based on selected Kategori
+    const fetchKegiatan = useCallback(async (kategoriId) => {
+        if (!kategoriId) return;
+        setLoading(prev => ({ ...prev, kegiatan: true }));
+        setKegiatanList([]);
+        setRencanaAksiList([]);
+        setSelectedKegiatan('');
+        try {
+            const response = await apiClient.get(`/kegiatan?kategori_id=${kategoriId}`);
+            setKegiatanList(response.data.data);
+        } catch (error) {
+            console.error("Error fetching kegiatan:", error);
+        } finally {
+            setLoading(prev => ({ ...prev, kegiatan: false }));
         }
+    }, []);
+
+    // Fetch Rencana Aksi based on selected Kegiatan
+    const fetchRencanaAksi = useCallback(async () => {
+        if (!selectedKegiatan) return;
         setLoading(prev => ({ ...prev, rencana: true }));
         try {
             const response = await apiClient.get(`/rencana-aksi?kegiatan_id=${selectedKegiatan}`);
             setRencanaAksiList(response.data.data);
-        } catch (err) { console.error(err); }
-        finally { setLoading(prev => ({ ...prev, rencana: false })); }
+        } catch (error) {
+            console.error("Error fetching rencana aksi:", error);
+        } finally {
+            setLoading(prev => ({ ...prev, rencana: false }));
+        }
     }, [selectedKegiatan]);
 
     useEffect(() => {
-        fetchRencanaAksi();
-    }, [fetchRencanaAksi]);
-
-    const handleOpenModal = (item = null) => { setCurrentItem(item); setIsModalOpen(true); };
-    const handleCloseModal = () => { setIsModalOpen(false); setCurrentItem(null); };
-    const handleOpenProgressModal = (item) => {
-        setSelectedRencanaAksi(item);
-        setIsProgressModalOpen(true);
-    };
-    const handleCloseProgressModal = () => {
-        setIsProgressModalOpen(false);
-        setSelectedRencanaAksi(null);
-    };
-    const handleSave = async (itemData) => {
-        try {
-            const payload = { ...itemData, kegiatan_id: selectedKegiatan };
-            if (currentItem) await apiClient.put(`/rencana-aksi/${currentItem.id}`, payload);
-            else await apiClient.post('/rencana-aksi', payload);
-            fetchRencanaAksi(); handleCloseModal();
-        } catch (err) { alert('Gagal menyimpan Rencana Aksi.'); }
-    };
-    const handleDelete = async (id) => {
-        if (window.confirm('Yakin ingin menghapus Rencana Aksi ini?')) {
-            try { await apiClient.delete(`/rencana-aksi/${id}`); fetchRencanaAksi(); }
-            catch (err) { alert('Gagal menghapus Rencana Aksi.'); }
+        if (selectedKegiatan) {
+            fetchRencanaAksi();
         }
+    }, [selectedKegiatan, fetchRencanaAksi]);
+
+    const handleKategoriChange = (e) => {
+        const kategoriId = e.target.value;
+        setSelectedKategori(kategoriId);
+        fetchKegiatan(kategoriId);
     };
 
+    // --- Handlers for RencanaAksiModal ---
+    const handleOpenModal = (item = null) => {
+        setCurrentItem(item);
+        setIsModalOpen(true);
+    };
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setCurrentItem(null);
+    };
+
+    // --- Handlers for TodoModal ---
     const handleOpenTodoModal = (item) => {
         setSelectedRencanaAksi(item);
         setIsTodoModalOpen(true);
@@ -94,66 +116,84 @@ function RencanaAksiPage() {
         setSelectedRencanaAksi(null);
     };
 
-    const statusColors = {
-        planned: 'bg-blue-100 text-blue-800',
-        in_progress: 'bg-yellow-100 text-yellow-800',
-        completed: 'bg-green-100 text-green-800',
-        delayed: 'bg-red-100 text-red-800',
+    // --- Handlers for Progress Modal ---
+    const handleOpenProgressModal = (item) => {
+        setSelectedRencanaAksi(item);
+        setIsProgressModalOpen(true);
+    };
+    const handleCloseProgressModal = () => {
+        setIsProgressModalOpen(false);
+        setSelectedRencanaAksi(null);
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm('Apakah Anda yakin ingin menghapus item ini?')) {
+            try {
+                await apiClient.delete(`/rencana-aksi/${id}`);
+                fetchRencanaAksi();
+            } catch (error) {
+                console.error('Error deleting item:', error);
+                alert('Gagal menghapus item.');
+            }
+        }
     };
 
     return (
-        <div className="bg-white p-8 rounded-lg shadow">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-semibold text-gray-900">Rencana Aksi</h1>
-                <button onClick={() => handleOpenModal()} disabled={!selectedKegiatan} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300">Tambah Rencana Aksi</button>
+        <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Rencana Aksi</h1>
+                <button
+                    onClick={() => handleOpenModal()}
+                    disabled={!selectedKegiatan}
+                    className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                >
+                    <FiPlus className="mr-2" />
+                    Tambah Rencana Aksi
+                </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {/* Filters */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Filter Kategori Utama</label>
-                    <select value={selectedKategori} onChange={handleKategoriChange} className="mt-1 block w-full pl-3 pr-10 py-2 border-gray-300 rounded-md">
+                    <label htmlFor="kategori" className="block text-sm font-medium text-gray-700 mb-1">Kategori Utama</label>
+                    <select id="kategori" value={selectedKategori} onChange={handleKategoriChange} className="w-full p-2 border rounded-md">
                         <option value="">-- Pilih Kategori --</option>
                         {kategoriList.map(k => <option key={k.id} value={k.id}>{k.nomor}. {k.nama_kategori}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Filter Kegiatan</label>
-                    <select value={selectedKegiatan} onChange={e => setSelectedKegiatan(e.target.value)} disabled={loading.kegiatan} className="mt-1 block w-full pl-3 pr-10 py-2 border-gray-300 rounded-md">
+                    <label htmlFor="kegiatan" className="block text-sm font-medium text-gray-700 mb-1">Kegiatan</label>
+                    <select id="kegiatan" value={selectedKegiatan} onChange={(e) => setSelectedKegiatan(e.target.value)} disabled={!selectedKategori || loading.kegiatan} className="w-full p-2 border rounded-md">
                         <option value="">-- Pilih Kegiatan --</option>
                         {kegiatanList.map(k => <option key={k.id} value={k.id}>{k.nama_kegiatan}</option>)}
                     </select>
                 </div>
             </div>
 
-            {loading.rencana ? <div className="flex justify-center"><div className="loader"></div></div> :
+            {loading.rencana ? <div className="flex justify-center py-10"><div className="loader"></div></div> :
                 <div className="overflow-x-auto">
                     <table className="min-w-full bg-white">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">No. Aksi</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Penanggung Jawab</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Target</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Progress</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deskripsi</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Penanggung Jawab</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioritas</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                             {rencanaAksiList.map(item => (
                                 <tr key={item.id}>
-                                    <td className="px-6 py-4">{item.nomor_aksi}</td>
-                                    <td className="px-6 py-4 whitespace-pre-wrap max-w-sm">{item.deskripsi_aksi}</td>
-                                    <td className="px-6 py-4">{item.assigned_user?.name || '-'}</td>
-                                    <td className="px-6 py-4">{item.target_tanggal}</td>
+                                    <td className="px-6 py-4 whitespace-normal w-1/3">{item.deskripsi_aksi}</td>
+                                    <td className="px-6 py-4">{item.assigned_to?.name || '-'}</td>
+                                    <td className="px-6 py-4">{item.priority}</td>
+                                    <td className="px-6 py-4">{item.status}</td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[item.status]}`}>
-                                            {item.status.replace('_', ' ')}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="progress-bar-container w-full h-2.5">
-                                            <div className="progress-bar" style={{ width: `${item.latest_progress}%` }}></div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                            {/* [FIX] - Menggunakan item.latest_progress yang sekarang sudah tersedia */}
+                                            <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${item.latest_progress || 0}%` }}></div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
@@ -168,10 +208,18 @@ function RencanaAksiPage() {
                     </table>
                 </div>
             }
-            {isModalOpen && <RencanaAksiModal item={currentItem} users={userList} onClose={handleCloseModal} onSave={handleSave} />}
-            {isTodoModalOpen && <TodoModal rencanaAksi={selectedRencanaAksi} onClose={handleCloseTodoModal} />}
+            {isModalOpen && <RencanaAksiModal
+                currentData={currentItem}
+                kegiatanId={selectedKegiatan}
+                users={userList}
+                onClose={handleCloseModal}
+                onSave={fetchRencanaAksi}
+            />}
+            {isTodoModalOpen && <TodoModal rencanaAksi={selectedRencanaAksi} onClose={handleCloseTodoModal} onUpdate={fetchRencanaAksi} />}
             {isProgressModalOpen && <ProgressModal rencanaAksi={selectedRencanaAksi} onClose={handleCloseProgressModal} onProgressUpdate={fetchRencanaAksi} />}
         </div>
     );
 }
+
 export default RencanaAksiPage;
+

@@ -160,7 +160,7 @@ SQL;
     {
 
         // Pastikan event scheduler aktif di MySQL
-        DB::statement("SET GLOBAL event_scheduler = ON;");
+        // DB::statement("SET GLOBAL event_scheduler = ON;");
 
         $eventSql = <<<SQL
 DROP EVENT IF EXISTS ev_check_overdue_tasks;

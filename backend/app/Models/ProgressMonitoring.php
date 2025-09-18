@@ -45,14 +45,12 @@ class ProgressMonitoring extends Model
 
     public function rencanaAksi()
     {
-
-        return $this->belongsTo(RencanaAksi::class);
+        return $this->belongsTo(RencanaAksi::class, 'rencana_aksi_id');
     }
 
     public function attachments()
     {
-
-        return $this->hasMany(ProgressAttachment::class);
+        return $this->hasMany(ProgressAttachment::class, 'progress_monitoring_id');
     }
 
 }

@@ -40,7 +40,6 @@ function ProgressModal({ rencanaAksi, onClose, onProgressUpdate }) {
         attachments.forEach(file => {
             formData.append('attachments[]', file);
         });
-
         try {
             // Kirim sebagai multipart/form-data
             await apiClient.post(`/rencana-aksi/${rencanaAksi.id}/progress`, formData, {
@@ -55,7 +54,19 @@ function ProgressModal({ rencanaAksi, onClose, onProgressUpdate }) {
             setIsSubmitting(false);
         }
     };
+    const fixAttachmentUrl = (url) => {
+        // Jika URL sudah lengkap, biarkan seperti itu
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
 
+        // Jika URL relative, tambahkan base URL backend
+        if (url.startsWith('/storage/')) {
+            return `http://localhost:8000${url}`;
+        }
+
+        return url;
+    };
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 overflow-y-auto pt-10">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl mb-10">
@@ -104,7 +115,7 @@ function ProgressModal({ rencanaAksi, onClose, onProgressUpdate }) {
                                         <ul className="list-disc list-inside mt-1">
                                             {item.attachments.map(file => (
                                                 <li key={file.id} className="text-sm">
-                                                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
+                                                    <a href={fixAttachmentUrl(file.url)} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">
                                                         {file.file_name} ({file.file_size_kb} KB)
                                                     </a>
                                                 </li>

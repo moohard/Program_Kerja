@@ -3,31 +3,33 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class UpdateRencanaAksiRequest extends FormRequest
 {
-
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
-
-        return TRUE;
+        return true;
     }
 
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     */
     public function rules(): array
     {
-
-        return [
-            'kegiatan_id'    => 'sometimes|required|integer|exists:kegiatan,id',
-            'nomor_aksi'     => 'sometimes|nullable|string|max:10',
+         return [
+            'kegiatan_id' => 'sometimes|required|exists:kegiatan,id',
             'deskripsi_aksi' => 'sometimes|required|string',
-            'target_tanggal' => 'sometimes|nullable|date',
-            'catatan'        => 'sometimes|nullable|string',
-            'assigned_to'    => 'sometimes|nullable|integer|exists:users,id',
-            'jadwal_tipe'    => [ 'sometimes', 'required', Rule::in([ 'insidentil', 'periodik', 'rutin' ]) ],
-            'jadwal_config'  => 'sometimes|nullable|json',
-            'priority'       => [ 'sometimes', 'required', Rule::in([ 'low', 'medium', 'high' ]) ],
+            'assigned_to' => 'nullable|exists:users,id',
+            'priority' => 'sometimes|required|in:low,medium,high',
+            'catatan' => 'nullable|string',
+            'schedule_months' => 'sometimes|required|array|min:1',
+            'schedule_months.*' => 'integer|min:1|max:12',
+            'year' => 'sometimes|required|integer|min:2020|max:2099',
         ];
     }
-
 }

@@ -87,11 +87,11 @@ gantt
   - [x] Search dan filter functionality
 
 #### Modul Penjadwalan
-- [ ] **Sistem Jadwal**
-  - [ ] Implementasi jadwal insidentil (contoh: Karis/Karsu Jan-Des)
-  - [ ] Implementasi jadwal periodik (contoh: triwulanan)
-  - [ ] Implementasi jadwal rutin (contoh: mingguan)
-  - [ ] UI untuk konfigurasi jadwal
+- [x] **Sistem Jadwal**
+  - [x] Implementasi jadwal insidentil (contoh: Karis/Karsu Jan-Des)
+  - [x] Implementasi jadwal periodik (contoh: triwulanan)
+  - [x] Implementasi jadwal rutin (contoh: mingguan)
+  - [x] UI untuk konfigurasi jadwal
 - [ ] **Reminder System**
   - [ ] Notifikasi untuk tugas yang akan datang
   - [ ] Alert untuk deadline mendekat
@@ -119,27 +119,27 @@ gantt
 ### ✅ Fase 3: Monitoring & Reporting (5-6 Minggu)
 
 ### Dashboard Utama
-- [ ] **Overview Dashboard**
-  - [ ] Summary statistics (total tasks, completed, overdue)
-  - [ ] Progress charts per kategori
-  - [ ] Recent activity feed
-  - [ ] Upcoming deadlines section
-- [ ] **Advanced Filtering**
-  - [ ] Filter by tahun program
-  - [ ] Filter by kategori/kegiatan
-  - [ ] Filter by assigned user
-  - [ ] Filter by status/priority
+- [x] **Overview Dashboard**
+  - [x] Summary statistics (total tasks, completed, overdue)
+  - [x] Progress charts per kategori
+  - [x] Recent activity feed
+  - [x] Upcoming deadlines section
+- [] **Advanced Filtering**
+  - [] Filter by tahun program
+  - [] Filter by kategori/kegiatan
+  - [] Filter by assigned user
+  - [] Filter by status/priority
 
 ### Reporting System
-- [ ] **Laporan Bulanan**
-  - [ ] Generate monthly progress reports
-  - [ ] Summary of completed tasks
-  - [ ] Analysis of overdue tasks
-  - [ ] Performance metrics
-- [ ] **Laporan Tahunan**
-  - [ ] Year-end summary reports
-  - [ ] Comparative analysis year-over-year
-  - [ ] Achievement highlights
+- [x] **Laporan Bulanan**
+  - [] Generate monthly progress reports
+  - [] Summary of completed tasks
+  - [] Analysis of overdue tasks
+  - [] Performance metrics
+- [] **Laporan Tahunan**
+  - [] Year-end summary reports
+  - [] Comparative analysis year-over-year
+  - [] Achievement highlights
 
 ### Export Functionality
 - [ ] **Data Export**
