@@ -32,7 +32,7 @@ class KategoriUtama extends Model
     public function kegiatan()
     {
 
-        return $this->hasMany(Kegiatan::class, 'kategori_id');
+        return $this->hasMany(Kegiatan::class, 'kategori_id','id');
     }
 
 }

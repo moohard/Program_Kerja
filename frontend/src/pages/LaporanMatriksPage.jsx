@@ -29,6 +29,10 @@ const LaporanMatriksPage = () => {
     }, [year]);
 
     const processedData = useMemo(() => {
+        console.table(Object.keys(reportData).map(key => ({
+            Kategori: key,
+            'Jumlah Aksi': reportData[key].length
+        })));
         if (Object.keys(reportData).length === 0) return [];
         return Object.entries(reportData).map(([kategoriNama, aksiList]) => {
             const kegiatanGrouped = aksiList.reduce((acc, aksi) => {
@@ -42,7 +46,6 @@ const LaporanMatriksPage = () => {
                 acc[kegiatanId].rencana_aksi.push(aksi);
                 return acc;
             }, {});
-
             return {
                 kategori_nama: kategoriNama,
                 total_rows: aksiList.length,

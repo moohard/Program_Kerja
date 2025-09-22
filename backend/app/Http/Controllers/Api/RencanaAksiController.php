@@ -8,25 +8,26 @@ use App\Http\Requests\StoreRencanaAksiRequest;
 use App\Http\Requests\UpdateRencanaAksiRequest;
 use App\Http\Resources\RencanaAksiResource;
 use Illuminate\Http\Request;
-
+use App\Models\User;
+use App\Notifications\RencanaAksiAssignedNotification;
 class RencanaAksiController extends Controller
-{
-
-    public function index(Request $request)
     {
 
-        $request->validate([ 'kegiatan_id' => 'required|exists:kegiatan,id' ]);
+    public function index(Request $request)
+        {
+
+        $request->validate(['kegiatan_id' => 'required|exists:kegiatan,id']);
 
         $rencanaAksi = RencanaAksi::where('kegiatan_id', $request->kegiatan_id)
-            ->with([ 'assignedTo:id,name', 'progressMonitorings.attachments','latestProgress' ])
+            ->with(['assignedTo:id,name', 'progressMonitorings.attachments', 'latestProgress'])
             ->latest()
             ->get();
 
         return RencanaAksiResource::collection($rencanaAksi);
-    }
+        }
 
     public function store(StoreRencanaAksiRequest $request)
-    {
+        {
 
         $validated = $request->validated();
 
@@ -41,46 +42,59 @@ class RencanaAksiController extends Controller
             'priority'       => $validated['priority'],
             'catatan'        => $validated['catatan'],
             'jadwal_tipe'    => 'periodik', // Asumsikan tipe periodik untuk multi-bulan
-            'jadwal_config'  => [ 'months' => $months ],
+            'jadwal_config'  => ['months' => $months],
             // Set target_tanggal ke hari pertama dari bulan pertama yang dipilih
             'target_tanggal' => "{$validated['year']}-{$months[0]}-01",
         ]);
-
+        if ($rencanaAksi->assigned_to) {
+            $user = User::find($rencanaAksi->assigned_to);
+            if ($user) {
+                \Log::info("Mencoba mengirim notifikasi 'CREATE' ke user ID: {$user->id}");
+                $user->notify(new RencanaAksiAssignedNotification($rencanaAksi));
+                }
+            }
         return new RencanaAksiResource($rencanaAksi);
-    }
+        }
 
     public function show(RencanaAksi $rencanaAksi)
-    {
+        {
 
         return new RencanaAksiResource($rencanaAksi->load(relations: 'assignedTo'));
-    }
+        }
 
     public function update(UpdateRencanaAksiRequest $request, RencanaAksi $rencanaAksi)
-    {
+        {
 
-        $validated = $request->validated();
+        $validated          = $request->validated();
+        $originalAssignedTo = $rencanaAksi->assigned_to; // Simpan user lama
 
         // Jika ada jadwal baru, proses seperti saat 'store'
-        if (isset($validated['schedule_months']))
-        {
+        if (isset($validated['schedule_months'])) {
             $months = $validated['schedule_months'];
             sort($months);
 
-            $validated['jadwal_config']  = [ 'months' => $months ];
+            $validated['jadwal_config']  = ['months' => $months];
             $year                        = $validated['year'] ?? date('Y', strtotime($rencanaAksi->target_tanggal));
             $validated['target_tanggal'] = "{$year}-{$months[0]}-01";
-        }
+            }
 
         $rencanaAksi->update($validated);
-
+        $newAssignedTo = $rencanaAksi->assigned_to;
+        if ($newAssignedTo && $newAssignedTo != $originalAssignedTo) {
+            $user = User::find($newAssignedTo);
+            if ($user) {
+                \Log::info("Mencoba mengirim notifikasi 'UPDATE' ke user ID: {$user->id}");
+                $user->notify(new RencanaAksiAssignedNotification($rencanaAksi));
+                }
+            }
         return new RencanaAksiResource($rencanaAksi);
-    }
+        }
 
     public function destroy(RencanaAksi $rencanaAksi)
-    {
+        {
 
         $rencanaAksi->delete();
         return response()->noContent();
-    }
+        }
 
-}
+    }

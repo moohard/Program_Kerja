@@ -8,7 +8,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
-{
+    {
 
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -47,9 +47,19 @@ class User extends Authenticatable
     ];
 
     public function assignedRencanaAksi()
-    {
+        {
 
         return $this->hasMany(RencanaAksi::class, 'assigned_to');
-    }
+        }
+    public function deviceTokens()
+        {
+        return $this->hasMany(DeviceToken::class);
+        }
 
-}
+    // Method untuk routing notifikasi FCM
+    public function routeNotificationForFcm()
+        {
+        return $this->deviceTokens()->pluck('token')->toArray();
+        }
+
+    }
