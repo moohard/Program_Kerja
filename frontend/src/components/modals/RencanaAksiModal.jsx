@@ -82,7 +82,12 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, us
 
         try {
             if (currentData) {
-                await apiClient.put(`/rencana-aksi/${currentData.id}`, dataToSend);
+                try {
+                    await apiClient.put(`/rencana-aksi/${currentData.id}`, dataToSend);
+
+                } catch (error) {
+                    console.error('Error details:', error.response?.data);
+                }
             } else {
                 await apiClient.post('/rencana-aksi', dataToSend);
             }

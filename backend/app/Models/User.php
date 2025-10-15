@@ -8,8 +8,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
-    {
-
+{
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
@@ -21,8 +20,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
-        'is_active',
     ];
 
     /**
@@ -36,30 +33,33 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be cast.
+     * Get the attributes that should be cast.
      *
-     * @var array<string, string>
+     * @return array<string, string>
      */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password'          => 'hashed',
-        'is_active'         => 'boolean',
-    ];
-
-    public function assignedRencanaAksi()
-        {
-
-        return $this->hasMany(RencanaAksi::class, 'assigned_to');
-        }
-    public function deviceTokens()
-        {
-        return $this->hasMany(DeviceToken::class);
-        }
-
-    // Method untuk routing notifikasi FCM
-    public function routeNotificationForFcm()
-        {
-        return $this->deviceTokens()->pluck('token')->toArray();
-        }
-
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
     }
+
+    /**
+     * Mendefinisikan relasi ke DeviceToken
+     */
+    public function deviceTokens()
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
+    /**
+     * Mengambil semua token FCM milik user yang valid.
+     * Laravel akan otomatis memanggil method ini.
+     */
+    public function routeNotificationForFcm($notification = null)
+    {
+        // filter() akan menghapus semua nilai NULL atau string kosong dari koleksi
+        return $this->deviceTokens()->pluck('token')->filter()->toArray();
+    }
+}

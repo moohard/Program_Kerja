@@ -9,7 +9,7 @@ use App\Http\Requests\UpdateRencanaAksiRequest;
 use App\Http\Resources\RencanaAksiResource;
 use Illuminate\Http\Request;
 use App\Models\User;
-use App\Notifications\RencanaAksiAssignedNotification;
+use App\Notifications\RencanaAksiAssigned;
 class RencanaAksiController extends Controller
     {
 
@@ -28,31 +28,49 @@ class RencanaAksiController extends Controller
 
     public function store(StoreRencanaAksiRequest $request)
         {
+        $validated   = $request->validated();
+        $rencanaAksi = RencanaAksi::create($validated);
 
-        $validated = $request->validated();
+        try {
+            // [FIX] Menggunakan 'assigned_to' dari data yang divalidasi
+            $assignedUserId = $validated['assigned_to'] ?? NULL;
 
-        // Ambil bulan-bulan yang dijadwalkan dan urutkan
-        $months = $validated['schedule_months'];
-        sort($months);
+            \Log::info("--- DEBUG NOTIFIKASI (STORE) ---");
+            \Log::info("Mencari User dengan ID: " . ($assignedUserId ?? 'NULL'));
 
-        $rencanaAksi = RencanaAksi::create([
-            'kegiatan_id'    => $validated['kegiatan_id'],
-            'deskripsi_aksi' => $validated['deskripsi_aksi'],
-            'assigned_to'    => $validated['assigned_to'],
-            'priority'       => $validated['priority'],
-            'catatan'        => $validated['catatan'],
-            'jadwal_tipe'    => 'periodik', // Asumsikan tipe periodik untuk multi-bulan
-            'jadwal_config'  => ['months' => $months],
-            // Set target_tanggal ke hari pertama dari bulan pertama yang dipilih
-            'target_tanggal' => "{$validated['year']}-{$months[0]}-01",
-        ]);
-        if ($rencanaAksi->assigned_to) {
-            $user = User::find($rencanaAksi->assigned_to);
-            if ($user) {
-                \Log::info("Mencoba mengirim notifikasi 'CREATE' ke user ID: {$user->id}");
-                $user->notify(new RencanaAksiAssignedNotification($rencanaAksi));
+            if ($assignedUserId) {
+                $userToNotify = User::find($assignedUserId);
+
+                if ($userToNotify) {
+                    \Log::info("User ditemukan: " . $userToNotify->name);
+
+                    $tokenCount = $userToNotify->deviceTokens()->count();
+                    \Log::info("Jumlah token untuk user ini: " . $tokenCount);
+
+                    if ($tokenCount > 0) {
+                        \Log::info("MEMICU PENGIRIMAN NOTIFIKASI...");
+                        $userToNotify->notify(new RencanaAksiAssigned($rencanaAksi));
+                        \Log::info("Notifikasi telah diserahkan ke Laravel.");
+                        }
+                    else {
+                        \Log::info("Tidak ada token, notifikasi tidak dikirim.");
+                        }
+
+                    }
+                else {
+                    \Log::info("User dengan ID " . $assignedUserId . " tidak ditemukan.");
+                    }
                 }
+            else {
+                \Log::info("Tidak ada user yang ditugaskan (assigned_to is null).");
+                }
+            \Log::info("--- AKHIR DEBUG ---");
+
             }
+        catch (\Exception $e) {
+            \Log::error('FCM Notification failed during store: ' . $e->getMessage());
+            }
+
         return new RencanaAksiResource($rencanaAksi);
         }
 
@@ -64,30 +82,49 @@ class RencanaAksiController extends Controller
 
     public function update(UpdateRencanaAksiRequest $request, RencanaAksi $rencanaAksi)
         {
-
-        $validated          = $request->validated();
-        $originalAssignedTo = $rencanaAksi->assigned_to; // Simpan user lama
-
-        // Jika ada jadwal baru, proses seperti saat 'store'
-        if (isset($validated['schedule_months'])) {
-            $months = $validated['schedule_months'];
-            sort($months);
-
-            $validated['jadwal_config']  = ['months' => $months];
-            $year                        = $validated['year'] ?? date('Y', strtotime($rencanaAksi->target_tanggal));
-            $validated['target_tanggal'] = "{$year}-{$months[0]}-01";
-            }
-
+        $validated = $request->validated();
         $rencanaAksi->update($validated);
-        $newAssignedTo = $rencanaAksi->assigned_to;
-        if ($newAssignedTo && $newAssignedTo != $originalAssignedTo) {
-            $user = User::find($newAssignedTo);
-            if ($user) {
-                \Log::info("Mencoba mengirim notifikasi 'UPDATE' ke user ID: {$user->id}");
-                $user->notify(new RencanaAksiAssignedNotification($rencanaAksi));
+
+        try {
+            // [FIX] Menggunakan 'assigned_to' dari data yang baru divalidasi
+            $assignedUserId = $validated['assigned_to'] ?? NULL;
+
+            \Log::info("--- DEBUG NOTIFIKASI (UPDATE) ---");
+            \Log::info("Mencari User dengan ID: " . ($assignedUserId ?? 'NULL'));
+
+            if ($assignedUserId) {
+                $userToNotify = User::find($assignedUserId);
+
+                if ($userToNotify) {
+                    \Log::info("User ditemukan: " . $userToNotify->name);
+
+                    $tokenCount = $userToNotify->deviceTokens()->count();
+                    \Log::info("Jumlah token untuk user ini: " . $tokenCount);
+
+                    if ($tokenCount > 0) {
+                        \Log::info("MEMICU PENGIRIMAN NOTIFIKASI...");
+                        $userToNotify->notify(new RencanaAksiAssigned($rencanaAksi));
+                        \Log::info("Notifikasi telah diserahkan ke Laravel.");
+                        }
+                    else {
+                        \Log::info("Tidak ada token, notifikasi tidak dikirim.");
+                        }
+                    }
+                else {
+                    \Log::info("User dengan ID " . $assignedUserId . " tidak ditemukan.");
+                    }
                 }
+            else {
+                \Log::info("Tidak ada user yang ditugaskan (assigned_to is null).");
+                }
+            \Log::info("--- AKHIR DEBUG ---");
+
             }
-        return new RencanaAksiResource($rencanaAksi);
+        catch (\Exception $e) {
+            \Log::error('FCM Notification failed during update: ' . $e->getMessage());
+            }
+
+        return new RencanaAksiResource($rencanaAksi->refresh()); // refresh() untuk mendapatkan data terbaru
         }
 
     public function destroy(RencanaAksi $rencanaAksi)

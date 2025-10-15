@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "dompdf/dompdf": "^3.1",
+        "guzzlehttp/guzzle": "^7.10",
         "kreait/laravel-firebase": "^6.1",
         "laravel-notification-channels/fcm": "^5.1",
         "laravel/framework": "^12.0",

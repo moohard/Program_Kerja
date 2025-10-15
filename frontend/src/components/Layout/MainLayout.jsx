@@ -1,129 +1,88 @@
-import React, { useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { FiHome, FiFileText, FiArchive, FiBarChart2, FiLogOut, FiChevronDown, FiChevronUp, FiSettings, FiSliders, FiList } from 'react-icons/fi';
+import React, { useEffect } from 'react';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import { requestPermission } from '../../firebase-config';
+import apiClient from '../../services/apiClient';
 
 const MainLayout = () => {
-    const auth = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
 
+    useEffect(() => {
+        // Fungsi untuk meminta izin notifikasi dan mengirim token ke backend
+        const setupNotifications = async () => {
+            try {
+                const token = await requestPermission();
+                if (token) {
+                    // Kirim token ke backend
+                    await apiClient.post('/store-fcm-token', { token });
+                    console.log('FCM Token successfully sent to backend.');
+                }
+            } catch (error) {
+                console.error('Error setting up notifications:', error);
+            }
+        };
+
+        // Panggil fungsi hanya jika ada user yang login
+        if (user) {
+            setupNotifications();
+        }
+    }, [user]);
+
+
     const handleLogout = async () => {
-        await auth.logout();
-        navigate('/login');
-    };
-
-    const [openMenus, setOpenMenus] = useState({
-        'Master Data': false,
-        'Laporan': false
-    });
-
-    const toggleMenu = (name) => {
-        setOpenMenus(prev => ({ ...prev, [name]: !prev[name] }));
-    };
-
-    const NavItem = ({ link }) => {
-        const location = useLocation();
-
-        if (link.children) {
-            const isOpen = openMenus[link.name] || false;
-            const isChildActive = link.children.some(child => location.pathname.startsWith(child.path));
-
-            return (
-                <div>
-                    <button onClick={() => toggleMenu(link.name)} className={`w-full flex items-center justify-between text-left px-4 py-2.5 rounded-lg transition-colors duration-200 ${isChildActive ? 'bg-indigo-700 text-white' : 'text-gray-200 hover:bg-indigo-500'}`}>
-                        <div className="flex items-center">
-                            <link.icon className="w-5 h-5 mr-3" />
-                            <span>{link.name}</span>
-                        </div>
-                        {isOpen ? <FiChevronUp /> : <FiChevronDown />}
-                    </button>
-                    {isOpen && (
-                        <div className="pl-8 py-2 space-y-2">
-                            {link.children.map(child => <NavItem key={child.name} link={child} />)}
-                        </div>
-                    )}
-                </div>
-            );
+        try {
+            await logout();
+            navigate('/login');
+        } catch (error) {
+            console.error('Failed to logout', error);
         }
-
-        return (
-            <NavLink
-                to={link.path}
-                className={({ isActive }) =>
-                    `flex items-center px-4 py-2.5 rounded-lg transition-colors duration-200 ${isActive ? 'bg-indigo-700 text-white' : 'text-gray-200 hover:bg-indigo-500'}`
-                }
-            >
-                <link.icon className="w-5 h-5 mr-3" />
-                <span>{link.name}</span>
-            </NavLink>
-        );
     };
 
-    const navLinks = [
-        { name: 'Dashboard', path: '/dashboard', icon: FiHome },
-        { name: 'Rencana Aksi', path: '/rencana-aksi', icon: FiFileText },
-        {
-            name: 'Laporan',
-            icon: FiBarChart2,
-            children: [
-                { name: 'Laporan Bulanan', path: '/laporan/bulanan', icon: FiFileText },
-                { name: 'Laporan Matriks', path: '/laporan/matriks', icon: FiArchive },
-            ]
-        },
-        {
-            name: 'Pengaturan',
-            icon: FiSettings,
-            children: [
-                { name: 'Manajemen Template', path: '/templates', icon: FiSliders },
-                { name: 'Laporan Audit', path: '/audit-logs', icon: FiList },
-                {
-                    name: 'Master Data',
-                    path: '#', // a placeholder
-                    icon: FiArchive,
-                    children: [
-                        { name: 'Kategori Utama', path: '/master/kategori-utama', icon: FiFileText },
-                        { name: 'Kegiatan', path: '/master/kegiatan', icon: FiFileText },
-                    ]
-                }
-            ]
-        }
-    ];
-
-    // Simple recursive renderer for nested menus in NavItem
-    NavItem.Nested = ({ links }) => {
-        return links.map(link => <NavItem key={link.name} link={link} />);
-    };
-
+    if (!user) {
+        return null;
+    }
 
     return (
-        <div className="flex h-screen bg-gray-100">
+        <div className="min-h-screen flex">
             {/* Sidebar */}
-            <div className="hidden md:flex flex-col w-64 bg-indigo-600">
-                <div className="flex items-center justify-center h-20 shadow-md">
-                    <h1 className="text-2xl font-bold text-white">PROKER APP</h1>
-                </div>
-                <div className="flex-1 overflow-y-auto">
-                    <nav className="mt-6 px-4 space-y-2">
-                        {navLinks.map(link => <NavItem key={link.name} link={link} />)}
-                    </nav>
-                </div>
-                <div className="p-4 border-t border-indigo-700">
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center px-4 py-2.5 rounded-lg text-gray-200 hover:bg-indigo-500"
-                    >
-                        <FiLogOut className="w-5 h-5 mr-3" />
-                        <span>Logout</span>
-                    </button>
-                </div>
+            <div className="w-64 bg-gray-800 text-white flex flex-col">
+                <div className="p-4 text-xl font-bold border-b border-gray-700">ProKer App</div>
+                <nav className="flex-1 p-4 space-y-2">
+                    <Link to="/" className="block px-4 py-2 rounded hover:bg-gray-700">Dashboard</Link>
+                    <Link to="/rencana-aksi" className="block px-4 py-2 rounded hover:bg-gray-700">Rencana Aksi</Link>
+                    <Link to="/laporan" className="block px-4 py-2 rounded hover:bg-gray-700">Laporan</Link>
+                    <Link to="/laporan-matriks" className="block px-4 py-2 rounded hover:bg-gray-700">Laporan Matriks</Link>
+                    <div className="pt-4 mt-4 border-t border-gray-700">
+                        <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Master Data</h3>
+                        <Link to="/master/kategori-utama" className="block px-4 py-2 rounded hover:bg-gray-700 mt-2">Kategori Utama</Link>
+                        <Link to="/master/kegiatan" className="block px-4 py-2 rounded hover:bg-gray-700">Kegiatan</Link>
+                    </div>
+                    <div className="pt-4 mt-4 border-t border-gray-700">
+                        <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Settings</h3>
+                        <Link to="/templates" className="block px-4 py-2 rounded hover:bg-gray-700 mt-2">Templates</Link>
+                        <Link to="/audit-log" className="block px-4 py-2 rounded hover:bg-gray-700">Audit Log</Link>
+                    </div>
+                </nav>
             </div>
 
-            {/* Main content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="flex justify-between items-center p-6 bg-white border-b">
-                    <h2 className="text-xl font-semibold">Selamat Datang, {auth.user?.name || 'Pengguna'}</h2>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col">
+                <header className="bg-white shadow-md p-4 flex justify-between items-center">
+                    <div>
+                        {/* Breadcrumbs or Page Title can go here */}
+                    </div>
+                    <div className="flex items-center space-x-4">
+                        <span>Welcome, {user.name}</span>
+                        <button
+                            onClick={handleLogout}
+                            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                        >
+                            Logout
+                        </button>
+                    </div>
                 </header>
-                <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+                <main className="flex-1 p-6 bg-gray-100 overflow-y-auto">
                     <Outlet />
                 </main>
             </div>

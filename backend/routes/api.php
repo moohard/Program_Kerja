@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ImportExportController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\KategoriUtamaController;
@@ -49,4 +50,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('rencana-aksi.progress', ProgressMonitoringController::class)
         ->only(['index', 'store'])
         ->scoped();
+    Route::post('/rencana-aksi/import', [ImportExportController::class, 'importRencanaAksi']);
+    Route::get('/rencana-aksi/export-template', [ImportExportController::class, 'exportRencanaAksiTemplate']);
+    Route::post('/store-fcm-token', [NotificationController::class, 'storeToken']);
+
+
     });
