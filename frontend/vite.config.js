@@ -6,10 +6,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   server: {
     host: '0.0.0.0',
-    https: {
-      key: './192.168.10.10+2-key.pem',
-      cert: './192.168.10.10+2.pem',
-    },
+    // https: {
+    //   key: './192.168.10.10+2-key.pem',
+    //   cert: './192.168.10.10+2.pem',
+    // },
     // --- TAMBAHKAN BLOK PROXY DI BAWAH INI ---
     proxy: {
       // String shorthand: `/api` -> `http://127.0.0.1:8000/api`

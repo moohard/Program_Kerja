@@ -132,8 +132,15 @@ class ReportController extends Controller
         ]);
 
         // Menggunakan kembali fungsi pengambilan data yang sama
-        $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $request->year)
-            ->with(['kegiatan.kategoriUtama', 'assignedTo:id,name'])
+        $year = $request->year;
+        $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
+            ->with([
+                'kegiatan.kategoriUtama',
+                'assignedTo:id,name',
+                'progressMonitorings' => function ($query) use ($year) {
+                    $query->whereYear('report_date', $year);
+                }
+            ])
             ->get();
 
         $fileName = "Laporan_Matriks_{$request->year}.xlsx";

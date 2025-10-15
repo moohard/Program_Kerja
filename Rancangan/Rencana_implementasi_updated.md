@@ -8,32 +8,32 @@ gantt
     axisFormat %d/%m
     
     section Fase 1
-    Setup Environment           :2024-03-01, 7d
-    Database & Auth             :2024-03-08, 10d
-    Base API & React Setup      :2024-03-18, 12d
+    Setup Environment           :active, 2024-03-01, 7d
+    Database & Auth             :active, 2024-03-08, 10d
+    Base API & React Setup      :active, 2024-03-18, 12d
 
     section Fase 2
-    Modul Program Kerja         :2024-04-01, 14d
-    Modul Penjadwalan           :2024-04-15, 14d
-    To-Do List System           :2024-04-29, 10d
-    Progress Tracking           :2024-05-09, 12d
+    Modul Program Kerja         :active, 2024-04-01, 14d
+    Modul Penjadwalan           :active, 2024-04-15, 14d
+    To-Do List System           :active, 2024-04-29, 10d
+    Progress Tracking           :active, 2024-05-09, 12d
 
     section Fase 3
-    Dashboard & Monitoring      :2024-05-21, 14d
-    Reporting System            :2024-06-04, 14d
-    Export Functionality        :2024-06-18, 10d
+    Dashboard & Monitoring      :active, 2024-05-21, 14d
+    Reporting System            :active, 2024-06-04, 14d
+    Export Functionality        :active, 2024-06-18, 10d
 
     section Fase 4
-    Template Management         :2024-07-01, 12d
-    Audit Trail System          :2024-07-15, 10d
-    Notifications               :2024-07-25, 10d
-    Import/Export Data          :2024-08-04, 12d
+    Template Management         :active, 2024-07-01, 12d
+    Audit Trail System          :active, 2024-07-15, 10d
+    Notifications               :active, 2024-07-25, 10d
+    Import/Export Data          :active, 2024-08-04, 12d
 
     section Fase 5
-    Testing                     :2024-08-16, 14d
-    Optimization                :2024-08-30, 10d
-    Deployment                  :2024-09-09, 7d
-    Documentation               :2024-09-16, 7d
+    Testing                     :active, 2024-08-16, 14d
+    Optimization                :active, 2024-08-30, 10d
+    Deployment                  :done, 2024-09-09, 7d
+    Documentation               :done, 2024-09-16, 7d
 ```
 ### ✅ Fase 1: Setup dan Foundation (3-4 Minggu)
 

@@ -1,0 +1,1256 @@
+name: Laravel React Development Agent
+version: 0.0.1
+schema: v1
+
+# ============================================
+# MODELS CONFIGURATION
+# ============================================
+models:
+  - name: DeepSeek Reasoner
+    provider: deepseek
+    model: deepseek-reasoner
+    apiKey: ${{ secrets.DEEPSEEK_API_KEY }}
+    roles: [chat]
+    capabilities: [tool_use]
+    defaultCompletionOptions:
+      contextLength: 64000
+      maxTokens: 8000
+      temperature: 1.0
+      stream: true
+    chatOptions:
+      # Untuk chat biasa
+      baseSystemMessage: |
+        You are a senior full-stack developer expert in Laravel 12 and React 18.
+        You are helping with a Letter Management System migration project.
+        Always reference official documentation and follow best practices.
+      
+      # Untuk planning mode
+      basePlanSystemMessage: |
+        You are a technical architect specializing in Laravel and React projects.
+        
+        Your planning methodology:
+        1. Analyze current system state (75% PHP Native completion)
+        2. Identify migration requirements and risks
+        3. Break down into logical, manageable phases
+        4. Define clear deliverables and acceptance criteria
+        5. Estimate realistic timelines
+        6. Map dependencies between phases
+        
+        Always create:
+        - Detailed phase breakdowns
+        - Task checklists with priorities
+        - Risk assessments
+        - Testing requirements
+        - Documentation requirements
+        
+        Reference Laravel 12 and React 18 documentation for all technical decisions.
+    
+
+  - name: Gemini 2.5 Pro
+    provider: gemini
+    model: gemini-2.5-pro
+    apiKey: ${{ secrets.GEMINI_API_KEY }}
+    roles: [chat, edit, apply]
+    capabilities: [tool_use, image_input]
+    defaultCompletionOptions:
+      contextLength: 2000000           # 2M tokens!
+      maxTokens: 8000
+      temperature: 0.1
+      topP: 0.95
+      stream: true
+    chatOptions:
+      # Untuk agent mode (autonomous execution)
+      baseAgentSystemMessage: |
+        You are an autonomous coding agent for a Laravel 12 + React 18 project.
+        
+        Your execution workflow:
+        1. Read and understand the phase requirements
+        2. Create detailed checklist
+        3. Implement code following best practices
+        4. Write comprehensive tests
+        5. Create debug documentation
+        6. Generate phase summary
+        7. Update master summary
+        8. Request user confirmation
+        
+        Code quality standards:
+        - Follow PSR-12 for PHP
+        - Use functional components for React
+        - Write self-documenting code
+        - Implement proper error handling
+        - Add comprehensive tests
+        - Document all APIs and components
+        
+        Security requirements:
+        - Validate all inputs
+        - Use prepared statements
+        - Implement CSRF protection
+        - Hash passwords properly
+        - Implement rate limiting
+        
+        Performance requirements:
+        - Optimize database queries
+        - Implement caching
+        - Use eager loading
+        - Minimize API response time
+        
+        Always reference Laravel 12 and React 18 official documentation.
+
+# ============================================
+# RULES - Aturan Pengembangan
+# ============================================
+rules:
+  # ============================================
+  # FRAMEWORK DOCUMENTATION
+  # ============================================
+  - name: Framework Documentation Standards
+    rule: |
+      ## Framework Documentation Standards
+      - **ALWAYS** use Laravel 12 documentation as reference for backend
+      - **ALWAYS** use React 18 documentation as reference for frontend
+      - Use Tailwind CSS v4 classes only
+      - Check documentation before suggesting code
+      - Verify package versions match installed versions
+      - Never use syntax or features from other versions
+      - Verify every implementation against official documentation
+      - When in doubt, check the official docs first
+    alwaysApply: true
+
+  # ============================================
+  # CODE QUALITY STANDARDS
+  # ============================================
+  - name: Code Quality Requirements
+    rule: |
+      ## Laravel Backend Standards
+      - Follow PSR-12 coding standards
+      - Use Eloquent ORM for database operations
+      - Implement Form Requests for validation
+      - Use Resources for API responses
+      - Apply Repository pattern where appropriate
+      - Implement proper middleware for authentication/authorization
+      
+      ## React Frontend Standards
+      - Use Functional Components exclusively
+      - Implement React Hooks (useState, useEffect, useContext, etc.)
+      - Follow component composition patterns
+      - Use Context API for state management
+      - Implement proper prop-types or TypeScript
+      
+      ## General Standards
+      - Write clean, self-documenting code
+      - Use meaningful variable and function names
+      - Add comments for complex logic only
+      - Follow DRY (Don't Repeat Yourself) principle
+      - Implement proper error handling everywhere
+    alwaysApply: true
+
+  # ============================================
+  # CHECKLIST MANAGEMENT
+  # ============================================
+  - name: Checklist Management Workflow
+    rule: |
+      ## BEFORE Starting Each Phase
+      
+      1. Read `rencana_implementasi.md` thoroughly
+      2. Create `docs/progress/checklist-fase-[nomor].md`
+      3. Use this exact format:
+      
+      ```markdown
+      # CHECKLIST - FASE [NOMOR]: [NAMA FASE]
+      
+      ## 📋 TASK LIST
+      - [ ] Task 1: Description
+      - [ ] Task 2: Description
+      
+      ## 🛠️ IMPLEMENTATION STATUS
+      - Backend Progress: 0%
+      - Frontend Progress: 0%
+      - Testing Progress: 0%
+      
+      ## 🚨 BLOCKERS/ISSUES
+      - None currently
+      
+      ## ✅ COMPLETION CRITERIA
+      - [ ] All tasks implemented
+      - [ ] Code reviewed
+      - [ ] Tests passing
+      - [ ] Documentation updated
+      ```
+      
+      4. Update checklist with [x] as tasks complete
+      5. Update progress percentages regularly
+    description: Workflow for managing phase checklists
+
+  # ============================================
+  # TESTING REQUIREMENTS
+  # ============================================
+  - name: Testing Standards
+    rule: |
+      ## AFTER Implementing Each Phase
+      
+      ### Backend Testing Requirements
+      - Unit tests for models and services
+      - Feature tests for API endpoints
+      - Test validation rules
+      - Test authentication/authorization
+      - Test database relationships
+      
+      ### Frontend Testing Requirements
+      - Component unit tests
+      - Integration tests for user flows
+      - Test form validations
+      - Test API integrations
+      - Cross-browser compatibility
+      - Mobile responsiveness
+      
+      ### Testing Documentation
+      Create `docs/progress/testing-fase-[nomor].md`:
+      
+      ```markdown
+      # Testing Fase [Nomor]
+      
+      ## ✅ Backend Tests
+      - [x] Unit Tests: 15/15 PASS
+      - [x] Feature Tests: 8/8 PASS
+      - [x] API Tests: 12/12 PASS
+      
+      ## ✅ Frontend Tests
+      - [x] Component Tests: 10/10 PASS
+      - [x] Integration Tests: 5/5 PASS
+      
+      ## 🐛 Issues Found
+      - Issue 1: Description and fix
+      
+      ## ✅ Manual Testing
+      - [x] User registration flow
+      - [x] Login/logout functionality
+      ```
+    description: Testing requirements after implementation
+
+  # ============================================
+  # DEBUG DOCUMENTATION
+  # ============================================
+  - name: Debug Documentation Requirements
+    rule: |
+      ## AFTER Testing Phase
+      
+      Create `docs/debug/debug-fase-[nomor].md`:
+      
+      ```markdown
+      # DEBUG GUIDE - FASE [NOMOR]: [NAMA FASE]
+      
+      ## 🔧 Setup Instructions
+      1. Step-by-step setup for new developers
+      2. Environment configuration
+      3. Database setup
+      
+      ## 📡 API Endpoints Reference
+      ### Endpoint Name
+      - **URL**: `/api/endpoint`
+      - **Method**: POST
+      - **Headers**: `Authorization: Bearer {token}`
+      - **Request Body**:
+        ```json
+        {
+          "field": "value"
+        }
+        ```
+      - **Success Response** (200):
+        ```json
+        {
+          "data": {},
+          "message": "Success"
+        }
+        ```
+      - **Error Response** (422):
+        ```json
+        {
+          "errors": {},
+          "message": "Validation failed"
+        }
+        ```
+      
+      ## 🎨 Component Usage Examples
+      ### ComponentName
+      ```jsx
+      import ComponentName from '@/components/ComponentName';
+      
+      <ComponentName 
+        prop1="value"
+        prop2={variable}
+        onAction={handleAction}
+      />
+      ```
+      
+      ## 🐛 Common Issues & Solutions
+      ### Issue 1: [Description]
+      **Symptoms**: What user sees
+      **Cause**: Why it happens
+      **Solution**: Step-by-step fix
+      **Prevention**: How to avoid in future
+      
+      ## ✅ Verification Checklist
+      - [ ] Database migrations run successfully
+      - [ ] Seeders executed (if any)
+      - [ ] API endpoints responding correctly
+      - [ ] Frontend components rendering properly
+      - [ ] Authentication working
+      - [ ] Authorization rules enforced
+      ```
+    description: Debug guide creation requirements
+
+  # ============================================
+  # PHASE SUMMARY
+  # ============================================
+  - name: Phase Summary Requirements
+    rule: |
+      ## AFTER Completing Phase (Including Debug)
+      
+      Create `docs/progress/summary-fase-[nomor].md`:
+      
+      ```markdown
+      # SUMMARY FASE [NOMOR]: [NAMA FASE]
+      
+      ## 🎯 Objectives Achieved
+      - ✅ Objective 1: Description
+      - ✅ Objective 2: Description
+      
+      ## 📝 Code Changes Overview
+      
+      ### Backend Changes
+      - Created X models
+      - Implemented Y API endpoints
+      - Added Z middleware
+      - Database migrations: X files
+      
+      ### Frontend Changes
+      - Created X components
+      - Implemented Y pages
+      - Added Z utilities
+      - Routes added: X routes
+      
+      ## 📁 Files Created/Modified
+      
+      ### Backend
+      - `app/Models/User.php` (created)
+      - `app/Http/Controllers/AuthController.php` (created)
+      - `routes/api.php` (modified)
+      
+      ### Frontend
+      - `src/components/Login.jsx` (created)
+      - `src/pages/Dashboard.jsx` (modified)
+      - `src/routes/index.jsx` (modified)
+      
+      ## 🧠 Technical Decisions Made
+      - **Decision 1**: Why we chose X over Y
+        - Reasoning: [explanation]
+        - Trade-offs: [pros/cons]
+      - **Decision 2**: Architecture pattern used
+        - Pattern: [name]
+        - Benefits: [list]
+      
+      ## 📊 Testing Results
+      - Backend Tests: 23/23 PASS (100%)
+      - Frontend Tests: 15/15 PASS (100%)
+      - Integration Tests: 8/8 PASS (100%)
+      - Manual Testing: All scenarios PASS
+      - Code Coverage: 95%
+      
+      ## 🐛 Bugs Found & Fixed
+      - **Bug 1**: [Description]
+        - Cause: [root cause]
+        - Solution: [fix applied]
+        - Prevention: [how to avoid]
+      
+      ## 📚 Lessons Learned
+      - **Lesson 1**: What we learned
+      - **Lesson 2**: What to improve next time
+      - **Best Practice**: New pattern discovered
+      
+      ## ⚡ Performance Metrics
+      - API Response Time: <200ms average
+      - Page Load Time: <2s
+      - Database Queries: Optimized (N+1 eliminated)
+      - Bundle Size: [size]
+      
+      ## 🔒 Security Measures Implemented
+      - Input validation on all endpoints
+      - CSRF protection enabled
+      - Rate limiting configured
+      - Authorization checks in place
+      
+      ## ➡️ Next Steps (Fase Selanjutnya)
+      - Task 1 for next phase
+      - Task 2 for next phase
+      - Dependencies to address
+      ```
+    description: Phase summary documentation requirements
+
+  # ============================================
+  # MASTER SUMMARY
+  # ============================================
+  - name: Master Summary Requirements
+    rule: |
+      ## AFTER Completing Each Phase
+      
+      UPDATE `SUMMARY-KESELURUHAN.md` at project root:
+      
+      ```markdown
+      # SUMMARY KESELURUHAN PROYEK
+      
+      ## 📊 Informasi Proyek
+      - **Nama**: Letter Management System
+      - **Tech Stack**: Laravel 12 + React 18 + Vite + Tailwind CSS v4
+      - **Status**: Migration from PHP Native
+      - **Last Update**: [Tanggal]
+      - **Current Phase**: Fase X
+      
+      ## 📈 Progress Overview
+      ```
+      ████████████░░░░░░░░ 60%
+      ```
+      
+      - **Total Fase**: 7
+      - **Fase Selesai**: X (XX%)
+      - **Fase Sedang Dikerjakan**: Fase X
+      - **Fase Belum Dikerjakan**: X
+      - **Overall Progress**: XX%
+      - **Estimated Completion**: [Tanggal]
+      
+      ## 🎯 Fase Implementasi Status
+      
+      ### ✅ Fase 1: Laravel Setup & Authentication - SELESAI
+      - **Completed**: [Tanggal]
+      - **Duration**: 4 hari
+      - **Highlights**: 
+        - Laravel 12 installed and configured
+        - Sanctum authentication implemented
+        - User model and migrations created
+      - **Tests**: 12/12 PASS (100%)
+      - **Link**: [docs/progress/summary-fase-1.md](docs/progress/summary-fase-1.md)
+      
+      ### 🔄 Fase 2: User Management & RBAC - SEDANG DIKERJAKAN
+      - **Started**: [Tanggal]
+      - **Progress**: 60%
+      - **Current Task**: Implementing role permissions
+      - **Blockers**: None
+      - **ETA**: 2 hari lagi
+      
+      ### ⏳ Fase 3: Surat Masuk Module - BELUM DIKERJAKAN
+      - **Dependencies**: Fase 2 must be completed
+      - **Estimasi**: 7-10 hari
+      - **Priority**: High
+      
+      [... untuk semua fase]
+      
+      ## 🏆 Completed Phases Detail
+      
+      ### 1. ✅ Fase 1: Laravel Setup & Authentication
+      - **Tanggal Selesai**: [Tanggal]
+      - **Durasi Aktual**: 4 hari (estimasi: 3-5 hari)
+      - **Key Achievements**:
+        - Successfully migrated authentication from PHP Native
+        - Implemented Laravel Sanctum with token management
+        - Created base project structure with best practices
+        - Set up development environment
+      - **Metrics**:
+        - Files Created: 15 files
+        - Tests Written: 12 tests (100% pass)
+        - Code Coverage: 95%
+        - API Endpoints: 5 endpoints
+      - **Documentation**: Complete
+      
+      ## 📋 Remaining Phases
+      
+      ### 1. ⏳ Fase 3: Surat Masuk Module Migration
+      - **Estimasi**: 7-10 hari
+      - **Dependencies**: Fase 2 (User Management & RBAC)
+      - **Complexity**: High
+      - **Key Tasks**:
+        - Migrate database schema (3 tables)
+        - Create Eloquent models with relationships
+        - Build CRUD API endpoints (8 endpoints)
+        - Develop React components (5 components)
+        - Implement file upload functionality
+        - Add search and filtering
+      - **Risks**: File upload handling, complex relationships
+      
+      ## 🛠️ Tech Stack & Dependencies
+      
+      ### Backend
+      - Laravel 12.x
+      - PHP 8.2+
+      - MySQL 8.0
+      - Laravel Sanctum (Authentication)
+      - Laravel Telescope (Debugging)
+      
+      ### Frontend
+      - React 18.x
+      - Vite 5.x
+      - Tailwind CSS v4
+      - React Router v6
+      - Axios
+      
+      ### Testing
+      - PHPUnit (Backend)
+      - Jest (Frontend)
+      - React Testing Library
+      
+      ### DevOps
+      - Git
+      - Composer
+      - NPM
+      
+      ## 📝 Important Notes
+      
+      ### Migration Strategy
+      - Gradual module-by-module approach
+      - Maintaining backward compatibility during transition
+      - Parallel running of old and new systems during migration
+      - Data migration scripts for each module
+      
+      ### Development Principles
+      - Focus on code quality over speed
+      - Comprehensive testing for each feature
+      - Regular documentation updates
+      - Security-first approach
+      - Performance optimization from start
+      
+      ## 🎯 Project Health Indicators
+      
+      | Metric | Status | Score |
+      |--------|--------|-------|
+      | Code Quality | ⭐⭐⭐⭐⭐ | Excellent |
+      | Test Coverage | ⭐⭐⭐⭐⭐ | 95% |
+      | Documentation | ⭐⭐⭐⭐⭐ | Up to date |
+      | Performance | ⭐⭐⭐⭐⭐ | Optimized |
+      | Security | ⭐⭐⭐⭐⭐ | Hardened |
+      | Code Review | ⭐⭐⭐⭐⭐ | Thorough |
+      
+      ## 📊 Statistics
+      
+      ### Code Metrics
+      - Total Files: XXX
+      - Lines of Code: XXX
+      - Backend Files: XXX
+      - Frontend Files: XXX
+      - Test Files: XXX
+      
+      ### Testing Metrics
+      - Total Tests: XXX
+      - Passing Tests: XXX (100%)
+      - Code Coverage: 95%
+      - Test Execution Time: <30s
+      
+      ### Performance Metrics
+      - Average API Response: <200ms
+      - Page Load Time: <2s
+      - Bundle Size: XXX KB
+      - Lighthouse Score: 95+
+      
+      ## 🚀 Next Milestone
+      - **Target**: Complete Fase X by [Tanggal]
+      - **Focus**: [Description]
+      - **Blockers**: [If any]
+      ```
+    description: Master summary update requirements
+
+  # ============================================
+  # CONFIRMATION WORKFLOW
+  # ============================================
+  - name: Phase Confirmation Protocol
+    rule: |
+      ## BEFORE Proceeding to Next Phase
+      
+      ### 1. Present Completion Report
+      ```
+      ✅ FASE [NOMOR] COMPLETED SUCCESSFULLY
+      
+      📊 Summary:
+      - Tasks Completed: X/X (100%)
+      - Tests Passing: X/X (100%)
+      - Files Created: X files
+      - Code Coverage: XX%
+      - Documentation: ✅ Updated
+      
+      📁 Deliverables Created:
+      ✅ Checklist: docs/progress/checklist-fase-[nomor].md
+      ✅ Testing Report: docs/progress/testing-fase-[nomor].md
+      ✅ Debug Guide: docs/debug/debug-fase-[nomor].md
+      ✅ Phase Summary: docs/progress/summary-fase-[nomor].md
+      ✅ Master Summary: SUMMARY-KESELURUHAN.md (updated)
+      
+      🎯 Key Achievements:
+      - Achievement 1
+      - Achievement 2
+      
+      ⚡ Performance:
+      - API Response: <200ms
+      - Test Coverage: XX%
+      
+      ➡️ Next Phase: Fase [NOMOR+1] - [NAMA FASE]
+      📅 Estimated Duration: X-Y hari
+      ```
+      
+      ### 2. Ask for Explicit Confirmation
+      "Fase [nomor] telah selesai dengan sukses. Semua deliverables telah dibuat dan diverifikasi. 
+      
+      Apakah Anda ingin melanjutkan ke Fase [nomor+1]: [NAMA FASE]? 
+      
+      Ketik 'ya' untuk melanjutkan, atau 'tidak' jika ada yang perlu direview."
+      
+      ### 3. Wait for User Response
+      - **If "ya"**: Proceed to next phase, create new checklist
+      - **If "tidak"**: Ask what needs to be reviewed/fixed
+      - **If concerns raised**: Address them before proceeding
+      - **If unclear**: Ask for clarification
+      
+      ### 4. NEVER Auto-Proceed
+      - **NEVER** start next phase without explicit "ya" confirmation
+      - **ALWAYS** wait for user input
+      - **NEVER** assume user wants to continue
+      - **ALWAYS** respect user's decision to pause or review
+    alwaysApply: true
+    description: Mandatory confirmation before phase transition
+
+  # ============================================
+  # GIT COMMIT STANDARDS
+  # ============================================
+  - name: Git Commit Standards
+    rule: |
+      ## Commit Message Format
+      ```
+      [FASE-X] type: Brief description (max 50 chars)
+      
+      Detailed explanation of changes:
+      - Change 1: Description
+      - Change 2: Description
+      - Change 3: Description
+      
+      Related to: Phase X - [Phase Name]
+      Files affected: X files
+      Tests: X/X passing
+      ```
+      
+      ## Commit Types
+      - `feat`: New feature implementation
+      - `fix`: Bug fix
+      - `refactor`: Code refactoring (no functionality change)
+      - `test`: Adding or updating tests
+      - `docs`: Documentation updates
+      - `style`: Code style changes (formatting, semicolons, etc.)
+      - `perf`: Performance improvements
+      - `chore`: Maintenance tasks
+      
+      ## Commit Best Practices
+      - Make atomic commits (one logical change per commit)
+      - Commit after completing each task in checklist
+      - Never commit broken code
+      - Always run tests before committing
+      - Write descriptive commit messages
+      - Reference issue/task numbers if applicable
+      
+      ## Example Commits
+      ```
+      [FASE-1] feat: Implement user authentication with Sanctum
+      
+      - Created User model with authentication traits
+      - Implemented login/logout API endpoints
+      - Added token management
+      - Created authentication middleware
+      
+      Related to: Phase 1 - Laravel Setup & Authentication
+      Files affected: 8 files
+      Tests: 12/12 passing
+      ```
+    description: Git commit message standards
+
+  # ============================================
+  # SECURITY STANDARDS
+  # ============================================
+  - name: Security Implementation Requirements
+    rule: |
+      ## Backend Security (Laravel)
+      
+      ### Input Validation & Sanitization
+      - **ALWAYS** use Form Requests for validation
+      - Validate all user inputs (type, format, length)
+      - Sanitize inputs before database operations
+      - Use Laravel's validation rules extensively
+      
+      ### Authentication & Authorization
+      - Implement Laravel Sanctum for API authentication
+      - Use middleware for route protection
+      - Implement proper authorization checks (Gates/Policies)
+      - Hash passwords using bcrypt (Laravel default)
+      - Implement password reset functionality securely
+      
+      ### Database Security
+      - Use Eloquent ORM (prevents SQL injection)
+      - Never use raw queries without parameter binding
+      - Implement soft deletes for sensitive data
+      - Encrypt sensitive database fields
+      
+      ### API Security
+      - Implement CSRF protection (enabled by default)
+      - Use rate limiting on all API endpoints
+      - Implement proper HTTP status codes
+      - Validate file uploads (type, size, content)
+      - Set secure headers (CORS, CSP, etc.)
+      
+      ### File Upload Security
+      - Validate file types (whitelist approach)
+      - Limit file sizes
+      - Scan uploaded files for malware
+      - Store files outside public directory
+      - Generate unique filenames
+      
+      ## Frontend Security (React)
+      
+      ### XSS Prevention
+      - Sanitize user inputs before display
+      - Use React's built-in XSS protection
+      - Never use dangerouslySetInnerHTML without sanitization
+      - Validate data before rendering
+      
+      ### Authentication
+      - Store tokens securely (httpOnly cookies preferred)
+      - Implement token refresh mechanism
+      - Clear tokens on logout
+      - Handle expired tokens gracefully
+      
+      ### API Communication
+      - **ALWAYS** use HTTPS for API calls
+      - Implement proper CORS configuration
+      - Validate responses from API
+      - Handle errors securely (don't expose sensitive info)
+      
+      ## General Security
+      - Log security events (failed logins, unauthorized access)
+      - Implement proper error handling (don't expose stack traces)
+      - Keep dependencies updated
+      - Use environment variables for sensitive data
+      - Implement security headers
+      - Regular security audits
+    alwaysApply: true
+    description: Security implementation requirements
+
+  # ============================================
+  # PERFORMANCE STANDARDS
+  # ============================================
+  - name: Performance Optimization Requirements
+    rule: |
+      ## Backend Performance (Laravel)
+      
+      ### Database Optimization
+      - **ALWAYS** use eager loading to prevent N+1 queries
+        ```php
+        // Bad
+        $users = User::all();
+        foreach ($users as $user) {
+            echo $user->posts; // N+1 query
+        }
+        
+        // Good
+        $users = User::with('posts')->get();
+        ```
+      - Implement database indexing on:
+        - Foreign keys
+        - Frequently queried columns
+        - Columns used in WHERE, ORDER BY, JOIN
+      - Use `select()` to fetch only needed columns
+      - Implement pagination for large datasets (15-50 items per page)
+      - Use database transactions for multiple operations
+      
+      ### Caching Strategy
+      - Cache expensive database queries
+      - Cache API responses (when appropriate)
+      - Use Laravel's cache tags for organized caching
+      - Implement cache invalidation strategy
+      - Cache configuration and routes in production
+      
+      ### Query Optimization
+      - Use `explain` to analyze slow queries
+      - Avoid using `*` in SELECT statements
+      - Use `chunk()` for processing large datasets
+      - Implement database query logging in development
+      
+      ### Background Jobs
+      - Use queue jobs for time-consuming tasks:
+        - Email sending
+        - File processing
+        - Report generation
+        - External API calls
+      - Implement job retry logic
+      - Monitor queue performance
+      
+      ## Frontend Performance (React)
+      
+      ### Code Splitting
+      - Implement route-based code splitting
+        ```jsx
+        const Dashboard = lazy(() => import('./pages/Dashboard'));
+        ```
+      - Split large components into smaller chunks
+      - Use dynamic imports for heavy libraries
+      
+      ### Component Optimization
+      - Use `React.memo()` for expensive components
+      - Implement `useMemo()` for expensive calculations
+      - Use `useCallback()` for function props
+      - Avoid inline function definitions in render
+      
+      ### Asset Optimization
+      - Optimize images (WebP format, lazy loading)
+      - Minimize bundle size (analyze with webpack-bundle-analyzer)
+      - Use CDN for static assets
+      - Implement image lazy loading
+      - Compress assets (gzip/brotli)
+      
+      ### User Experience
+      - Implement debouncing for search inputs (300-500ms)
+      - Show loading states for async operations
+      - Implement optimistic UI updates
+      - Use skeleton screens for loading states
+      
+      ## API Performance
+      
+      ### Response Optimization
+      - Target response time: <200ms
+      - Implement API response caching
+      - Use Laravel Resources for consistent responses
+      - Compress API responses (gzip)
+      - Implement pagination for list endpoints
+      
+      ### Monitoring
+      - Log slow queries (>100ms)
+      - Monitor API response times
+      - Track memory usage
+      - Implement performance metrics
+      
+      ## Performance Targets
+      - API Response Time: <200ms (average)
+      - Page Load Time: <2s (initial load)
+      - Time to Interactive: <3s
+      - Lighthouse Performance Score: >90
+      - Bundle Size: <500KB (gzipped)
+    alwaysApply: true
+    description: Performance optimization requirements
+
+  # ============================================
+  # ERROR HANDLING
+  # ============================================
+  - name: Error Handling Standards
+    rule: |
+      ## Backend Error Handling (Laravel)
+      
+      ### API Error Responses
+      Use consistent error response format:
+      ```json
+      {
+        "success": false,
+        "message": "Error message for user",
+        "errors": {
+          "field": ["Validation error message"]
+        },
+        "code": "ERROR_CODE"
+      }
+      ```
+      
+      ### HTTP Status Codes
+      - 200: Success
+      - 201: Created
+      - 204: No Content (successful deletion)
+      - 400: Bad Request
+      - 401: Unauthorized
+      - 403: Forbidden
+      - 404: Not Found
+      - 422: Validation Error
+      - 429: Too Many Requests
+      - 500: Internal Server Error
+      
+      ### Exception Handling
+      - Create custom exception classes
+      - Use try-catch blocks for risky operations
+      - Log exceptions with context
+      - Never expose sensitive information in errors
+      - Implement global exception handler
+      
+      ## Frontend Error Handling (React)
+      
+      ### API Error Handling
+      ```jsx
+      try {
+        const response = await api.post('/endpoint', data);
+        // Handle success
+      } catch (error) {
+        if (error.response) {
+          // Server responded with error
+          const { status, data } = error.response;
+          if (status === 422) {
+            // Handle validation errors
+            setErrors(data.errors);
+          } else if (status === 401) {
+            // Handle unauthorized
+            redirectToLogin();
+          }
+        } else if (error.request) {
+          // Request made but no response
+          showError('Network error. Please check your connection.');
+        } else {
+          // Something else happened
+          showError('An unexpected error occurred.');
+        }
+      }
+      ```
+      
+      ### User-Friendly Messages
+      - Show clear, actionable error messages
+      - Avoid technical jargon
+      - Provide solutions when possible
+      - Use toast notifications for errors
+      - Implement error boundaries for React components
+      
+      ## Logging
+      - Log all errors with context
+      - Include user ID, timestamp, request data
+      - Use appropriate log levels (error, warning, info)
+      - Never log sensitive data (passwords, tokens)
+    description: Error handling standards
+
+  # ============================================
+  # ACCESSIBILITY STANDARDS
+  # ============================================
+  - name: Accessibility Requirements
+    rule: |
+      ## WCAG 2.1 Level AA Compliance
+      
+      ### Semantic HTML
+      - Use proper HTML5 semantic elements
+      - Use heading hierarchy correctly (h1 → h2 → h3)
+      - Use `<button>` for actions, `<a>` for navigation
+      - Add `alt` text for all images
+      - Use `<label>` for form inputs
+      
+      ### Keyboard Navigation
+      - All interactive elements must be keyboard accessible
+      - Implement logical tab order
+      - Show focus indicators clearly
+      - Support keyboard shortcuts where appropriate
+      - Trap focus in modals
+      
+      ### ARIA Attributes
+      - Use ARIA labels for icon buttons
+      - Implement ARIA live regions for dynamic content
+      - Use ARIA roles appropriately
+      - Add ARIA descriptions for complex interactions
+      
+      ### Color & Contrast
+      - Maintain 4.5:1 contrast ratio for text
+      - Don't rely on color alone to convey information
+      - Support dark mode
+      
+      ### Forms
+      - Provide clear error messages
+      - Associate labels with inputs
+      - Group related form elements
+      - Provide helpful placeholder text
+    description: Accessibility implementation requirements
+# ============================================
+# PROMPTS - Custom Commands
+# ============================================
+prompts:
+  - name: create-planner
+    description: Analisis project dan buat rencana implementasi Laravel + React
+    prompt: |
+      Read the file `rancangan_aplikasi.md` from the workspace
+
+      # CONTEXT
+      I have a Letter Management System with React frontend and PHP Native backend at 75% completion. 
+      I'm refactoring to Laravel and need comprehensive analysis and planning.
+
+      # ANALYSIS TASK
+      
+      ## 1. PHASE 3 COMPLETENESS AUDIT
+      Verify if Phase 3 (Surat Masuk Core Features) is truly 100% complete by checking:
+      - Core CRUD operations completeness
+      - Disposisi system functionality
+      - API endpoints coverage
+      - Frontend-backend integration
+      - Database schema adequacy
+
+      ## 2. GAP ANALYSIS BETWEEN PHASE 3 & 4
+      Identify what belongs to Phase 3 core vs Phase 4 enhancements
+
+      ## 3. MIGRATION READINESS ASSESSMENT
+      Evaluate stability for Laravel migration
+
+      # DELIVERABLES REQUIRED
+
+      ## A. RANCANGAN_APLIKASI_NEW.md
+      Complete technical specification for Laravel + React stack including:
+      
+      **Backend Architecture (Laravel-specific)**
+      - Project structure
+      - Eloquent models and relationships
+      - Service layer architecture
+      - Repository pattern (if applicable)
+      
+      **Frontend Architecture (React + Vite + Tailwind)**
+      - Component structure
+      - State management (Context API/Redux)
+      - Routing strategy
+      - API integration layer
+      
+      **Database Design**
+      - Complete schema with Eloquent relationships
+      - Migration files structure
+      - Seeder strategy
+      
+      **API Design**
+      - RESTful endpoints
+      - Laravel Resources
+      - API versioning strategy
+      - Request validation
+      
+      **Authentication & Authorization**
+      - Laravel Sanctum setup
+      - RBAC implementation
+      - Permission structure
+      
+      **File Upload & Management**
+      - Storage configuration
+      - File validation
+      - Upload handling
+      
+      **Real-time Features**
+      - WebSocket/SSE implementation
+      - Broadcasting setup
+      
+      **Performance Optimization**
+      - Caching strategy
+      - Query optimization
+      - Asset optimization
+      
+      **Security Implementation**
+      - CSRF protection
+      - XSS prevention
+      - SQL injection prevention
+      - Rate limiting
+      
+      **Monitoring & Logging**
+      - Laravel Telescope
+      - Error tracking
+      - Performance monitoring
+
+      ## B. RENCANA_IMPLEMENTASI.md
+      Detailed implementation plan with:
+
+      ### Phase 1: Laravel Setup & Authentication Migration
+      - [ ] 🔥 Install Laravel 12
+      - [ ] 🔥 Configure database connections
+      - [ ] 🔥 Setup Laravel Sanctum
+      - [ ] 🎯 Migrate user authentication
+      - [ ] 📋 Setup development environment
+      **Estimasi**: 3-5 hari
+      **Dependencies**: None
+
+      ### Phase 2: User Management & RBAC Migration
+      - [ ] 🔥 Create User model and migrations
+      - [ ] 🔥 Implement RBAC system
+      - [ ] 🎯 Create user management API
+      - [ ] 🎯 Build user management UI
+      - [ ] 📋 Testing user flows
+      **Estimasi**: 5-7 hari
+      **Dependencies**: Phase 1
+
+      ### Phase 3: Surat Masuk Module Migration & Completion
+      - [ ] 🔥 Audit existing PHP Native code
+      - [ ] 🔥 Create Laravel models and migrations
+      - [ ] 🔥 Migrate CRUD operations
+      - [ ] 🎯 Implement disposisi system
+      - [ ] 🎯 Build React components
+      - [ ] 📋 Integration testing
+      **Estimasi**: 7-10 hari
+      **Dependencies**: Phase 2
+
+      ### Phase 4: Surat Masuk Enhancements in Laravel
+      - [ ] 🎯 Advanced search functionality
+      - [ ] 🎯 Bulk operations
+      - [ ] 📋 Export features
+      - [ ] 📋 Notification system
+      **Estimasi**: 5-7 hari
+      **Dependencies**: Phase 3
+
+      ### Phase 5: Surat Keluar Module (New Development)
+      - [ ] 🔥 Design database schema
+      - [ ] 🔥 Create models and migrations
+      - [ ] 🔥 Build CRUD API
+      - [ ] 🎯 Develop React UI
+      - [ ] 📋 Testing
+      **Estimasi**: 7-10 hari
+      **Dependencies**: Phase 4
+
+      ### Phase 6: Advanced Dashboard & Analytics
+      - [ ] 🎯 Design dashboard layout
+      - [ ] 🎯 Implement analytics queries
+      - [ ] 📋 Create charts and visualizations
+      - [ ] 📋 Real-time updates
+      **Estimasi**: 5-7 hari
+      **Dependencies**: Phase 5
+
+      ### Phase 7: Deployment & Production Readiness
+      - [ ] 🔥 Setup production environment
+      - [ ] 🔥 Configure CI/CD pipeline
+      - [ ] 🎯 Performance optimization
+      - [ ] 🎯 Security hardening
+      - [ ] 📋 Documentation
+      - [ ] 📋 User training
+      **Estimasi**: 5-7 hari
+      **Dependencies**: Phase 6
+
+      # IMPORTANT NOTES
+      - Always reference Laravel 12 documentation
+      - Always reference React 18 documentation
+      - Consider current 75% completion status
+      - Provide clear migration path from PHP Native to Laravel
+      - Include testing requirements for each phase
+      - Specify technical dependencies between phases
+      
+      Please provide both comprehensive documents with practical, actionable plans.
+
+  # Prompt untuk validasi planner
+  - name: validate-planner
+    description: Validasi kelengkapan rencana implementasi
+    prompt: |
+      Review `rencana_implementasi.md` and check:
+      - All phases have clear deliverables
+      - Dependencies are correctly mapped
+      - Estimations are realistic
+      - No missing critical tasks
+
+  # Prompt untuk update-progress planner    
+  - name: update-progress
+    description: Update progress di rencana implementasi
+    prompt: |
+      Update `rencana_implementasi.md`:
+      - Mark completed tasks with [x]
+      - Update current phase status
+      - Note any blockers or issues
+      - Adjust timeline if needed
+
+  # Prompt untuk eksekusi fase
+  - name: execute-phase
+    description: Execute specific phase from implementation plan
+    prompt: |
+      # ROLE
+      Act as a Senior Full-Stack Developer executing Phase [PHASE_NUMBER] from `RENCANA_IMPLEMENTASI_WITH_MINIO.md` and use `GUIDE_MASTER_DOCUMENT.md` as reference
+      
+      # CONTEXT
+      - Project: Letter Management System (Laravel 12 + React 18)
+      - Migrating from PHP Native to Laravel + React
+      - Following structured implementation plan
+      - Maintaining high code quality and comprehensive documentation
+      
+      # EXECUTION WORKFLOW
+      
+      ## Step 1: Read & Understand Phase Plan
+      - Read complete phase requirements from `rencana_implementasi.md`
+      - Identify all tasks, dependencies, and deliverables
+      - Understand technical specifications and acceptance criteria
+      
+      ## Step 2: Create Phase Checklist
+      - Create `docs/progress/checklist-fase-[PHASE_NUMBER].md`
+      - Follow the checklist format defined in rules
+      - Include all tasks from the implementation plan
+      
+      ## Step 3: Implement Each Task
+      - Write clean, maintainable code following best practices
+      - Create necessary files and components
+      - Implement backend API endpoints with validation
+      - Develop frontend components with responsive design
+      - Ensure proper error handling
+      - Follow existing project patterns
+      - Update checklist as you complete tasks
+      
+      ## Step 4: Execute Testing
+      - Run comprehensive testing (unit, integration, manual)
+      - Create `docs/progress/testing-fase-[PHASE_NUMBER].md`
+      - Document all test results
+      - Fix any bugs found during testing
+      
+      ## Step 5: Create Debug Documentation
+      - Generate `docs/debug/debug-fase-[PHASE_NUMBER].md`
+      - Include setup instructions, API references, troubleshooting
+      - Follow debug documentation format from rules
+      
+      ## Step 6: Generate Phase Summary
+      - Create `docs/progress/summary-fase-[PHASE_NUMBER].md`
+      - Document objectives achieved, code changes, technical decisions
+      - Include testing results and lessons learned
+      - Follow summary format from rules
+      
+      ## Step 7: Update Master Summary
+      - Update `SUMMARY-KESELURUHAN.md`
+      - Mark phase as completed
+      - Update overall progress percentage
+      - Update project health indicators
+      
+      ## Step 8: Request Confirmation
+      - Present completion report
+      - Ask: "Fase [PHASE_NUMBER] telah selesai. Apakah Anda ingin melanjutkan ke Fase [PHASE_NUMBER+1]?"
+      - Wait for user confirmation before proceeding
+      
+      # IMPORTANT
+      - Follow ALL rules defined in the configuration
+      - Always reference Laravel 12 and React 18 documentation
+      - Maintain code quality standards
+      - Write comprehensive tests
+      - Document everything thoroughly
+      - Never skip the confirmation step
+      
+      Please begin execution of Phase [PHASE_NUMBER].
+
+# ============================================
+# CONTEXT PROVIDERS
+# ============================================
+context:
+  - provider: file
+  - provider: code
+  - provider: diff
+  - provider: terminal
+  - provider: open
+  - provider: tree
+  - provider: problems
+
+# ============================================
+# MCP SERVERS (Rekomendasi)
+# ============================================
+mcpServers:
+  # Filesystem MCP untuk operasi file
+  - name: filesystem
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-filesystem"
+      - ~/project/si-sukma
+
+
+# # ============================================
+# # DOCUMENTATION (Opsional)
+# # ============================================
+# docs:
+#   # Backend Framework
+#   - name: "Laravel 12 (Offline)"
+#     startUrl: "~/project/docs-local/local-docs/laravel-12/"
+#     useLocalCrawling: true
+
+#   # Frontend Framework  
+#   - name: React 18
+#     startUrl: "~/project/docs-local/local-docs/react-18/"
+#     useLocalCrawling: true
+  
+#   # Style Guides
+#   - name: Tailwind CSS v4
+#     startUrl: "~/project/docs-local/local-docs/tailwind-4/"
+#     useLocalCrawling: true

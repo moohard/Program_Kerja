@@ -46,7 +46,7 @@ class ProgressMonitoringController extends Controller
                 ],
                 [
                     'progress_percentage' => $validated['progress_percentage'],
-                    'keterangan'          => $validated['keterangan'],
+                    'catatan'             => $validated['catatan'],
                     'tanggal_monitoring'  => now(), // Tanggal aktual kapan input dibuat
                 ],
             );

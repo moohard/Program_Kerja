@@ -26,7 +26,7 @@ class StoreProgressMonitoringRequest extends FormRequest
 
         return [
             'progress_percentage' => 'required|integer|min:0|max:100',
-            'keterangan'          => 'nullable|string',
+            'catatan'             => 'nullable|string',
             'report_year'         => 'required|integer|digits:4',
             'report_month'        => 'required|integer|min:1|max:12',
             'attachments'         => 'nullable|array',

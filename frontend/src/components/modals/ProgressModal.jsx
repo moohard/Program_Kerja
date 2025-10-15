@@ -4,20 +4,43 @@ import apiClient from '../../services/apiClient';
 const ProgressModal = ({ isOpen, onClose, onProgressUpdate, rencanaAksi }) => {
     const currentYear = new Date().getFullYear();
     const [progress, setProgress] = useState('');
-    const [keterangan, setKeterangan] = useState('');
+    const [catatan, setCatatan] = useState('');
     const [attachments, setAttachments] = useState([]);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
     // [UPDATE] - State baru untuk bulan dan tahun laporan
-    const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
+    const [reportMonth, setReportMonth] = useState('');
     const [reportYear, setReportYear] = useState(currentYear);
+    const [availableMonths, setAvailableMonths] = useState([]);
 
-    const months = [
+    const allMonths = [
         "Januari", "Februari", "Maret", "April", "Mei", "Juni",
         "Juli", "Agustus", "September", "Oktober", "November", "Desember"
     ];
+
+    useEffect(() => {
+        const months = allMonths.map((name, index) => ({ name, value: index + 1 }));
+
+        if (rencanaAksi && rencanaAksi.bulan_mulai && rencanaAksi.bulan_selesai) {
+            console.log(rencanaAksi)
+            const filteredMonths = months.filter(month =>
+                month.value >= parseInt(rencanaAksi.bulan_mulai, 10) &&
+                month.value <= parseInt(rencanaAksi.bulan_selesai, 10)
+            );
+            setAvailableMonths(filteredMonths);
+            if (filteredMonths.length > 0) {
+                // Set default ke bulan pertama yang tersedia atau bulan saat ini jika ada dalam rentang
+                const currentMonth = new Date().getMonth() + 1;
+                const isCurrentMonthAvailable = filteredMonths.some(m => m.value === currentMonth);
+                setReportMonth(isCurrentMonthAvailable ? currentMonth : filteredMonths[0].value);
+            }
+        } else {
+            setAvailableMonths(months);
+            setReportMonth(new Date().getMonth() + 1);
+        }
+    }, [rencanaAksi]);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -32,10 +55,9 @@ const ProgressModal = ({ isOpen, onClose, onProgressUpdate, rencanaAksi }) => {
         };
         fetchHistory();
         setProgress('');
-        setKeterangan('');
+        setCatatan('');
         setAttachments([]);
         setErrors({});
-        setReportMonth(new Date().getMonth() + 1);
         setReportYear(currentYear);
     }, [isOpen, rencanaAksi, currentYear]);
 
@@ -50,7 +72,7 @@ const ProgressModal = ({ isOpen, onClose, onProgressUpdate, rencanaAksi }) => {
 
         const formData = new FormData();
         formData.append('progress_percentage', progress);
-        formData.append('keterangan', keterangan);
+        formData.append('catatan', catatan);
         // [UPDATE] - Kirim bulan dan tahun laporan ke backend
         formData.append('report_year', reportYear);
         formData.append('report_month', reportMonth);
@@ -95,8 +117,8 @@ const ProgressModal = ({ isOpen, onClose, onProgressUpdate, rencanaAksi }) => {
                                     onChange={(e) => setReportMonth(e.target.value)}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                                 >
-                                    {months.map((name, index) => (
-                                        <option key={index + 1} value={index + 1}>{name}</option>
+                                    {availableMonths.map(month => (
+                                        <option key={month.value} value={month.value}>{month.name}</option>
                                     ))}
                                 </select>
                                 {errors.report_month && <p className="text-red-500 text-xs mt-1">{errors.report_month[0]}</p>}
@@ -128,11 +150,11 @@ const ProgressModal = ({ isOpen, onClose, onProgressUpdate, rencanaAksi }) => {
                             {errors.progress_percentage && <p className="text-red-500 text-xs mt-1">{errors.progress_percentage[0]}</p>}
                         </div>
                         <div>
-                            <label htmlFor="keterangan" className="block text-sm font-medium text-gray-700">Keterangan</label>
+                            <label htmlFor="catatan" className="block text-sm font-medium text-gray-700">Keterangan</label>
                             <textarea
-                                id="keterangan"
-                                value={keterangan}
-                                onChange={(e) => setKeterangan(e.target.value)}
+                                id="catatan"
+                                value={catatan}
+                                onChange={(e) => setCatatan(e.target.value)}
                                 rows="3"
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                             />
@@ -161,7 +183,7 @@ const ProgressModal = ({ isOpen, onClose, onProgressUpdate, rencanaAksi }) => {
                                 <li key={item.id} className="text-sm border-b pb-2">
                                     {/* [UPDATE] - Tampilkan tanggal laporan */}
                                     <p><strong>{item.progress_percentage}%</strong> dilaporkan untuk <strong>{item.report_date_formatted}</strong></p>
-                                    <p className="text-gray-600">{item.keterangan}</p>
+                                    <p className="text-gray-600">{item.catatan}</p>
                                     {item.attachments.length > 0 && (
                                         <ul className="mt-1 list-disc list-inside">
                                             {item.attachments.map(file => (

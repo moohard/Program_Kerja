@@ -49,10 +49,10 @@ const MainLayout = () => {
             <div className="w-64 bg-gray-800 text-white flex flex-col">
                 <div className="p-4 text-xl font-bold border-b border-gray-700">ProKer App</div>
                 <nav className="flex-1 p-4 space-y-2">
-                    <Link to="/" className="block px-4 py-2 rounded hover:bg-gray-700">Dashboard</Link>
+                    <Link to="/dashboard" className="block px-4 py-2 rounded hover:bg-gray-700">Dashboard</Link>
                     <Link to="/rencana-aksi" className="block px-4 py-2 rounded hover:bg-gray-700">Rencana Aksi</Link>
                     <Link to="/laporan" className="block px-4 py-2 rounded hover:bg-gray-700">Laporan</Link>
-                    <Link to="/laporan-matriks" className="block px-4 py-2 rounded hover:bg-gray-700">Laporan Matriks</Link>
+                    <Link to="/laporan/matriks" className="block px-4 py-2 rounded hover:bg-gray-700">Laporan Matriks</Link>
                     <div className="pt-4 mt-4 border-t border-gray-700">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Master Data</h3>
                         <Link to="/master/kategori-utama" className="block px-4 py-2 rounded hover:bg-gray-700 mt-2">Kategori Utama</Link>
@@ -61,7 +61,7 @@ const MainLayout = () => {
                     <div className="pt-4 mt-4 border-t border-gray-700">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Settings</h3>
                         <Link to="/templates" className="block px-4 py-2 rounded hover:bg-gray-700 mt-2">Templates</Link>
-                        <Link to="/audit-log" className="block px-4 py-2 rounded hover:bg-gray-700">Audit Log</Link>
+                        <Link to="/audit-logs" className="block px-4 py-2 rounded hover:bg-gray-700">Audit Log</Link>
                     </div>
                 </nav>
             </div>
