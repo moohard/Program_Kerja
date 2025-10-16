@@ -34,30 +34,33 @@ class AuthController extends Controller
             return response()->json([ 'message' => 'Akun Anda tidak aktif.' ], 403);
         }
 
+        $user->load('jabatan'); // Eager load relasi jabatan
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
             'user'  => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email,
-                'role'  => $user->role,
+                'id'      => $user->id,
+                'name'    => $user->name,
+                'email'   => $user->email,
+                'jabatan' => $user->jabatan, // Mengembalikan objek jabatan
             ],
             'token' => $token,
         ]);
     }
 
+    /**
+     * Get the authenticated User.
+     */
+    public function user(Request $request)
+    {
+        // Mengembalikan user yang sedang login beserta jabatannya
+        return response()->json($request->user()->load('jabatan'));
+    }
+
     public function logout(Request $request)
     {
-
         $request->user()->currentAccessToken()->delete();
-        return response()->json([ 'message' => 'Logout berhasil' ]);
+        return response()->json(['message' => 'Logout berhasil']);
     }
-
-    public function me(Request $request)
-    {
-
-        return response()->json($request->user());
-    }
-
 }

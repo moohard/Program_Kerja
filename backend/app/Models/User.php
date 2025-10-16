@@ -20,7 +20,17 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'jabatan_id',
     ];
+
+    /**
+     * Get the jabatan that owns the user.
+     */
+    public function jabatan()
+    {
+        return $this->belongsTo(Jabatan::class);
+    }
+
 
     /**
      * The attributes that should be hidden for serialization.

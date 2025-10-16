@@ -15,13 +15,11 @@ use Carbon\Carbon;
 
 class ProgressMonitoringController extends Controller
 {
-
-    public function index(RencanaAksi $rencanaAksi)
+    public function indexByRencanaAksi(RencanaAksi $rencanaAksi)
     {
-
         $progressHistory = $rencanaAksi->progressMonitorings()
             ->with('attachments')
-            ->orderBy('tanggal_monitoring', 'desc')
+            ->orderBy('report_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
 

@@ -18,8 +18,14 @@ class TodoItem extends Model
 
     public function rencanaAksi()
     {
-
         return $this->belongsTo(RencanaAksi::class);
     }
 
+    /**
+     * Get all of the attachments for the TodoItem.
+     */
+    public function attachments()
+    {
+        return $this->hasMany(TodoItemAttachment::class);
+    }
 }

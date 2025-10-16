@@ -9,6 +9,7 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use Illuminate\Support\Carbon;
 
 class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithStyles
 {
@@ -17,7 +18,9 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
 
     public function __construct($data)
     {
-
+        // NOTE: Pastikan data yang di-pass ke sini sudah eager load relasi
+        // yang dibutuhkan untuk menghindari N+1 query problem.
+        // Contoh: RencanaAksi::with('kegiatan.kategoriUtama', 'assignedTo', 'progressMonitorings.attachments')->get();
         $this->data = $data;
     }
 
@@ -26,7 +29,6 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
      */
     public function collection()
     {
-
         return $this->data;
     }
 
@@ -35,7 +37,6 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
      */
     public function headings(): array
     {
-
         return [
             'Kegiatan Utama',
             'Kegiatan',
@@ -55,32 +56,54 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
             'Target (%)',
             'Output',
             'Penanggung Jawab',
-            'Terlaksana / Belum Terlaksana',
         ];
     }
 
     /**
-     * @param mixed $row
+     * @param RencanaAksi $row
      *
      * @return array
      */
     public function map($row): array
     {
+        // Group progress by month for easy lookup
+        $progressByMonth = [];
+        foreach ($row->progressMonitorings as $progress) {
+            $month = Carbon::parse($progress->report_date)->month;
+            $progressByMonth[$month] = $progress;
+        }
 
+        // Determine status for each month
         $schedule = array_fill(1, 12, '');
-        \Log::info('Row data:', [ 'row' => $row, 'jadwal_config' => $row->jadwal_config ?? NULL ]);
-        // Pastikan jadwal_config ada dan berupa array
-        if (!empty($row->jadwal_config) && is_array($row->jadwal_config))
-        {
-            $months = $row->jadwal_config['months'] ?? [];
-            foreach ($months as $month)
-            {
-                if ($month >= 1 && $month <= 12)
-                {
-                    $schedule[$month] = $row->status;
+        if (!empty($row->jadwal_config) && is_array($row->jadwal_config)) {
+            $plannedMonths = $row->jadwal_config['months'] ?? [];
+            foreach ($plannedMonths as $month) {
+                if ($month >= 1 && $month <= 12) {
+                    if (isset($progressByMonth[$month])) {
+                        $progress = $progressByMonth[$month];
+                        if ($progress->progress_percentage == 100) {
+                            $schedule[$month] = $progress->is_late ? 'completed (late)' : 'completed';
+                        } elseif ($progress->progress_percentage > 0) {
+                            $schedule[$month] = 'progress';
+                        } else {
+                            $schedule[$month] = 'planned';
+                        }
+                    } else {
+                        $schedule[$month] = 'planned';
+                    }
                 }
             }
         }
+
+        // Collect all attachment filenames
+        $attachmentsList = [];
+        foreach ($row->progressMonitorings as $progress) {
+            foreach ($progress->attachments as $attachment) {
+                // Asumsi nama file disimpan di kolom 'file_name' atau 'original_name'
+                $attachmentsList[] = $attachment->file_name ?? $attachment->original_name ?? 'unknown_file';
+            }
+        }
+        $output = count($attachmentsList) > 0 ? implode("\n", $attachmentsList) : '-';
 
         return [
             $row->kegiatan->kategoriUtama->nama_kategori ?? '-',
@@ -98,10 +121,9 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
             $schedule[10],
             $schedule[11],
             $schedule[12],
-            '100',
-            $row->catatan ?? '-',
+            '100', // Target
+            $output,
             $row->assignedTo->name ?? '-',
-            $row->status === 'completed' ? 'Terlaksana' : 'Belum Terlaksana',
         ];
     }
 
@@ -112,11 +134,9 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
      */
     public function styles(Worksheet $sheet)
     {
-
         return [
-            // Style baris heading
-            1 => [ 'font' => [ 'bold' => TRUE ] ],
+            // Style the first row as bold.
+            1 => ['font' => ['bold' => true]],
         ];
     }
-
 }

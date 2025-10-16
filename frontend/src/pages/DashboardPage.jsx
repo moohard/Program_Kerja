@@ -14,7 +14,7 @@ function DashboardPage() {
         const fetchDashboardData = async () => {
             try {
                 setLoading(true);
-                const response = await apiClient.get('/dashboard');
+                const response = await apiClient.get('/dashboard-stats');
                 setDashboardData(response.data);
             } catch (error) {
                 console.error("Gagal memuat data dashboard:", error);

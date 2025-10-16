@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../services/apiClient';
+import JabatanSelector from '../form/JabatanSelector';
 
-const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, users }) => {
-    const currentYear = new Date().getFullYear();
+const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, jabatanTree }) => {
     const [formData, setFormData] = useState({
         deskripsi_aksi: '',
         assigned_to: '',
         priority: 'medium',
         catatan: '',
-        schedule_months: [],
-        year: currentYear,
+        jadwal_tipe: 'insidentil',
+        jadwal_config: {
+            months: [],
+            periode: '',
+            hari: [],
+        },
     });
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
@@ -18,15 +22,11 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, us
         "Januari", "Februari", "Maret", "April", "Mei", "Juni",
         "Juli", "Agustus", "September", "Oktober", "November", "Desember"
     ];
+    const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
     useEffect(() => {
-        // Logika ini dijalankan setiap kali modal akan dibuka
         if (isOpen) {
             if (currentData) {
-                // --- MODE EDIT ---
-                // Jika ada 'currentData', isi form dengan data yang ada
-
-                // Logika cerdas untuk menangani field 'assigned_to'
                 const assignedToId = typeof currentData.assigned_to === 'object' && currentData.assigned_to !== null
                     ? currentData.assigned_to.id
                     : currentData.assigned_to;
@@ -36,37 +36,55 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, us
                     assigned_to: assignedToId || '',
                     priority: currentData.priority || 'medium',
                     catatan: currentData.catatan || '',
-                    schedule_months: currentData.jadwal_config?.months || [],
-                    year: currentData.target_tanggal ? new Date(currentData.target_tanggal).getFullYear() : currentYear,
+                    jadwal_tipe: currentData.jadwal_tipe || 'insidentil',
+                    jadwal_config: {
+                        months: currentData.jadwal_config?.months || [],
+                        periode: currentData.jadwal_config?.periode || '',
+                        hari: currentData.jadwal_config?.hari || [],
+                    },
                 });
             } else {
-                // --- MODE TAMBAH BARU ---
-                // Jika tidak ada 'currentData', reset form menjadi kosong
                 setFormData({
                     deskripsi_aksi: '',
                     assigned_to: '',
                     priority: 'medium',
                     catatan: '',
-                    schedule_months: [],
-                    year: currentYear,
+                    jadwal_tipe: 'insidentil',
+                    jadwal_config: { months: [], periode: '', hari: [] },
                 });
             }
-            // Selalu reset error setiap kali modal dibuka
             setErrors({});
         }
-    }, [isOpen, currentData, currentYear]);
+    }, [isOpen, currentData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const handleConfigChange = (e) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            jadwal_config: { ...prev.jadwal_config, [name]: value }
+        }));
+    };
+
     const handleMonthChange = (month) => {
         setFormData(prev => {
-            const newMonths = prev.schedule_months.includes(month)
-                ? prev.schedule_months.filter(m => m !== month)
-                : [...prev.schedule_months, month];
-            return { ...prev, schedule_months: newMonths };
+            const newMonths = prev.jadwal_config.months.includes(month)
+                ? prev.jadwal_config.months.filter(m => m !== month)
+                : [...prev.jadwal_config.months, month];
+            return { ...prev, jadwal_config: { ...prev.jadwal_config, months: newMonths } };
+        });
+    };
+
+    const handleDayChange = (day) => {
+        setFormData(prev => {
+            const newDays = prev.jadwal_config.hari.includes(day)
+                ? prev.jadwal_config.hari.filter(d => d !== day)
+                : [...prev.jadwal_config.hari, day];
+            return { ...prev, jadwal_config: { ...prev.jadwal_config, hari: newDays } };
         });
     };
 
@@ -75,19 +93,27 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, us
         setLoading(true);
         setErrors({});
 
-        const dataToSend = { ...formData, kegiatan_id: kegiatanId };
-        if (!dataToSend.assigned_to) {
-            dataToSend.assigned_to = null;
+        const { jadwal_tipe, jadwal_config, ...rest } = formData;
+        let relevantConfig = {};
+        if (jadwal_tipe === 'insidentil' || jadwal_tipe === 'bulanan') {
+            relevantConfig = { months: jadwal_config.months };
+        } else if (jadwal_tipe === 'periodik') {
+            relevantConfig = { periode: jadwal_config.periode };
+        } else if (jadwal_tipe === 'rutin') {
+            relevantConfig = { hari: jadwal_config.hari };
         }
+
+        const dataToSend = {
+            ...rest,
+            jadwal_tipe,
+            jadwal_config: relevantConfig,
+            kegiatan_id: kegiatanId,
+            assigned_to: formData.assigned_to || null,
+        };
 
         try {
             if (currentData) {
-                try {
-                    await apiClient.put(`/rencana-aksi/${currentData.id}`, dataToSend);
-
-                } catch (error) {
-                    console.error('Error details:', error.response?.data);
-                }
+                await apiClient.put(`/rencana-aksi/${currentData.id}`, dataToSend);
             } else {
                 await apiClient.post('/rencana-aksi', dataToSend);
             }
@@ -102,6 +128,62 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, us
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const renderJadwalInputs = () => {
+        switch (formData.jadwal_tipe) {
+            case 'insidentil':
+            case 'bulanan':
+                return (
+                    <div className="grid grid-cols-4 gap-2 p-2 border rounded-md">
+                        {months.map((name, index) => {
+                            const monthNumber = index + 1;
+                            return (
+                                <label key={monthNumber} className="flex items-center space-x-2 p-1 rounded-md hover:bg-gray-100 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.jadwal_config.months.includes(monthNumber)}
+                                        onChange={() => handleMonthChange(monthNumber)}
+                                        className="form-checkbox h-4 w-4 text-indigo-600 rounded"
+                                    />
+                                    <span className="text-sm">{name}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                );
+            case 'periodik':
+                return (
+                    <select
+                        name="periode"
+                        value={formData.jadwal_config.periode}
+                        onChange={handleConfigChange}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    >
+                        <option value="">-- Pilih Periode --</option>
+                        <option value="triwulanan">Triwulanan</option>
+                        <option value="semesteran">Semesteran</option>
+                    </select>
+                );
+            case 'rutin':
+                return (
+                    <div className="grid grid-cols-4 gap-2 p-2 border rounded-md">
+                        {days.map((name, index) => (
+                            <label key={index} className="flex items-center space-x-2 p-1 rounded-md hover:bg-gray-100 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.jadwal_config.hari.includes(index)}
+                                    onChange={() => handleDayChange(index)}
+                                    className="form-checkbox h-4 w-4 text-indigo-600 rounded"
+                                />
+                                <span className="text-sm">{name}</span>
+                            </label>
+                        ))}
+                    </div>
+                );
+            default:
+                return null;
         }
     };
 
@@ -121,85 +203,39 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, us
                             value={formData.deskripsi_aksi}
                             onChange={handleChange}
                             rows="3"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
                         />
                         {errors.deskripsi_aksi && <p className="text-red-500 text-xs mt-1">{errors.deskripsi_aksi[0]}</p>}
                     </div>
 
-                    {/* Penanggung Jawab */}
+                    {/* ... form fields ... */}
+                    <JabatanSelector
+                        jabatanTree={jabatanTree}
+                        selectedUser={formData.assigned_to}
+                        onChange={handleChange}
+                    />
+                    {/* Tipe Jadwal */}
                     <div>
-                        <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700">Penanggung Jawab</label>
-                        <select
-                            id="assigned_to"
-                            name="assigned_to"
-                            value={formData.assigned_to}
-                            onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        >
-                            <option value="">-- Pilih Pengguna --</option>
-                            {users.map(user => (
-                                <option key={user.id} value={user.id}>{user.name}</option>
-                            ))}
+                        <label htmlFor="jadwal_tipe" className="block text-sm font-medium text-gray-700">Tipe Jadwal</label>
+                        <select id="jadwal_tipe" name="jadwal_tipe" value={formData.jadwal_tipe} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <option value="insidentil">Insidentil (Tidak Wajib)</option>
+                            <option value="bulanan">Bulanan (Wajib Lapor)</option>
+                            <option value="periodik">Periodik (Otomatis)</option>
+                            <option value="rutin">Rutin (Mingguan - Diabaikan di Laporan)</option>
                         </select>
-                        {errors.assigned_to && <p className="text-red-500 text-xs mt-1">{errors.assigned_to[0]}</p>}
+                        {errors.jadwal_tipe && <p className="text-red-500 text-xs mt-1">{errors.jadwal_tipe[0]}</p>}
                     </div>
 
-                    {/* Prioritas */}
+                    {/* Konfigurasi Jadwal */}
                     <div>
-                        <label htmlFor="priority" className="block text-sm font-medium text-gray-700">Prioritas</label>
-                        <select
-                            id="priority"
-                            name="priority"
-                            value={formData.priority}
-                            onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        >
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                        </select>
-                    </div>
-
-                    {/* Output / Catatan */}
-                    <div>
-                        <label htmlFor="catatan" className="block text-sm font-medium text-gray-700">Output / Catatan</label>
-                        <input
-                            type="text"
-                            id="catatan"
-                            name="catatan"
-                            value={formData.catatan}
-                            onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        />
-                    </div>
-
-                    {/* Jadwal Pelaksanaan */}
-                    <div>
-                        <label className="block text-gray-700 text-sm font-bold mb-2">Jadwal Pelaksanaan</label>
-                        <div className="grid grid-cols-4 gap-2 p-2 border rounded-md">
-                            {months.map((name, index) => {
-                                const monthNumber = index + 1;
-                                return (
-                                    <label key={monthNumber} className="flex items-center space-x-2 p-1 rounded-md hover:bg-gray-100 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.schedule_months.includes(monthNumber)}
-                                            onChange={() => handleMonthChange(monthNumber)}
-                                            className="form-checkbox h-4 w-4 text-indigo-600 rounded"
-                                        />
-                                        <span className="text-sm">{name}</span>
-                                    </label>
-                                );
-                            })}
-                        </div>
-                        {errors.schedule_months && <p className="text-red-500 text-xs mt-1">{errors.schedule_months[0]}</p>}
+                        <label className="block text-sm font-medium text-gray-700">Konfigurasi Jadwal</label>
+                        {renderJadwalInputs()}
+                        {errors.jadwal_config && <p className="text-red-500 text-xs mt-1">{errors.jadwal_config[0]}</p>}
                     </div>
 
                     {/* Tombol Aksi */}
                     <div className="flex items-center justify-end space-x-2 pt-4">
-                        <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">
-                            Batal
-                        </button>
+                        <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">Batal</button>
                         <button type="submit" disabled={loading} className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300">
                             {loading ? 'Menyimpan...' : 'Simpan'}
                         </button>

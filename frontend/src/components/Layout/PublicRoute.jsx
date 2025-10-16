@@ -3,8 +3,8 @@ import { Navigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 
 const PublicRoute = ({ children }) => {
-    const auth = useAuth();
-    return !auth.isAuthenticated ? children : <Navigate to="/dashboard" replace />;
+    const { token } = useAuth();
+    return !token ? children : <Navigate to="/dashboard" replace />;
 };
 
 export default PublicRoute;

@@ -1,7 +1,7 @@
 flowchart TB
     subgraph Frontend
         A[React SPA] --> B[React Router]
-        A --> C[Redux State Management]
+        A --> C[React Context / Zustand]
         A --> D[Chart.js for Analytics]
         A --> E[UI Components]
     end

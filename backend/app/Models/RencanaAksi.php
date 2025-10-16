@@ -6,9 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 
+use App\Services\JadwalService;
+
 class RencanaAksi extends Model
 {
-
     use HasFactory;
 
     protected $table = 'rencana_aksi';
@@ -20,13 +21,19 @@ class RencanaAksi extends Model
         'status',
         'target_tanggal',
         'actual_tanggal',
-
         'catatan',
         'assigned_to',
         'jadwal_tipe',
         'jadwal_config',
         'priority',
     ];
+
+    /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array
+     */
+    protected $appends = ['target_months'];
 
     /**
      * The attributes that should be cast.
@@ -38,6 +45,22 @@ class RencanaAksi extends Model
         'actual_tanggal' => 'date',
         'jadwal_config'  => 'array',
     ];
+
+    /**
+     * Get the target months for reporting based on the schedule.
+     *
+     * @return \Illuminate\Database\Eloquent\Casts\Attribute
+     */
+    public function targetMonths(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $jadwalService = app(JadwalService::class);
+                return $jadwalService->getTargetMonths($this->jadwal_tipe, $this->jadwal_config ?? []);
+            }
+        );
+    }
+
 
     public function kegiatan()
     {

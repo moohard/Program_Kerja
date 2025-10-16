@@ -2,14 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../services/apiClient';
 import RencanaAksiModal from '../components/modals/RencanaAksiModal';
 import TodoModal from '../components/modals/TodoModal';
-import ProgressModal from '../components/modals/ProgressModal';
 import { FiPlus } from 'react-icons/fi';
 
 function RencanaAksiPage() {
     const [kategoriList, setKategoriList] = useState([]);
     const [kegiatanList, setKegiatanList] = useState([]);
     const [rencanaAksiList, setRencanaAksiList] = useState([]);
-    const [userList, setUserList] = useState([]);
+    const [jabatanTree, setJabatanTree] = useState([]);
 
     const [selectedKategori, setSelectedKategori] = useState('');
     const [selectedKegiatan, setSelectedKegiatan] = useState('');
@@ -21,8 +20,6 @@ function RencanaAksiPage() {
 
     const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
     const [selectedRencanaAksi, setSelectedRencanaAksi] = useState(null);
-
-    const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
 
     // Fetch Kategori Utama
     useEffect(() => {
@@ -40,17 +37,17 @@ function RencanaAksiPage() {
         fetchKategori();
     }, []);
 
-    // Fetch Users
+    // Fetch Jabatan Tree
     useEffect(() => {
-        const fetchUsers = async () => {
+        const fetchJabatanTree = async () => {
             try {
-                const response = await apiClient.get('/users');
-                setUserList(response.data.data);
+                const response = await apiClient.get('/jabatan');
+                setJabatanTree(response.data.data);
             } catch (error) {
-                console.error("Error fetching users:", error);
+                console.error("Error fetching jabatan tree:", error);
             }
         };
-        fetchUsers();
+        fetchJabatanTree();
     }, []);
 
     // Fetch Kegiatan based on selected Kategori
@@ -115,35 +112,6 @@ function RencanaAksiPage() {
     const handleCloseTodoModal = () => {
         setIsTodoModalOpen(false);
         setSelectedRencanaAksi(null);
-    };
-
-    // --- Handlers for Progress Modal ---
-    const handleOpenProgressModal = (item) => {
-        setSelectedRencanaAksi(item);
-        setIsProgressModalOpen(true);
-    };
-    const handleCloseProgressModal = () => {
-        setIsProgressModalOpen(false);
-        setSelectedRencanaAksi(null);
-    };
-
-    // [FIX] - Fungsi baru untuk mengupdate state setelah progress disimpan
-    const handleProgressSaved = (updatedRencanaAksi) => {
-        console.log('Data yang diterima dari server:', updatedRencanaAksi);
-        console.log('Progress terbaru:', updatedRencanaAksi.latest_progress);
-        setRencanaAksiList(currentList =>
-            currentList.map(item =>
-                item.id === updatedRencanaAksi.id ? {
-                    ...item,
-                    latest_progress: updatedRencanaAksi.latest_progress,
-                    // Pastikan semua field yang diperlukan diupdate
-                    status: updatedRencanaAksi.status,
-                    // ... field lainnya
-                } : item
-            )
-        );
-        // Kita tutup modal di sini setelah state berhasil diupdate
-        handleCloseProgressModal();
     };
 
     const handleDelete = async (id) => {
@@ -211,13 +179,17 @@ function RencanaAksiPage() {
                                     <td className="px-6 py-4">{item.priority}</td>
                                     <td className="px-6 py-4">{item.status}</td>
                                     <td className="px-6 py-4">
-                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                            <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${item.latest_progress || 0}%` }}></div>
+                                        <div className="flex items-center">
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${item.latest_progress?.progress_percentage || 0}%` }}></div>
+                                            </div>
+                                            {item.latest_progress?.is_late && (
+                                                <FiAlertTriangle className="ml-2 text-yellow-500" title="Progress dilaporkan terlambat" />
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
-                                        <button onClick={() => handleOpenProgressModal(item)} className="text-green-600 hover:text-green-900 mr-4">Progress</button>
-                                        <button onClick={() => handleOpenTodoModal(item)} className="text-gray-600 hover:text-gray-900 mr-4">To-Do</button>
+                                        <button onClick={() => handleOpenTodoModal(item)} className="text-gray-600 hover:text-gray-900 mr-4">To-Do & Progress</button>
                                         <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
                                         <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900 ml-4">Hapus</button>
                                     </td>
@@ -228,20 +200,14 @@ function RencanaAksiPage() {
                 </div>
             }
             {isModalOpen && <RencanaAksiModal
-                isOpen={handleOpenModal}
+                isOpen={isModalOpen}
                 currentData={currentItem}
                 kegiatanId={selectedKegiatan}
-                users={userList}
+                jabatanTree={jabatanTree}
                 onClose={handleCloseModal}
                 onSave={fetchRencanaAksi}
             />}
             {isTodoModalOpen && <TodoModal rencanaAksi={selectedRencanaAksi} onClose={handleCloseTodoModal} onUpdate={fetchRencanaAksi} />}
-            {isProgressModalOpen && <ProgressModal
-                isOpen={isProgressModalOpen}
-                rencanaAksi={selectedRencanaAksi}
-                onClose={handleCloseProgressModal}
-                onProgressUpdate={handleProgressSaved} // <-- Gunakan handler baru
-            />}
         </div>
     );
 }

@@ -23,6 +23,7 @@ class RencanaAksiResource extends JsonResource
             'priority'         => $this->priority,
             'jadwal_tipe'      => $this->jadwal_tipe,
             'jadwal_config'    => $this->jadwal_config,
+            'target_months'    => $this->target_months, // Tambahkan baris ini
             'assigned_to'      => new UserResource($this->whenLoaded('assignedTo')),
             'progress_history' => ProgressMonitoringResource::collection($this->whenLoaded('progressMonitorings')),
             'latest_progress'  => $this->latest_progress_percentage,

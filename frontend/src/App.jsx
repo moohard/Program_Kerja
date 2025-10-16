@@ -19,8 +19,8 @@ import AuditLogPage from './pages/AuditLogPage';
 
 function App() {
     return (
-        <AuthProvider>
-            <BrowserRouter>
+        <BrowserRouter>
+            <AuthProvider>
                 <Routes>
                     <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
                     <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
@@ -36,8 +36,8 @@ function App() {
                     </Route>
                     <Route path="*" element={<Navigate to="/dashboard" />} />
                 </Routes>
-            </BrowserRouter>
-        </AuthProvider>
+            </AuthProvider>
+        </BrowserRouter>
     );
 }
 

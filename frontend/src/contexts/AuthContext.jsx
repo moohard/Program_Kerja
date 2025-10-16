@@ -1,56 +1,70 @@
-import React, { useState, createContext, useEffect, useMemo } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 import apiClient from '../services/apiClient';
+import { useNavigate } from 'react-router-dom';
 
-const AuthContext = createContext(null);
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')));
-    const [token, setToken] = useState(localStorage.getItem('token'));
-    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(null);
+    const [token, setToken] = useState(localStorage.getItem('authToken'));
+    const [loading, setLoading] = useState(true); // State untuk loading awal
+    const navigate = useNavigate();
 
     useEffect(() => {
-        const storedToken = localStorage.getItem('token');
-        if (storedToken) {
-            apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-            apiClient.get('/user')
-                .then(response => setUser(response.data))
-                .catch(() => {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    setUser(null);
+        // Coba ambil data user jika ada token saat aplikasi pertama kali dimuat
+        const fetchUserOnLoad = async () => {
+            if (token) {
+                apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                try {
+                    const response = await apiClient.get('/user');
+                    setUser(response.data);
+                } catch (error) {
+                    // Token tidak valid, hapus dari localStorage
+                    console.error("Auth token is invalid", error);
+                    localStorage.removeItem('authToken');
                     setToken(null);
-                })
-                .finally(() => setLoading(false));
-        } else {
-            setLoading(false);
-        }
-    }, []);
+                    apiClient.defaults.headers.common['Authorization'] = null;
+                }
+            }
+            setLoading(false); // Selesai loading
+        };
+
+        fetchUserOnLoad();
+    }, [token]); // Hanya jalankan saat token berubah
 
     const login = async (email, password) => {
         const response = await apiClient.post('/login', { email, password });
-        const { user, token } = response.data;
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('token', token);
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        setUser(user);
+        const { token, user } = response.data;
+
+        // Simpan token di localStorage
+        localStorage.setItem('authToken', token);
         setToken(token);
+        setUser(user);
+
+        // Set header Authorization untuk semua request selanjutnya
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     };
 
-    const logout = () => {
-        apiClient.post('/logout').finally(() => {
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            delete apiClient.defaults.headers.common['Authorization'];
+    const logout = async () => {
+        try {
+            await apiClient.post('/logout');
+        } catch (error) {
+            console.error("Logout failed, but clearing session locally.", error);
+        } finally {
+            // Hapus semua data sesi dari state dan localStorage
             setUser(null);
             setToken(null);
-        });
+            localStorage.removeItem('authToken');
+            delete apiClient.defaults.headers.common['Authorization'];
+            navigate('/login');
+        }
     };
 
-    const value = useMemo(() => ({ user, token, login, logout, isAuthenticated: !!token }), [user, token]);
-
-    if (loading) return <div className="flex items-center justify-center min-h-screen"><div className="loader"></div></div>;
-
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+            {!loading && children}
+        </AuthContext.Provider>
+    );
 };
 
 export default AuthContext;

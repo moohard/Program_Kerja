@@ -1,58 +1,62 @@
 <?php
 
-use App\Http\Controllers\Api\ImportExportController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\KategoriUtamaController;
 use App\Http\Controllers\Api\KegiatanController;
 use App\Http\Controllers\Api\RencanaAksiController;
 use App\Http\Controllers\Api\TodoItemController;
-use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ProgressMonitoringController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\TemplateController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ImportExportController;
+use App\Http\Controllers\Api\JabatanController;
+use App\Http\Controllers\Api\TodoItemAttachmentController;
 
-// Public routes
+// Rute publik untuk otentikasi
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']); // Asumsi ada, jika tidak bisa dihapus
 
-// Protected routes
+// Rute yang dilindungi oleh Sanctum
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [AuthController::class, 'me']);
+    Route::get('/user', [AuthController::class, 'user']);
 
-    // Resourceful routes
+    // API Resources
     Route::apiResource('kategori-utama', KategoriUtamaController::class);
     Route::apiResource('kegiatan', KegiatanController::class);
     Route::apiResource('rencana-aksi', RencanaAksiController::class);
+    
+    // Nested routes for TodoItems under RencanaAksi
+    Route::get('/rencana-aksi/{rencanaAksi}/todo-items', [TodoItemController::class, 'index']);
+    Route::post('/rencana-aksi/{rencanaAksi}/todo-items', [TodoItemController::class, 'store']);
+    Route::put('/todo-items/{todoItem}', [TodoItemController::class, 'update']);
+    Route::delete('/todo-items/{todoItem}', [TodoItemController::class, 'destroy']);
 
-    // Nested routes for To-Do Items
-    Route::get('/rencana-aksi/{rencanaAksi}/todos', [TodoItemController::class, 'index']);
-    Route::post('/rencana-aksi/{rencanaAksi}/todos', [TodoItemController::class, 'store']);
-    Route::put('/todos/{todoItem}', [TodoItemController::class, 'update']);
-    Route::delete('/todos/{todoItem}', [TodoItemController::class, 'destroy']);
+    // Route untuk upload attachment ke to-do item
+    Route::post('/todo-items/{todoItem}/attachments', [TodoItemAttachmentController::class, 'store']);
 
-    // Utility routes
-    Route::get('users', [UserController::class, 'index']);
-    Route::get('/dashboard', [DashboardController::class, 'index']);
-    Route::get('/reports/monthly', [ReportController::class, 'monthly']);
-    Route::get('/reports/matrix', [ReportController::class, 'matrix']);
-    Route::get('/reports/export-matrix', [ReportController::class, 'exportMatrix']);
-    Route::get('/templates/source-years', [TemplateController::class, 'getSourceYears']);
-    Route::apiResource('templates', TemplateController::class)->except(['show', 'update']);
-    Route::post('/templates/{template}/apply', [TemplateController::class, 'apply']);
-    Route::get('/audit-logs', [AuditLogController::class, 'index']);
-    Route::post('/device-token', [NotificationController::class, 'storeDeviceToken']);
-    Route::get('/notifications/in-app', [NotificationController::class, 'getInAppNotifications']);
-    Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
-    Route::apiResource('rencana-aksi.progress', ProgressMonitoringController::class)
-        ->only(['index', 'store'])
-        ->scoped();
-    Route::post('/rencana-aksi/import', [ImportExportController::class, 'importRencanaAksi']);
-    Route::get('/rencana-aksi/export-template', [ImportExportController::class, 'exportRencanaAksiTemplate']);
-    Route::post('/store-fcm-token', [NotificationController::class, 'storeToken']);
+    Route::apiResource('progress-monitoring', ProgressMonitoringController::class);
+    Route::apiResource('users', UserController::class);
+    Route::apiResource('templates', TemplateController::class);
+    Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
+    Route::apiResource('jabatan', JabatanController::class)->only(['index']);
+
+    // Route untuk mengambil progress berdasarkan Rencana Aksi
+    Route::get('/rencana-aksi/{rencanaAksi}/progress', [ProgressMonitoringController::class, 'indexByRencanaAksi']);
 
 
-    });
+    // Rute spesifik
+    Route::get('/dashboard-stats', [DashboardController::class, 'index']);
+    Route::get('/laporan-matriks', [ReportController::class, 'generateLaporanMatriks']);
+    Route::post('/notifications/device-token', [NotificationController::class, 'storeToken']);
+
+    // Import/Export
+    Route::get('/export/rencana-aksi-template', [ImportExportController::class, 'exportRencanaAksiTemplate']);
+    Route::post('/import/rencana-aksi', [ImportExportController::class, 'importRencanaAksi']);
+});
