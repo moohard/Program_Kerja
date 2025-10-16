@@ -21,44 +21,57 @@ const ProgressModal = ({ isOpen, onClose, onProgressUpdate, rencanaAksi }) => {
     ];
 
     useEffect(() => {
-        const months = allMonths.map((name, index) => ({ name, value: index + 1 }));
-
-        if (rencanaAksi && rencanaAksi.bulan_mulai && rencanaAksi.bulan_selesai) {
-            console.log(rencanaAksi)
-            const filteredMonths = months.filter(month =>
-                month.value >= parseInt(rencanaAksi.bulan_mulai, 10) &&
-                month.value <= parseInt(rencanaAksi.bulan_selesai, 10)
-            );
-            setAvailableMonths(filteredMonths);
-            if (filteredMonths.length > 0) {
-                // Set default ke bulan pertama yang tersedia atau bulan saat ini jika ada dalam rentang
-                const currentMonth = new Date().getMonth() + 1;
-                const isCurrentMonthAvailable = filteredMonths.some(m => m.value === currentMonth);
-                setReportMonth(isCurrentMonthAvailable ? currentMonth : filteredMonths[0].value);
-            }
-        } else {
-            setAvailableMonths(months);
-            setReportMonth(new Date().getMonth() + 1);
-        }
-    }, [rencanaAksi]);
-
-    useEffect(() => {
         const fetchHistory = async () => {
-            if (isOpen && rencanaAksi) {
-                try {
-                    const response = await apiClient.get(`/rencana-aksi/${rencanaAksi.id}/progress`);
-                    setHistory(response.data.data);
-                } catch (error) {
-                    console.error("Failed to fetch progress history", error);
-                }
+            if (!rencanaAksi) return;
+            try {
+                const response = await apiClient.get(`/rencana-aksi/${rencanaAksi.id}/progress`);
+                setHistory(response.data.data);
+            } catch (error) {
+                console.error("Failed to fetch progress history", error);
             }
         };
-        fetchHistory();
-        setProgress('');
-        setCatatan('');
-        setAttachments([]);
-        setErrors({});
-        setReportYear(currentYear);
+
+        if (isOpen && rencanaAksi) {
+            // 1. Fetch data
+            fetchHistory();
+
+            // 2. Reset form state
+            setProgress('');
+            setCatatan('');
+            setAttachments([]);
+            setErrors({});
+            setReportYear(currentYear);
+
+            // 3. Calculate and set available months based on jadwal_config
+            const months = allMonths.map((name, index) => ({ name, value: index + 1 }));
+            let availableMonths = months; // Default to all months
+
+            if (rencanaAksi.jadwal_tipe === 'periodik' && rencanaAksi.jadwal_config) {
+                const { interval, months: specificMonths } = rencanaAksi.jadwal_config;
+                if (interval === 'monthly' && specificMonths && Array.isArray(specificMonths) && specificMonths.length > 0) {
+                    availableMonths = months.filter(m => specificMonths.includes(m.value));
+                } else if (interval === 'quarterly') {
+                    const quarterlyMonths = [3, 6, 9, 12];
+                    availableMonths = months.filter(m => quarterlyMonths.includes(m.value));
+                }
+            }
+            // For 'rutin', 'insidentil', or any other case, it will default to all months.
+            setAvailableMonths(availableMonths);
+
+            // 4. Set default selected month
+            if (availableMonths.length > 0) {
+                const currentMonthValue = new Date().getMonth() + 1;
+                const isCurrentMonthAvailable = availableMonths.some(m => m.value === currentMonthValue);
+                setReportMonth(isCurrentMonthAvailable ? currentMonthValue : availableMonths[0].value);
+            } else {
+                setReportMonth('');
+            }
+        } else {
+            // Cleanup when modal is closed
+            setAvailableMonths([]);
+            setReportMonth('');
+            setHistory([]);
+        }
     }, [isOpen, rencanaAksi, currentYear]);
 
     const handleFileChange = (e) => {
