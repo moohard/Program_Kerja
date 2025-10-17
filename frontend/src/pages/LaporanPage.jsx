@@ -73,7 +73,7 @@ function LaporanPage() {
                                                 <span><strong>Status:</strong> {ra.status}</span>
                                                 <span><strong>Target:</strong> {ra.target_tanggal_formatted}</span>
                                                 <span><strong>PIC:</strong> {ra.assigned_user?.name || 'N/A'}</span>
-                                                <span><strong>Progress:</strong> {ra.latest_progress}%</span>
+                                                <span><strong>Progress:</strong> {ra.latest_progress?.progress_percentage ?? 0}%</span>
                                             </div>
                                         </div>
                                     )))}

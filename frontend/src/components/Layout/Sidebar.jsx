@@ -20,9 +20,20 @@ const Sidebar = () => {
                 <NavLink to="/rencana-aksi" className={navLinkClasses}>
                     <FiFileText className="mr-3" /> Rencana Aksi
                 </NavLink>
-                <NavLink to="/laporan" className={navLinkClasses}>
-                    <FiBarChart2 className="mr-3" /> Laporan
-                </NavLink>
+                <div className="pt-2">
+                    <h2 className="px-4 text-xs font-semibold text-indigo-200 uppercase tracking-wider">Laporan</h2>
+                    <div className="mt-2 space-y-2">
+                        <NavLink to="/laporan/bulanan" className={navLinkClasses}>
+                            <FiBarChart2 className="mr-3" /> Bulanan
+                        </NavLink>
+                        <NavLink to="/laporan/matriks" className={navLinkClasses}>
+                            <FiBarChart2 className="mr-3" /> Matriks
+                        </NavLink>
+                        <NavLink to="/laporan/tahunan" className={navLinkClasses}>
+                            <FiBarChart2 className="mr-3" /> Tahunan
+                        </NavLink>
+                    </div>
+                </div>
                 <NavLink to="/templates" className={navLinkClasses}>
                     <FiGitMerge className="mr-3" /> Templates
                 </NavLink>

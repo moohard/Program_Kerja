@@ -9,55 +9,97 @@ use App\Models\RencanaAksi;
 use Illuminate\Http\Request;
 use App\Exports\LaporanMatriksExport; // <-- Tambahkan ini
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
+{
+
+    public function annualSummary(Request $request)
     {
+        $validated = $request->validate([
+            'program_kerja_id' => 'required|integer|exists:program_kerja,id',
+        ]);
+
+        $programKerjaId = $validated['program_kerja_id'];
+
+        // 1. Summary Stats
+        $summary = RencanaAksi::whereHas('kegiatan.kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerjaId))
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        // 2. Progress by Category
+        $progressByCategory = KategoriUtama::where('program_kerja_id', $programKerjaId)
+            ->where('is_active', true)
+            ->with(['kegiatan.rencanaAksi.latestProgress'])
+            ->orderBy('nomor')
+            ->get()
+            ->map(function ($kategori) {
+                $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
+                if ($allAksi->isEmpty()) {
+                    return null;
+                }
+                $totalProgress = $allAksi->sum(fn($aksi) => $aksi->latestProgress->progress_percentage ?? 0);
+                return [
+                    'category_name' => "{$kategori->nomor}. {$kategori->nama_kategori}",
+                    'average_progress' => round($totalProgress / $allAksi->count(), 2),
+                ];
+            })
+            ->filter()->values();
+
+        // 3. Achievement Highlights (contoh: 5 prioritas tinggi yang sudah selesai)
+        $highlights = RencanaAksi::whereHas('kegiatan.kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerjaId))
+            ->where('status', 'completed')
+            ->where('priority', 'high')
+            ->with('kegiatan:id,nama_kegiatan')
+            ->limit(5)
+            ->get(['id', 'deskripsi_aksi', 'kegiatan_id']);
+
+        return response()->json([
+            'summary' => $summary,
+            'progress_by_category' => $progressByCategory,
+            'highlights' => $highlights,
+        ]);
+    }
+
 
     public function monthly(Request $request)
-        {
-
+    {
         $request->validate([
             'year'  => 'required|integer|digits:4',
             'month' => 'required|integer|min:1|max:12',
         ]);
 
         $year  = $request->year;
-        $month = $request->month;
+        $month = (int)$request->month;
 
-        // Cari program kerja berdasarkan tahun yang dipilih
         $programKerja = ProgramKerja::where('tahun', $year)->first();
 
         if (!$programKerja) {
-            return response()->json(['data' => []]); // Jika tidak ada program kerja di tahun tsb, kembalikan data kosong
-            }
+            return response()->json(['data' => []]);
+        }
 
         // Ambil semua kategori dan relasi rencana aksi-nya
         $reportData = KategoriUtama::where('program_kerja_id', $programKerja->id)
             ->where('is_active', TRUE)
             ->with([
-                    'kegiatan.rencanaAksi' => function ($query) use ($month, $year) {
-                        // Filter rencana aksi yang targetnya ada di bulan dan tahun yang dipilih
-                        $query->whereMonth('target_tanggal', $month)
-                            ->whereYear('target_tanggal', $year)
-                            ->with(['assignedTo:id,name', 'latestProgress']);
-                        }
-                ])
+                'kegiatan.rencanaAksi' => function ($query) use ($month, $year) {
+                    $query->where(function ($q) use ($month) {
+                        $q->whereIn('jadwal_tipe', ['periodik', 'bulanan', 'insidentil'])
+                         ->whereJsonContains('jadwal_config->months', (int)$month);
+                    })->with(['assignedTo:id,name', 'latestProgress']);
+                }
+            ])
             ->orderBy('nomor', 'asc')
             ->get();
 
         // Filter kategori yang tidak memiliki rencana aksi sama sekali di bulan tsb agar tidak ditampilkan
         $filteredReportData = $reportData->filter(function ($kategori) {
-            foreach ($kategori->kegiatan as $kegiatan) {
-                if ($kegiatan->rencanaAksi->isNotEmpty()) {
-                    return TRUE;
-                    }
-                }
-
-            return FALSE;
-            })->values(); // `values()` untuk mereset key array setelah filter
+            return $kategori->kegiatan->some(fn($kg) => $kg->rencanaAksi->isNotEmpty());
+        })->values();
 
         return response()->json(['data' => $filteredReportData]);
-        }
+    }
 
     private function getMatrixReportData(Request $request)
         {

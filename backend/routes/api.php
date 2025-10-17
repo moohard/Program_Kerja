@@ -55,7 +55,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Rute spesifik
     Route::get('/dashboard-stats', [DashboardController::class, 'index']);
-    Route::get('/laporan-matriks', [ReportController::class, 'generateLaporanMatriks']);
+    Route::get('/reports/matrix', [ReportController::class, 'matrix']);
+    Route::get('/reports/annual-summary', [ReportController::class, 'annualSummary']);
+    Route::get('/reports/monthly', [ReportController::class, 'monthly']);
     Route::post('/notifications/device-token', [NotificationController::class, 'storeToken']);
 
     // Import/Export

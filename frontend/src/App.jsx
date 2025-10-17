@@ -13,6 +13,7 @@ import KegiatanPage from './pages/master/KegiatanPage';
 import RencanaAksiPage from './pages/RencanaAksiPage';
 import LaporanPage from './pages/LaporanPage';
 import LaporanMatriksPage from './pages/LaporanMatriksPage';
+import AnnualReportPage from './pages/AnnualReportPage'; // Import Laporan Tahunan
 import TemplateManagementPage from './pages/TemplateManagementPage';
 import AuditLogPage from './pages/AuditLogPage';
 
@@ -29,6 +30,7 @@ function App() {
                         <Route path="/laporan" element={<Navigate to="/laporan/bulanan" />} />
                         <Route path="/laporan/bulanan" element={<LaporanPage />} />
                         <Route path="/laporan/matriks" element={<LaporanMatriksPage />} />
+                        <Route path="/laporan/tahunan" element={<AnnualReportPage />} /> {/* Rute Baru */}
                         <Route path="/master/kategori-utama" element={<KategoriUtamaPage />} />
                         <Route path="/master/kegiatan" element={<KegiatanPage />} />
                         <Route path="/templates" element={<TemplateManagementPage />} />

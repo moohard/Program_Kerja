@@ -13,3 +13,9 @@ Berikut adalah daftar fitur yang telah diselesaikan:
   - [x] Backend: Endpoint baru `/api/program-kerja` dibuat untuk menyuplai data filter tahun.
   - [x] Frontend: Komponen `DashboardFilter.jsx` dibuat untuk menampung UI filter.
   - [x] Frontend: `DashboardPage.jsx` di-refactor untuk mengelola state filter dan memuat ulang data saat filter berubah.
+
+- [x] **#3: Buat fitur spesifik "Laporan Tahunan".**
+  - [x] Backend: Endpoint `/api/reports/annual-summary` dan logika di `ReportController` telah dibuat.
+  - [x] Frontend: Halaman `AnnualReportPage.jsx` dibuat untuk menampilkan data laporan tahunan.
+  - [x] Frontend: Rute dan link navigasi di sidebar telah ditambahkan.
+  - [x] Bug Fix: Memperbaiki berbagai masalah pada Laporan Bulanan dan Matriks (rute 404, error render, dan logika filter jadwal).
