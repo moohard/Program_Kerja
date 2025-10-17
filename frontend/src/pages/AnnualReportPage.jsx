@@ -12,9 +12,10 @@ const AnnualReportPage = () => {
 
     useEffect(() => {
         apiClient.get('/program-kerja').then(response => {
-            setProgramKerjaList(response.data);
+            const programData = response.data.data; // Correctly access the nested data array
+            setProgramKerjaList(programData);
             // Optionally, select the active one by default
-            const activeProgram = response.data.find(p => p.is_aktif);
+            const activeProgram = programData.find(p => p.is_aktif);
             if (activeProgram) {
                 setSelectedProgramId(activeProgram.id);
             }

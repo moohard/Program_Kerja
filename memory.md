@@ -27,3 +27,9 @@ Berikut adalah daftar fitur yang telah diselesaikan:
   - [x] Backend: Rute `/api/reports/export-matrix` diperbarui untuk menangani format PDF.
   - [x] Frontend: `LaporanMatriksPage.jsx` dimodifikasi untuk memanggil endpoint ekspor PDF dan menangani URL unduhan yang diterima.
   - [x] Bug Fix: Memperbaiki error 500 karena `Facade/Pdf` tidak ditemukan dengan menginstal paket yang benar.
+
+- [x] **#5: Refactor Modul Program Kerja.**
+  - [x] Backend: `ProgramKerjaController` di-refactor untuk menggunakan `StoreProgramKerjaRequest` dan `UpdateProgramKerjaRequest` untuk validasi.
+  - [x] Backend: `ProgramKerjaResource` dibuat untuk standarisasi output API.
+  - [x] Backend: Menambahkan logika transaksi database untuk memastikan hanya ada satu program kerja yang bisa aktif.
+  - [x] Frontend: Penyesuaian kecil pada halaman terkait.
