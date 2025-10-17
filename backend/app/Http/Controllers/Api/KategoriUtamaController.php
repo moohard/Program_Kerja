@@ -11,23 +11,26 @@ use Symfony\Component\HttpFoundation\Response;
 class KategoriUtamaController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
+        $programKerjaId = $request->input('program_kerja_id');
 
-        // Ambil program kerja yang aktif
-        $activeProgram = ProgramKerja::where('is_aktif', TRUE)->first();
+        $query = KategoriUtama::query();
 
-        if (!$activeProgram)
-        {
-            return response()->json([ 'data' => [] ]);
+        if ($programKerjaId) {
+            $query->where('program_kerja_id', $programKerjaId);
+        } else {
+            // Fallback to active program if no ID is provided
+            $activeProgram = ProgramKerja::where('is_aktif', TRUE)->first();
+            if (!$activeProgram) {
+                return response()->json(['data' => []]);
+            }
+            $query->where('program_kerja_id', $activeProgram->id);
         }
 
-        // Tampilkan kategori dari program kerja yang aktif
-        $kategori = KategoriUtama::where('program_kerja_id', $activeProgram->id)
-            ->orderBy('nomor')
-            ->get();
+        $kategori = $query->orderBy('nomor')->get();
 
-        return response()->json([ 'data' => $kategori ]);
+        return response()->json(['data' => $kategori]);
     }
 
     public function store(Request $request)

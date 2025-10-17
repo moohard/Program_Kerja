@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ImportExportController;
 use App\Http\Controllers\Api\JabatanController;
 use App\Http\Controllers\Api\TodoItemAttachmentController;
+use App\Http\Controllers\Api\ProgramKerjaController;
 
 // Rute publik untuk otentikasi
 Route::post('/login', [AuthController::class, 'login']);
@@ -46,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('templates', TemplateController::class);
     Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
     Route::apiResource('jabatan', JabatanController::class)->only(['index']);
+    Route::apiResource('program-kerja', ProgramKerjaController::class)->only(['index']);
 
     // Route untuk mengambil progress berdasarkan Rencana Aksi
     Route::get('/rencana-aksi/{rencanaAksi}/progress', [ProgressMonitoringController::class, 'indexByRencanaAksi']);

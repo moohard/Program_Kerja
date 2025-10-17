@@ -13,21 +13,31 @@ use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $programKerjaAktif = ProgramKerja::where('is_aktif', true)->first();
-        if (!$programKerjaAktif) {
+        // Validasi input filter
+        $filters = $request->validate([
+            'program_kerja_id' => 'nullable|integer|exists:program_kerja,id',
+            'kategori_id' => 'nullable|integer|exists:kategori_utama,id',
+            'user_id' => 'nullable|integer|exists:users,id',
+            'status' => 'nullable|string|in:planned,in_progress,completed,delayed',
+        ]);
+
+        $programKerjaId = $filters['program_kerja_id'] ?? ProgramKerja::where('is_aktif', true)->first()->id ?? null;
+
+        if (!$programKerjaId) {
             return response()->json([
                 'summary' => ['total' => 0, 'completed' => 0, 'in_progress' => 0, 'delayed' => 0],
                 'progress_by_category' => [],
                 'upcoming_deadlines' => [],
+                'recent_activity' => [],
             ]);
         }
 
-        $summary = $this->getSummaryStats($programKerjaAktif->id);
-        $progressByCategory = $this->getProgressByCategory($programKerjaAktif->id);
-        $upcomingDeadlines = $this->getUpcomingDeadlines($programKerjaAktif->id);
-        $recentActivity = $this->getRecentActivity();
+        $summary = $this->getSummaryStats($programKerjaId, $filters);
+        $progressByCategory = $this->getProgressByCategory($programKerjaId, $filters);
+        $upcomingDeadlines = $this->getUpcomingDeadlines($programKerjaId, $filters);
+        $recentActivity = $this->getRecentActivity(); // Recent activity tidak difilter
 
         return response()->json([
             'summary' => $summary,
@@ -37,56 +47,87 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function getSummaryStats($programKerjaId)
+    private function getSummaryStats($programKerjaId, array $filters = [])
     {
-        return RencanaAksi::whereHas('kegiatan.kategoriUtama', function ($query) use ($programKerjaId) {
+        $query = RencanaAksi::whereHas('kegiatan.kategoriUtama', function ($query) use ($programKerjaId) {
             $query->where('program_kerja_id', $programKerjaId);
-        })->select('status', DB::raw('count(*) as total'))
+        });
+
+        $query->when($filters['kategori_id'] ?? null, function ($q, $kategoriId) {
+            $q->whereHas('kegiatan', fn($sq) => $sq->where('kategori_id', $kategoriId));
+        })
+        ->when($filters['user_id'] ?? null, function ($q, $userId) {
+            $q->where('assigned_to', $userId);
+        })
+        ->when($filters['status'] ?? null, function ($q, $status) {
+            $q->where('status', $status);
+        });
+
+        return $query->select('status', DB::raw('count(*) as total'))
           ->groupBy('status')
           ->get()
           ->pluck('total', 'status')
           ->toArray();
     }
 
-    private function getProgressByCategory($programKerjaId)
+    private function getProgressByCategory($programKerjaId, array $filters = [])
     {
-        $categories = KategoriUtama::where('program_kerja_id', $programKerjaId)
-            ->where('is_active', true)
-            ->with(['kegiatan.rencanaAksi.latestProgress'])
-            ->orderBy('nomor')
-            ->get();
+        $kategoriQuery = KategoriUtama::where('program_kerja_id', $programKerjaId)
+            ->where('is_active', true);
+
+        // Filter by category if provided
+        $kategoriQuery->when($filters['kategori_id'] ?? null, function ($q, $kategoriId) {
+            $q->where('id', $kategoriId);
+        });
+
+        $categories = $kategoriQuery->with([
+            'kegiatan.rencanaAksi' => function ($rencanaAksiQuery) use ($filters) {
+                // Filter rencanaAksi by user and status
+                $rencanaAksiQuery
+                    ->when($filters['user_id'] ?? null, fn($q, $userId) => $q->where('assigned_to', $userId))
+                    ->when($filters['status'] ?? null, fn($q, $status) => $q->where('status', $status));
+            },
+            'kegiatan.rencanaAksi.latestProgress'
+        ])->orderBy('nomor')->get();
 
         return $categories->map(function ($kategori) {
-            $allAksi = $kategori->kegiatan->flatMap(function($kg) {
-                return $kg->rencanaAksi;
-            });
+            $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
 
             if ($allAksi->isEmpty()) {
-                return [
-                    'category_name' => $kategori->nama_kategori,
-                    'average_progress' => 0,
-                ];
+                return null; // Will be filtered out later
             }
 
-            $totalProgress = $allAksi->sum(function ($aksi) {
-                return $aksi->latestProgress->progress_percentage ?? 0;
-            });
+            $totalProgress = $allAksi->sum(fn($aksi) => $aksi->latestProgress->progress_percentage ?? 0);
+            $averageProgress = $allAksi->count() > 0 ? round($totalProgress / $allAksi->count(), 2) : 0;
 
             return [
                 'category_name' => "{$kategori->nomor}. {$kategori->nama_kategori}",
-                'average_progress' => round($totalProgress / $allAksi->count(), 2),
+                'average_progress' => $averageProgress,
             ];
-        });
+        })->filter()->values(); // Remove nulls and re-index
     }
 
-    private function getUpcomingDeadlines($programKerjaId)
+    private function getUpcomingDeadlines($programKerjaId, array $filters = [])
     {
-        return RencanaAksi::with('kegiatan:id,nama_kegiatan', 'assignedTo:id,name')
+        $query = RencanaAksi::with('kegiatan:id,nama_kegiatan', 'assignedTo:id,name')
             ->whereHas('kegiatan.kategoriUtama', function ($query) use ($programKerjaId) {
                 $query->where('program_kerja_id', $programKerjaId);
-            })
-            ->where('status', '!=', 'completed')
-            ->where('target_tanggal', '>=', Carbon::today())
+            });
+
+        $query->when($filters['kategori_id'] ?? null, function ($q, $kategoriId) {
+            $q->whereHas('kegiatan', fn($sq) => $sq->where('kategori_id', $kategoriId));
+        })
+        ->when($filters['user_id'] ?? null, function ($q, $userId) {
+            $q->where('assigned_to', $userId);
+        })
+        ->when($filters['status'] ?? null, function ($q, $status) {
+            $q->where('status', $status);
+        }, function ($q) {
+            // Default behavior if status filter is not applied
+            $q->where('status', '!=', 'completed');
+        });
+
+        return $query->where('target_tanggal', '>=', Carbon::today())
             ->where('target_tanggal', '<=', Carbon::today()->addDays(7))
             ->orderBy('target_tanggal', 'asc')
             ->limit(5)
