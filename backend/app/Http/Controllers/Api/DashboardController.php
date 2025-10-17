@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ProgramKerja;
 use App\Models\RencanaAksi;
 use App\Models\KategoriUtama;
+use App\Models\AuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -26,11 +27,13 @@ class DashboardController extends Controller
         $summary = $this->getSummaryStats($programKerjaAktif->id);
         $progressByCategory = $this->getProgressByCategory($programKerjaAktif->id);
         $upcomingDeadlines = $this->getUpcomingDeadlines($programKerjaAktif->id);
+        $recentActivity = $this->getRecentActivity();
 
         return response()->json([
             'summary' => $summary,
             'progress_by_category' => $progressByCategory,
             'upcoming_deadlines' => $upcomingDeadlines,
+            'recent_activity' => $recentActivity,
         ]);
     }
 
@@ -88,5 +91,45 @@ class DashboardController extends Controller
             ->orderBy('target_tanggal', 'asc')
             ->limit(5)
             ->get(['id', 'deskripsi_aksi', 'target_tanggal', 'kegiatan_id', 'assigned_to']);
+    }
+
+    private function getRecentActivity()
+    {
+        $logs = AuditLog::with('user:id,name')->latest()->limit(10)->get();
+
+        // Transform the logs to create a human-readable description
+        return $logs->map(function ($log) {
+            $userName = $log->user->name ?? 'Sistem';
+            $action = strtolower($log->action);
+
+            $verbMap = [
+                'create' => 'membuat',
+                'update' => 'memperbarui',
+                'delete' => 'menghapus',
+            ];
+            $verb = $verbMap[$action] ?? $action;
+
+            $objectType = str_replace('_', ' ', \Illuminate\Support\Str::singular($log->table_name));
+
+            // Try to get a representative name from the new_values json
+            $objectName = '';
+            if (isset($log->new_values)) {
+                $objectName = $log->new_values['deskripsi_aksi'] ?? $log->new_values['nama_kegiatan'] ?? $log->new_values['name'] ?? '';
+            }
+
+            $description = "<b>{$userName}</b> {$verb} {$objectType}";
+            if ($objectName) {
+                // Limit the length of the object name to avoid overly long descriptions
+                $shortName = \Illuminate\Support\Str::limit($objectName, 50);
+                $description .= " <i>'{$shortName}'</i>";
+            }
+
+            return [
+                'id' => $log->id,
+                'description' => $description,
+                'created_at' => $log->created_at,
+                'user' => $log->user,
+            ];
+        });
     }
 }

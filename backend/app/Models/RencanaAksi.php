@@ -55,6 +55,9 @@ class RencanaAksi extends Model
     {
         return Attribute::make(
             get: function () {
+                if (!$this->jadwal_tipe) {
+                    return [];
+                }
                 $jadwalService = app(JadwalService::class);
                 return $jadwalService->getTargetMonths($this->jadwal_tipe, $this->jadwal_config ?? []);
             }

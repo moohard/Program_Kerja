@@ -4,6 +4,7 @@ import { FiClipboard, FiCheckSquare, FiLoader, FiAlertTriangle } from 'react-ico
 import StatCard from '../components/dashboard/StatCard';
 import CategoryProgressChart from '../components/dashboard/CategoryProgressChart';
 import UpcomingDeadlines from '../components/dashboard/UpcomingDeadlines';
+import RecentActivity from '../components/dashboard/RecentActivity'; // Import baru
 import GeminiAssistant from '../components/dashboard/GeminiAssistant';
 
 function DashboardPage() {
@@ -34,9 +35,9 @@ function DashboardPage() {
         return <div className="text-center text-gray-500">Gagal memuat data dashboard.</div>;
     }
 
-    const { summary, progress_by_category, upcoming_deadlines } = dashboardData;
+    // Destructure semua data yang dibutuhkan
+    const { summary, progress_by_category, upcoming_deadlines, recent_activity } = dashboardData;
     
-    // Hitung total dari semua status di summary
     const total = Object.values(summary).reduce((acc, val) => acc + val, 0);
 
     return (
@@ -49,13 +50,14 @@ function DashboardPage() {
                 <StatCard title="Terlambat" value={summary.delayed || 0} icon={<FiAlertTriangle size={24}/>} color="red" />
             </div>
             
-            {/* Bagian Grafik dan Tenggat Waktu */}
+            {/* Bagian Utama: Grafik, Tenggat Waktu, dan Aktivitas */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                     <CategoryProgressChart data={progress_by_category} />
                 </div>
-                <div>
+                <div className="space-y-6">
                     <UpcomingDeadlines data={upcoming_deadlines} />
+                    <RecentActivity data={recent_activity} />
                 </div>
             </div>
 

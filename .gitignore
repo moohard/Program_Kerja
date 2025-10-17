@@ -1,1 +1,13 @@
 .continue/.env
+
+# Local Certificates
+*.pem
+
+# Pasted Images
+*.png
+
+# Environment files
+.env
+
+.gemini/
+gha-creds-*.json

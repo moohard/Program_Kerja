@@ -16,9 +16,15 @@ const Header = () => {
                 <div className="flex items-center">
                     {notificationStatus !== 'granted' && (
                         <button
-                            onClick={requestPermissionAndGetToken}
+                            onClick={() => {
+                                if (notificationStatus === 'denied') {
+                                    alert('Anda telah memblokir notifikasi. Harap aktifkan secara manual melalui pengaturan browser Anda.');
+                                    return;
+                                }
+                                requestPermissionAndGetToken();
+                            }}
                             className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 mr-4"
-                            title="Aktifkan Notifikasi"
+                            title={notificationStatus === 'denied' ? 'Notifikasi diblokir' : 'Aktifkan Notifikasi'}
                         >
                             <FiBell size={20} />
                         </button>

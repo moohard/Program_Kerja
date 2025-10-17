@@ -87,11 +87,11 @@ gantt
   - [x] Search dan filter functionality
 
 #### Modul Penjadwalan
-- [ ] **Sistem Jadwal**
-  - [ ] Implementasi jadwal insidentil (contoh: Karis/Karsu Jan-Des)
-  - [ ] Implementasi jadwal periodik (contoh: triwulanan)
-  - [ ] Implementasi jadwal rutin (contoh: mingguan)
-  - [ ] UI untuk konfigurasi jadwal
+- [x] **Sistem Jadwal**
+  - [x] Implementasi jadwal insidentil (contoh: Karis/Karsu Jan-Des)
+  - [x] Implementasi jadwal periodik (contoh: triwulanan)
+  - [x] Implementasi jadwal rutin (contoh: mingguan)
+  - [x] UI untuk konfigurasi jadwal
 - [ ] **Reminder System**
   - [ ] Notifikasi untuk tugas yang akan datang
   - [ ] Alert untuk deadline mendekat
