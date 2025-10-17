@@ -7,9 +7,13 @@ use App\Models\KategoriUtama;
 use App\Models\ProgramKerja;
 use App\Models\RencanaAksi;
 use Illuminate\Http\Request;
-use App\Exports\LaporanMatriksExport; // <-- Tambahkan ini
+use App\Exports\LaporanMatriksExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
 
 class ReportController extends Controller
 {
@@ -170,24 +174,63 @@ class ReportController extends Controller
 
         $request->validate([
             'year'   => 'required|integer',
-            'format' => 'required|in:excel',
+            'format' => 'required|in:excel,pdf',
         ]);
 
-        // Menggunakan kembali fungsi pengambilan data yang sama
         $year = $request->year;
-        $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
-            ->with([
-                'kegiatan.kategoriUtama',
-                'assignedTo:id,name',
-                'progressMonitorings' => function ($query) use ($year) {
-                    $query->whereYear('report_date', $year);
-                }
-            ])
-            ->get();
 
-        $fileName = "Laporan_Matriks_{$request->year}.xlsx";
-
-        return Excel::download(new LaporanMatriksExport($rencanaAksis), $fileName);
+        if ($request->format === 'excel') {
+            $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
+                ->with(['kegiatan.kategoriUtama', 'assignedTo:id,name', 'progressMonitorings' => fn($q) => $q->whereYear('report_date', $year)])
+                ->get();
+            $fileName = "Laporan_Matriks_{$year}.xlsx";
+            return Excel::download(new LaporanMatriksExport($rencanaAksis), $fileName);
         }
 
+        if ($request->format === 'pdf') {
+            // 1. Ambil data mentah
+            $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
+                ->with(['kegiatan.kategoriUtama', 'assignedTo:id,name', 'progressMonitorings' => fn($q) => $q->whereYear('report_date', $year)])
+                ->orderBy('kegiatan_id') // Urutkan untuk grouping
+                ->get();
+
+            // 2. Proses dan kelompokkan data untuk view PDF
+            $groupedData = $rencanaAksis->groupBy(function($item) {
+                return optional($item->kegiatan->kategoriUtama)->nama_kategori ?? 'Uncategorized';
+            })->map(function($kategoriGroup) {
+                return $kategoriGroup->groupBy('kegiatan.nama_kegiatan')
+                    ->map(function($kegiatanGroup) {
+                        return [
+                            'nama_kegiatan' => $kegiatanGroup->first()->kegiatan->nama_kegiatan,
+                            'rencana_aksi' => $kegiatanGroup->map(function($aksi) {
+                                $monthlyProgress = $aksi->progressMonitorings->mapWithKeys(function ($progress) {
+                                    return [(int)date('m', strtotime($progress->report_date)) => $progress->progress_percentage];
+                                });
+                                return [
+                                    'deskripsi_aksi' => $aksi->deskripsi_aksi,
+                                    'assigned_to' => $aksi->assignedTo,
+                                    'target_tanggal' => $aksi->target_tanggal,
+                                    'monthly_progress' => $monthlyProgress,
+                                ];
+                            })->values()->all(),
+                        ];
+                    })->values()->all();
+            });
+
+            // 3. Buat PDF
+            $pdf = Pdf::loadView('reports.matriks_pdf', ['data' => $groupedData, 'year' => $year])
+                ->setPaper('a3', 'landscape');
+
+            // 4. Simpan ke S3 dan dapatkan URL
+            $fileName = 'generated-reports/laporan-matriks-' . $year . '-' . Str::uuid() . '.pdf';
+            Storage::disk('s3')->put($fileName, $pdf->output());
+
+            $url = Storage::disk('s3')->temporaryUrl(
+                $fileName,
+                now()->addMinutes(15) // URL berlaku selama 15 menit
+            );
+
+            return response()->json(['download_url' => $url]);
+        }
     }
+}

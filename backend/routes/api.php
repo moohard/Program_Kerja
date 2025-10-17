@@ -47,7 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('templates', TemplateController::class);
     Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
     Route::apiResource('jabatan', JabatanController::class)->only(['index']);
-    Route::apiResource('program-kerja', ProgramKerjaController::class)->only(['index']);
+    Route::apiResource('program-kerja', ProgramKerjaController::class);
 
     // Route untuk mengambil progress berdasarkan Rencana Aksi
     Route::get('/rencana-aksi/{rencanaAksi}/progress', [ProgressMonitoringController::class, 'indexByRencanaAksi']);
@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/matrix', [ReportController::class, 'matrix']);
     Route::get('/reports/annual-summary', [ReportController::class, 'annualSummary']);
     Route::get('/reports/monthly', [ReportController::class, 'monthly']);
+    Route::get('/reports/export-matrix', [ReportController::class, 'exportMatrix']);
     Route::post('/notifications/device-token', [NotificationController::class, 'storeToken']);
 
     // Import/Export

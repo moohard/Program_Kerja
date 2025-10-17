@@ -7,7 +7,8 @@ const LaporanMatriksPage = () => {
     const [year, setYear] = useState(currentYear);
     const [reportData, setReportData] = useState({});
     const [loading, setLoading] = useState(false);
-    const [exporting, setExporting] = useState(false);
+    const [exporting, setExporting] = useState(false); // For Excel
+    const [pdfExporting, setPdfExporting] = useState(false); // For PDF
 
     const fetchReport = async () => {
         if (!year) return;
@@ -29,10 +30,6 @@ const LaporanMatriksPage = () => {
     }, [year]);
 
     const processedData = useMemo(() => {
-        console.table(Object.keys(reportData).map(key => ({
-            Kategori: key,
-            'Jumlah Aksi': reportData[key].length
-        })));
         if (Object.keys(reportData).length === 0) return [];
         return Object.entries(reportData).map(([kategoriNama, aksiList]) => {
             const kegiatanGrouped = aksiList.reduce((acc, aksi) => {
@@ -54,31 +51,41 @@ const LaporanMatriksPage = () => {
         });
     }, [reportData]);
 
-    const handlePrint = () => {
-        window.print();
-    };
-
-    const handleExport = async (format) => {
+    const handleExportExcel = async () => {
         setExporting(true);
         try {
-            const response = await apiClient.get(`/reports/export-matrix?year=${year}&format=${format}`, {
-                responseType: 'blob', // Penting untuk menerima file
+            const response = await apiClient.get(`/reports/export-matrix?year=${year}&format=excel`, {
+                responseType: 'blob',
             });
 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            const extension = format === 'excel' ? 'xlsx' : 'zip';
-            link.setAttribute('download', `Laporan_Matriks_${year}.${extension}`);
+            link.setAttribute('download', `Laporan_Matriks_${year}.xlsx`);
             document.body.appendChild(link);
             link.click();
             link.remove();
 
         } catch (error) {
-            console.error(`Error exporting to ${format}:`, error);
-            alert(`Gagal mengekspor laporan ke ${format}.`);
+            console.error(`Error exporting to Excel:`, error);
+            alert(`Gagal mengekspor laporan ke Excel.`);
         } finally {
             setExporting(false);
+        }
+    };
+
+    const handleExportPdf = async () => {
+        setPdfExporting(true);
+        try {
+            const response = await apiClient.get(`/reports/export-matrix?year=${year}&format=pdf`);
+            if (response.data.download_url) {
+                window.open(response.data.download_url, '_blank');
+            }
+        } catch (error) {
+            console.error(`Error exporting to PDF:`, error);
+            alert(`Gagal mengekspor laporan ke PDF.`);
+        } finally {
+            setPdfExporting(false);
         }
     };
 
@@ -91,32 +98,6 @@ const LaporanMatriksPage = () => {
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <style>
-                {`
-                    @media print {
-                        body * {
-                            visibility: hidden;
-                        }
-                        #print-area, #print-area * {
-                            visibility: visible;
-                        }
-                        #print-area {
-                            position: absolute;
-                            left: 0;
-                            top: 0;
-                            width: 100%;
-                        }
-                        .no-print {
-                            display: none;
-                        }
-                        table {
-                            -webkit-print-color-adjust: exact;
-                            color-adjust: exact;
-                        }
-                    }
-                `}
-            </style>
-
             <div className="flex justify-between items-center mb-6 no-print">
                 <h1 className="text-2xl font-bold">Laporan Matriks Kinerja</h1>
                 <div className="flex items-center space-x-4">
@@ -128,17 +109,18 @@ const LaporanMatriksPage = () => {
                         {[0, 1, 2, 3, 4].map(i => <option key={currentYear - i} value={currentYear - i}>{currentYear - i}</option>)}
                     </select>
                     <button
-                        onClick={() => handleExport('excel')}
-                        disabled={exporting}
-                        className="flex items-center bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-green-300"
+                        onClick={handleExportExcel}
+                        disabled={exporting || pdfExporting}
+                        className="flex items-center bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:bg-gray-400"
                     >
                         <FiDownload className="mr-2" /> {exporting ? 'Mengekspor...' : 'Ekspor Excel'}
                     </button>
                     <button
-                        onClick={handlePrint}
-                        className="flex items-center bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700"
+                        onClick={handleExportPdf}
+                        disabled={pdfExporting || exporting}
+                        className="flex items-center bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:bg-gray-400"
                     >
-                        <FiPrinter className="mr-2" /> Cetak / Simpan PDF
+                        <FiPrinter className="mr-2" /> {pdfExporting ? 'Membuat PDF...' : 'Ekspor PDF'}
                     </button>
                 </div>
             </div>
@@ -187,7 +169,7 @@ const LaporanMatriksPage = () => {
                                             })}
 
                                             <td className="border p-2">{item.catatan}</td>
-                                            <td className="border p-2">{item.assigned_to?.name || '-'}</td>
+                                            <td className="border p-2">{item.assigned_to?.name || '-'}</td >
                                             <td className="border p-2 text-center">{item.status.replace('_', ' ')}</td>
                                         </tr>
                                     ))
@@ -202,4 +184,5 @@ const LaporanMatriksPage = () => {
 };
 
 export default LaporanMatriksPage;
+
 

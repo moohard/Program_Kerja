@@ -19,3 +19,11 @@ Berikut adalah daftar fitur yang telah diselesaikan:
   - [x] Frontend: Halaman `AnnualReportPage.jsx` dibuat untuk menampilkan data laporan tahunan.
   - [x] Frontend: Rute dan link navigasi di sidebar telah ditambahkan.
   - [x] Bug Fix: Memperbaiki berbagai masalah pada Laporan Bulanan dan Matriks (rute 404, error render, dan logika filter jadwal).
+
+- [x] **#4: Implementasi Ekspor Laporan Matriks ke PDF via MinIO.**
+  - [x] Backend: Menginstal `barryvdh/laravel-dompdf` untuk dukungan PDF.
+  - [x] Backend: `ReportController` diperbarui untuk menghasilkan file PDF dari Blade view.
+  - [x] Backend: Logika ditambahkan untuk mengunggah PDF yang dihasilkan ke MinIO (disk 's3') dan membuat URL unduhan sementara.
+  - [x] Backend: Rute `/api/reports/export-matrix` diperbarui untuk menangani format PDF.
+  - [x] Frontend: `LaporanMatriksPage.jsx` dimodifikasi untuk memanggil endpoint ekspor PDF dan menangani URL unduhan yang diterima.
+  - [x] Bug Fix: Memperbaiki error 500 karena `Facade/Pdf` tidak ditemukan dengan menginstal paket yang benar.
