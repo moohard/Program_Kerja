@@ -67,4 +67,49 @@ class KategoriUtamaControllerTest extends TestCase
 
         $this->assertDatabaseHas('kategori_utama', $kategoriData);
     }
+
+    public function test_can_get_a_single_kategori_utama(): void
+    {
+        $user = User::factory()->create();
+        $kategori = KategoriUtama::factory()->create();
+
+        $response = $this->actingAs($user, 'sanctum')->getJson("/api/kategori-utama/{$kategori->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'id' => $kategori->id,
+                    'nama_kategori' => $kategori->nama_kategori,
+                ]
+            ]);
+    }
+
+    public function test_can_update_a_kategori_utama(): void
+    {
+        $user = User::factory()->create();
+        $kategori = KategoriUtama::factory()->create();
+        $updateData = [
+            'nama_kategori' => 'Nama Kategori Diperbarui',
+            'is_active' => false,
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')->putJson("/api/kategori-utama/{$kategori->id}", $updateData);
+
+        $response->assertStatus(200)
+            ->assertJsonFragment($updateData);
+
+        $this->assertDatabaseHas('kategori_utama', $updateData);
+    }
+
+    public function test_can_delete_a_kategori_utama(): void
+    {
+        $user = User::factory()->create();
+        $kategori = KategoriUtama::factory()->create();
+
+        $response = $this->actingAs($user, 'sanctum')->deleteJson("/api/kategori-utama/{$kategori->id}");
+
+        $response->assertStatus(204);
+
+        $this->assertDatabaseMissing('kategori_utama', ['id' => $kategori->id]);
+    }
 }
