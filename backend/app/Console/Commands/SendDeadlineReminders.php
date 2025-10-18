@@ -37,7 +37,7 @@ class SendDeadlineReminders extends Command
         foreach ($reminderDays as $days) {
             $targetDate = Carbon::now()->addDays($days)->startOfDay();
 
-            $rencanaAksis = RencanaAksi::with('assignedTo')
+            $rencanaAksis = RencanaAksi::with('assignedTo', 'kegiatan.programKerja')
                 ->whereDate('target_tanggal', '=', $targetDate)
                 ->where('status', '!=', 'completed') // Hanya untuk yang belum selesai
                 ->get();

@@ -45,9 +45,9 @@ class DeadlineReminderNotification extends Notification implements ShouldQueue
      */
     public function toFcm($notifiable)
     {
-        $deadline = $this->rencanaAksi->end_date->format('d M Y');
+        $deadline = $this->rencanaAksi->target_tanggal->format('d M Y');
         $title = 'Pengingat Deadline Mendekat';
-        $body = "Tugas '{$this->rencanaAksi->nama_rencana_aksi}' akan berakhir pada {$deadline}.";
+        $body = "Tugas '{$this->rencanaAksi->deskripsi_aksi}' akan berakhir pada {$deadline}.";
 
         return CloudMessage::new()
             ->withNotification(FirebaseNotification::create($title, $body))

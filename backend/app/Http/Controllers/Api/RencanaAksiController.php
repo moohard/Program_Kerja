@@ -61,14 +61,13 @@ class RencanaAksiController extends Controller
             \Log::error('FCM Notification failed during store: ' . $e->getMessage());
         }
 
-        return new RencanaAksiResource($rencanaAksi);
+        return new RencanaAksiResource($rencanaAksi->load(['assignedTo', 'progressMonitorings', 'latestProgress']));
     }
 
     public function show(RencanaAksi $rencanaAksi)
-        {
-
-        return new RencanaAksiResource($rencanaAksi->load(relations: 'assignedTo'));
-        }
+    {
+        return new RencanaAksiResource($rencanaAksi->load(['assignedTo', 'progressMonitorings', 'latestProgress']));
+    }
 
     public function update(UpdateRencanaAksiRequest $request, RencanaAksi $rencanaAksi)
     {
@@ -93,7 +92,7 @@ class RencanaAksiController extends Controller
             \Log::error('FCM Notification failed during update: ' . $e->getMessage());
         }
 
-        return new RencanaAksiResource($rencanaAksi->refresh());
+        return new RencanaAksiResource($rencanaAksi->refresh()->load(['assignedTo', 'progressMonitorings', 'latestProgress']));
     }
 
     public function destroy(RencanaAksi $rencanaAksi)

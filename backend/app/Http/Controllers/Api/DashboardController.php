@@ -105,12 +105,12 @@ class DashboardController extends Controller
 
         $categories = $kategoriQuery->with([
             'kegiatan.rencanaAksi' => function ($rencanaAksiQuery) use ($filters) {
-                // Filter rencanaAksi by user and status
+                // Filter rencanaAksi by user and status, and eager load the nested relationship
                 $rencanaAksiQuery
                     ->when($filters['user_id'] ?? null, fn($q, $userId) => $q->where('assigned_to', $userId))
-                    ->when($filters['status'] ?? null, fn($q, $status) => $q->where('status', $status));
+                    ->when($filters['status'] ?? null, fn($q, $status) => $q->where('status', $status))
+                    ->with('latestProgress');
             },
-            'kegiatan.rencanaAksi.latestProgress'
         ])->orderBy('nomor')->get();
 
         return $categories->map(function ($kategori) {

@@ -23,15 +23,14 @@ class TodoItemController extends Controller
     public function store(StoreTodoItemRequest $request, RencanaAksi $rencanaAksi)
     {
         $todoItem = $rencanaAksi->todoItems()->create($request->validated());
-        $this->recalculateProgressPublic($rencanaAksi, "To-do item baru ditambahkan: '{$todoItem->deskripsi}'");
-        return new TodoItemResource($todoItem);
+        return new TodoItemResource($todoItem->load('attachments'));
     }
 
     public function update(UpdateTodoItemRequest $request, TodoItem $todoItem)
     {
         $todoItem->update($request->validated());
         $this->recalculateProgressPublic($todoItem->rencanaAksi, "Status to-do '{$todoItem->deskripsi}' diubah.");
-        return new TodoItemResource($todoItem);
+        return new TodoItemResource($todoItem->load('attachments'));
     }
 
     public function destroy(TodoItem $todoItem)

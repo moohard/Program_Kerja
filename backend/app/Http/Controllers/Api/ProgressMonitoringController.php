@@ -18,6 +18,7 @@ class ProgressMonitoringController extends Controller
     public function indexByRencanaAksi(RencanaAksi $rencanaAksi)
     {
         $progressHistory = $rencanaAksi->progressMonitorings()
+            ->with('attachments')
             ->orderBy('report_date', 'desc')
             ->orderBy('created_at', 'desc')
             ->get();
