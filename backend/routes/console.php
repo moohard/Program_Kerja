@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\GenerateMonthlyMatrixReport;
 use App\Console\Commands\SendDeadlineReminders;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -11,3 +12,6 @@ Artisan::command('inspire', function () {
 
 // Menjadwalkan perintah pengingat deadline untuk berjalan setiap hari pukul 08:00
 Schedule::command(SendDeadlineReminders::class)->dailyAt('08:00');
+
+// Menjadwalkan pembuatan laporan matriks bulanan
+Schedule::command(GenerateMonthlyMatrixReport::class)->monthlyOn(1, '01:00');
