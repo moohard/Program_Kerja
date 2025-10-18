@@ -37,14 +37,37 @@ class DashboardController extends Controller
         $summary = $this->getSummaryStats($programKerjaId, $filters);
         $progressByCategory = $this->getProgressByCategory($programKerjaId, $filters);
         $upcomingDeadlines = $this->getUpcomingDeadlines($programKerjaId, $filters);
-        $recentActivity = $this->getRecentActivity(); // Recent activity tidak difilter
+        $recentActivities = $this->getRecentActivity(); // Recent activity tidak difilter
+        $overdueTasksCount = $this->getOverdueTasksCount($programKerjaId, $filters);
 
         return response()->json([
             'summary' => $summary,
             'progress_by_category' => $progressByCategory,
             'upcoming_deadlines' => $upcomingDeadlines,
-            'recent_activity' => $recentActivity,
+            'recent_activities' => $recentActivities,
+            'overdue_tasks_count' => $overdueTasksCount,
         ]);
+    }
+
+    private function getOverdueTasksCount($programKerjaId, array $filters = [])
+    {
+        $query = RencanaAksi::whereHas('kegiatan.kategoriUtama', function ($query) use ($programKerjaId) {
+            $query->where('program_kerja_id', $programKerjaId);
+        });
+
+        $query->when($filters['kategori_id'] ?? null, function ($q, $kategoriId) {
+            $q->whereHas('kegiatan', fn($sq) => $sq->where('kategori_id', $kategoriId));
+        })
+        ->when($filters['user_id'] ?? null, function ($q, $userId) {
+            $q->where('assigned_to', $userId);
+        })
+        ->when($filters['status'] ?? null, function ($q, $status) {
+            $q->where('status', $status);
+        });
+
+        return $query->where('status', '!=', 'completed')
+            ->whereDate('target_tanggal', '<', now())
+            ->count();
     }
 
     private function getSummaryStats($programKerjaId, array $filters = [])
