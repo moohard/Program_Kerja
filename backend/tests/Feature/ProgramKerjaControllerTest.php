@@ -55,4 +55,31 @@ class ProgramKerjaControllerTest extends TestCase
 
         $this->assertDatabaseHas('program_kerja', $programKerjaData);
     }
+
+    public function test_cannot_create_program_kerja_without_tahun(): void
+    {
+        $user = User::factory()->create();
+        $programKerjaData = [
+            'is_aktif' => true,
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/program-kerja', $programKerjaData);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('tahun');
+    }
+
+    public function test_cannot_create_program_kerja_with_invalid_tahun(): void
+    {
+        $user = User::factory()->create();
+        $programKerjaData = [
+            'tahun' => 'bukan-tahun',
+            'is_aktif' => true,
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/program-kerja', $programKerjaData);
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors('tahun');
+    }
 }
