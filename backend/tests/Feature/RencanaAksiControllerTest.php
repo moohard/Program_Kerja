@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Feature;
+namespace Tests\Feature;
 
 use App\Models\RencanaAksi;
 use App\Models\Kegiatan;
@@ -34,5 +34,39 @@ class RencanaAksiControllerTest extends TestCase
                     ]
                 ]
             ]);
+    }
+
+    public function test_can_create_a_new_rencana_aksi(): void
+    {
+        $user = User::factory()->create();
+        $kegiatan = Kegiatan::factory()->create();
+
+        $rencanaAksiData = [
+            'kegiatan_id' => $kegiatan->id,
+            'deskripsi_aksi' => 'Rencana Aksi Test Baru',
+            'assigned_to' => $user->id,
+            'priority' => 'medium',
+            'jadwal_tipe' => 'insidentil',
+            'jadwal_config' => ['months' => [1,2,3]], // Example config
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/rencana-aksi', $rencanaAksiData);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'deskripsi_aksi',
+                    'status',
+                ]
+            ])
+            ->assertJsonFragment([
+                'deskripsi_aksi' => 'Rencana Aksi Test Baru'
+            ]);
+
+        $this->assertDatabaseHas('rencana_aksi', [
+            'kegiatan_id' => $kegiatan->id,
+            'deskripsi_aksi' => 'Rencana Aksi Test Baru',
+        ]);
     }
 }
