@@ -6,28 +6,32 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
 
     public function up()
-        {
-        // 1. CREATE VIEW
-        $this->createViews();
+    {
+        if (DB::getDriverName() !== 'sqlite') {
+            // 1. CREATE VIEW
+            $this->createViews();
 
-        // 2. CREATE STORED PROCEDURE
-        $this->createStoredProcedures();
+            // 2. CREATE STORED PROCEDURE
+            $this->createStoredProcedures();
 
-        // 3. CREATE FUNCTION
-        $this->createFunctions();
+            // 3. CREATE FUNCTION
+            $this->createFunctions();
 
-        // 4. CREATE EVENT SCHEDULER
-        $this->createEventScheduler();
+            // 4. CREATE EVENT SCHEDULER
+            $this->createEventScheduler();
         }
+    }
 
     public function down()
-        {
-        // Drop semua objects dalam urutan yang benar
-        DB::statement('DROP EVENT IF EXISTS ev_check_overdue_tasks');
-        DB::statement('DROP FUNCTION IF EXISTS fn_count_overdue_tasks');
-        DB::statement('DROP PROCEDURE IF EXISTS sp_update_progress');
-        DB::statement('DROP VIEW IF EXISTS vw_program_kerja_detail');
+    {
+        if (DB::getDriverName() !== 'sqlite') {
+            // Drop semua objects dalam urutan yang benar
+            DB::statement('DROP EVENT IF EXISTS ev_check_overdue_tasks');
+            DB::statement('DROP FUNCTION IF EXISTS fn_count_overdue_tasks');
+            DB::statement('DROP PROCEDURE IF EXISTS sp_update_progress');
+            DB::statement('DROP VIEW IF EXISTS vw_program_kerja_detail');
         }
+    }
 
     private function createViews()
         {

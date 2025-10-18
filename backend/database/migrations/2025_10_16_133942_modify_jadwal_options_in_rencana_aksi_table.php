@@ -12,8 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Mengubah enum untuk jadwal_tipe: menambah 'bulanan'
-        DB::statement("ALTER TABLE rencana_aksi MODIFY COLUMN jadwal_tipe ENUM('insidentil', 'periodik', 'rutin', 'bulanan') DEFAULT 'insidentil'");
+        if (DB::getDriverName() !== 'sqlite') {
+            // Mengubah enum untuk jadwal_tipe: menambah 'bulanan'
+            DB::statement("ALTER TABLE rencana_aksi MODIFY COLUMN jadwal_tipe ENUM('insidentil', 'periodik', 'rutin', 'bulanan') DEFAULT 'insidentil'");
+        }
     }
 
     /**
@@ -21,7 +23,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Mengembalikan ke state sebelumnya jika di-rollback
-        DB::statement("ALTER TABLE rencana_aksi MODIFY COLUMN jadwal_tipe ENUM('insidentil', 'periodik', 'rutin') DEFAULT 'insidentil'");
+        if (DB::getDriverName() !== 'sqlite') {
+            // Mengembalikan ke state sebelumnya jika di-rollback
+            DB::statement("ALTER TABLE rencana_aksi MODIFY COLUMN jadwal_tipe ENUM('insidentil', 'periodik', 'rutin') DEFAULT 'insidentil'");
+        }
     }
 };
