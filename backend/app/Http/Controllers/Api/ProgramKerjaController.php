@@ -9,6 +9,7 @@ use App\Http\Resources\ProgramKerjaResource;
 use App\Models\ProgramKerja;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class ProgramKerjaController extends Controller
 {
@@ -17,7 +18,9 @@ class ProgramKerjaController extends Controller
      */
     public function index()
     {
-        $programKerja = ProgramKerja::orderBy('tahun', 'desc')->get();
+        $programKerja = Cache::remember('program_kerja_list', 86400, function () {
+            return ProgramKerja::orderBy('tahun', 'desc')->get();
+        });
         return ProgramKerjaResource::collection($programKerja);
     }
 
@@ -35,6 +38,8 @@ class ProgramKerjaController extends Controller
 
             return ProgramKerja::create($validated);
         });
+
+        Cache::forget('program_kerja_list');
 
         return new ProgramKerjaResource($programKerja);
     }
@@ -64,6 +69,8 @@ class ProgramKerjaController extends Controller
             $programKerja->update($validated);
         });
 
+        Cache::forget('program_kerja_list');
+
         return new ProgramKerjaResource($programKerja->fresh());
     }
 
@@ -78,6 +85,7 @@ class ProgramKerjaController extends Controller
         }
         
         $programKerja->delete();
+        Cache::forget('program_kerja_list');
         return response()->noContent();
     }
 }

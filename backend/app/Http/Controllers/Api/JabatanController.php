@@ -7,6 +7,7 @@ use App\Models\Jabatan;
 use App\Http\Resources\JabatanResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class JabatanController extends Controller
 {
@@ -23,33 +24,40 @@ class JabatanController extends Controller
             return JabatanResource::collection([]);
         }
 
-        // Fungsi rekursif untuk eager load children dan users
-        $recursiveLoad = function ($query) {
-            $query->with([
-                'users:id,name,jabatan_id',
-                'children' => fn ($q) => $q->with(['users:id,name,jabatan_id', 'children' => $GLOBALS['recursiveLoad']])
-            ]);
-        };
-        $GLOBALS['recursiveLoad'] = $recursiveLoad;
+        $cacheKey = 'jabatan_tree_' . ($userJabatan->bidang ?? 'none');
+        $cacheDuration = 3600; // 60 minutes
 
-        // Query dasar: selalu kecualikan bidang 'teknis'
-        $baseQuery = Jabatan::where('bidang', '!=', 'teknis');
+        $jabatan = Cache::remember($cacheKey, $cacheDuration, function () use ($userJabatan) {
+            // Fungsi rekursif untuk eager load children dan users
+            $recursiveLoad = function ($query) {
+                $query->with([
+                    'users:id,name,jabatan_id',
+                    'children' => fn ($q) => $q->with(['users:id,name,jabatan_id', 'children' => $GLOBALS['recursiveLoad']])
+                ]);
+            };
+            $GLOBALS['recursiveLoad'] = $recursiveLoad;
 
-        // Tentukan jabatan root berdasarkan bidang pengguna
-        if ($userJabatan->bidang === 'pimpinan') {
-            // Pimpinan melihat semua kecuali teknis
-            $jabatan = $baseQuery->whereNull('parent_id')
-                ->with(['users:id,name,jabatan_id', 'children' => $recursiveLoad])
-                ->get();
-        } else {
-            // Pengguna lain hanya melihat pohon dari bidang mereka sendiri
-            $jabatan = $baseQuery->where('bidang', $userJabatan->bidang)
-                ->whereNull('parent_id') // Mulai dari root bidang tersebut
-                ->with(['users:id,name,jabatan_id', 'children' => $recursiveLoad])
-                ->get();
-        }
+            // Query dasar: selalu kecualikan bidang 'teknis'
+            $baseQuery = Jabatan::where('bidang', '!=', 'teknis');
 
-        unset($GLOBALS['recursiveLoad']);
+            // Tentukan jabatan root berdasarkan bidang pengguna
+            if ($userJabatan->bidang === 'pimpinan') {
+                // Pimpinan melihat semua kecuali teknis
+                $result = $baseQuery->whereNull('parent_id')
+                    ->with(['users:id,name,jabatan_id', 'children' => $recursiveLoad])
+                    ->get();
+            } else {
+                // Pengguna lain hanya melihat pohon dari bidang mereka sendiri
+                $result = $baseQuery->where('bidang', $userJabatan->bidang)
+                    ->whereNull('parent_id') // Mulai dari root bidang tersebut
+                    ->with(['users:id,name,jabatan_id', 'children' => $recursiveLoad])
+                    ->get();
+            }
+
+            unset($GLOBALS['recursiveLoad']);
+
+            return $result;
+        });
 
         return JabatanResource::collection($jabatan);
     }

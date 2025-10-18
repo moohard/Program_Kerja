@@ -7,6 +7,7 @@ use App\Http\Resources\KategoriUtamaResource;
 use App\Models\KategoriUtama;
 use App\Models\ProgramKerja;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 class KategoriUtamaController extends Controller
@@ -16,19 +17,18 @@ class KategoriUtamaController extends Controller
     {
         $programKerjaId = $request->input('program_kerja_id');
 
-        $query = KategoriUtama::query();
-
-        if ($programKerjaId) {
-            $query->where('program_kerja_id', $programKerjaId);
-        } else {
+        if (!$programKerjaId) {
             $activeProgram = ProgramKerja::where('is_aktif', TRUE)->first();
             if (!$activeProgram) {
                 return KategoriUtamaResource::collection(collect());
             }
-            $query->where('program_kerja_id', $activeProgram->id);
+            $programKerjaId = $activeProgram->id;
         }
 
-        $kategori = $query->orderBy('nomor')->get();
+        $cacheKey = 'kategori_utama_list_' . $programKerjaId;
+        $kategori = Cache::remember($cacheKey, 3600, function () use ($programKerjaId) {
+            return KategoriUtama::where('program_kerja_id', $programKerjaId)->orderBy('nomor')->get();
+        });
 
         return KategoriUtamaResource::collection($kategori);
     }
@@ -51,6 +51,8 @@ class KategoriUtamaController extends Controller
 
         $kategori = KategoriUtama::create($validated);
 
+        Cache::forget('kategori_utama_list_' . $validated['program_kerja_id']);
+
         return (new KategoriUtamaResource($kategori))
             ->response()
             ->setStatusCode(Response::HTTP_CREATED);
@@ -71,12 +73,16 @@ class KategoriUtamaController extends Controller
 
         $kategoriUtama->update($validated);
 
+        Cache::forget('kategori_utama_list_' . $kategoriUtama->program_kerja_id);
+
         return new KategoriUtamaResource($kategoriUtama);
     }
 
     public function destroy(KategoriUtama $kategoriUtama)
     {
+        $programKerjaId = $kategoriUtama->program_kerja_id;
         $kategoriUtama->delete();
+        Cache::forget('kategori_utama_list_' . $programKerjaId);
         return response()->json(NULL, Response::HTTP_NO_CONTENT);
     }
 
