@@ -14,7 +14,7 @@ const DashboardFilter = ({ filters, onFilterChange }) => {
                     apiClient.get('/program-kerja'),
                     apiClient.get('/users') // Assuming this endpoint exists
                 ]);
-                setProgramKerjaList(programKerjaRes.data);
+                setProgramKerjaList(programKerjaRes.data.data);
                 setUserList(usersRes.data.data); // Adjust based on actual user API response structure
             } catch (error) {
                 console.error("Failed to fetch filter data:", error);
