@@ -41,7 +41,7 @@ const Sidebar = () => {
                 <div className="pt-4">
                     <h2 className="px-4 text-xs font-semibold text-indigo-200 uppercase tracking-wider">Master Data</h2>
                     <div className="mt-2 space-y-2">
-                        <NavLink to="/master/kategori-utama" className={navLinkClasses}>
+                        <NavLink to="/master/kategori-utama" className={navLinkClasses} data-cy="nav-kategori-utama">
                             <FiDatabase className="mr-3" /> Kategori Utama
                         </NavLink>
                         <NavLink to="/master/kegiatan" className={navLinkClasses}>

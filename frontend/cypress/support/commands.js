@@ -10,7 +10,19 @@
 //
 //
 // -- This is a parent command --
-// Cypress.Commands.add('login', (email, password) => { ... })
+Cypress.Commands.add('login', (email, password) => {
+  cy.request('POST', 'http://localhost:8000/api/login', {
+    email,
+    password,
+  }).then((response) => {
+    // Ensure the request was successful and we got a token
+    expect(response.status).to.eq(200);
+    expect(response.body.token).to.exist;
+
+    // Set the token in localStorage
+    cy.window().its('localStorage').invoke('setItem', 'authToken', response.body.token);
+  });
+});;
 //
 //
 // -- This is a child command --
