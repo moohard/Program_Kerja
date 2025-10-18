@@ -233,4 +233,68 @@ class ReportController extends Controller
             return response()->json(['download_url' => $url]);
         }
     }
+
+    public function exportAnnualSummary(Request $request)
+    {
+        $validated = $request->validate([
+            'program_kerja_id' => 'required|integer|exists:program_kerja,id',
+            'format'           => 'required|in:pdf',
+        ]);
+
+        $programKerjaId = $validated['program_kerja_id'];
+        $programKerja = ProgramKerja::findOrFail($programKerjaId);
+
+        // 1. Summary Stats
+        $summary = RencanaAksi::whereHas('kegiatan.kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerjaId))
+            ->select('status', DB::raw('count(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        // 2. Progress by Category
+        $progressByCategory = KategoriUtama::where('program_kerja_id', $programKerjaId)
+            ->where('is_active', true)
+            ->with(['kegiatan.rencanaAksi.latestProgress'])
+            ->orderBy('nomor')
+            ->get()
+            ->map(function ($kategori) {
+                $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
+                if ($allAksi->isEmpty()) {
+                    return null;
+                }
+                $totalProgress = $allAksi->sum(fn($aksi) => $aksi->latestProgress->progress_percentage ?? 0);
+                return [
+                    'category_name' => "{$kategori->nomor}. {$kategori->nama_kategori}",
+                    'average_progress' => round($totalProgress / $allAksi->count(), 2),
+                ];
+            })
+            ->filter()->values();
+
+        // 3. Achievement Highlights
+        $highlights = RencanaAksi::whereHas('kegiatan.kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerjaId))
+            ->where('status', 'completed')
+            ->where('priority', 'high')
+            ->with('kegiatan:id,nama_kegiatan')
+            ->limit(5)
+            ->get(['id', 'deskripsi_aksi', 'kegiatan_id']);
+        
+        $data = [
+            'programKerja' => $programKerja,
+            'summary' => $summary,
+            'progressByCategory' => $progressByCategory,
+            'highlights' => $highlights,
+        ];
+
+        $pdf = Pdf::loadView('reports.annual_summary_pdf', $data)
+            ->setPaper('a4', 'portrait');
+
+        $fileName = 'generated-reports/laporan-tahunan-' . $programKerja->tahun . '-' . Str::uuid() . '.pdf';
+        Storage::disk('s3')->put($fileName, $pdf->output());
+
+        $url = Storage::disk('s3')->temporaryUrl(
+            $fileName,
+            now()->addMinutes(15)
+        );
+
+        return response()->json(['download_url' => $url]);
+    }
 }

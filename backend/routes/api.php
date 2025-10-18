@@ -59,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/annual-summary', [ReportController::class, 'annualSummary']);
     Route::get('/reports/monthly', [ReportController::class, 'monthly']);
     Route::get('/reports/export-matrix', [ReportController::class, 'exportMatrix']);
+    Route::post('/reports/export-annual-summary', [ReportController::class, 'exportAnnualSummary']);
     Route::post('/notifications/device-token', [NotificationController::class, 'storeToken']);
 
     // Import/Export

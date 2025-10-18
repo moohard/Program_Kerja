@@ -2,19 +2,19 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../services/apiClient';
 import StatCard from '../components/dashboard/StatCard';
 import CategoryProgressChart from '../components/dashboard/CategoryProgressChart';
-import { FiClipboard, FiCheckSquare, FiLoader, FiAlertTriangle, FiAward } from 'react-icons/fi';
+import { FiClipboard, FiCheckSquare, FiLoader, FiAlertTriangle, FiAward, FiDownload } from 'react-icons/fi';
 
 const AnnualReportPage = () => {
     const [programKerjaList, setProgramKerjaList] = useState([]);
     const [selectedProgramId, setSelectedProgramId] = useState('');
     const [reportData, setReportData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
 
     useEffect(() => {
         apiClient.get('/program-kerja').then(response => {
             const programData = response.data.data; // Correctly access the nested data array
             setProgramKerjaList(programData);
-            // Optionally, select the active one by default
             const activeProgram = programData.find(p => p.is_aktif);
             if (activeProgram) {
                 setSelectedProgramId(activeProgram.id);
@@ -25,6 +25,7 @@ const AnnualReportPage = () => {
     useEffect(() => {
         if (selectedProgramId) {
             setLoading(true);
+            setReportData(null);
             apiClient.get(`/reports/annual-summary?program_kerja_id=${selectedProgramId}`)
                 .then(response => {
                     setReportData(response.data);
@@ -37,23 +38,55 @@ const AnnualReportPage = () => {
         }
     }, [selectedProgramId]);
 
+    const handleExport = () => {
+        if (!selectedProgramId) return;
+
+        setIsExporting(true);
+        apiClient.post('/reports/export-annual-summary', {
+            program_kerja_id: selectedProgramId,
+            format: 'pdf',
+        })
+        .then(response => {
+            if (response.data.download_url) {
+                window.open(response.data.download_url, '_blank');
+            }
+        })
+        .catch(error => {
+            console.error("Failed to export report:", error);
+            // You might want to show a notification to the user here
+        })
+        .finally(() => {
+            setIsExporting(false);
+        });
+    };
+
     const total = reportData?.summary ? Object.values(reportData.summary).reduce((acc, val) => acc + val, 0) : 0;
 
     return (
         <div className="space-y-6">
-            <div className="bg-white p-4 rounded-lg shadow-sm flex items-center space-x-4">
-                <label htmlFor="program-kerja-select" className="font-semibold">Pilih Tahun Program:</label>
-                <select 
-                    id="program-kerja-select"
-                    value={selectedProgramId}
-                    onChange={e => setSelectedProgramId(e.target.value)}
-                    className="block w-full max-w-xs border-gray-300 rounded-md shadow-sm"
+            <div className="bg-white p-4 rounded-lg shadow-sm flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                    <label htmlFor="program-kerja-select" className="font-semibold">Pilih Tahun Program:</label>
+                    <select 
+                        id="program-kerja-select"
+                        value={selectedProgramId}
+                        onChange={e => setSelectedProgramId(e.target.value)}
+                        className="block w-full max-w-xs border-gray-300 rounded-md shadow-sm"
+                    >
+                        <option value="" disabled>Pilih tahun</option>
+                        {programKerjaList.map(pk => (
+                            <option key={pk.id} value={pk.id}>{pk.tahun}</option>
+                        ))}
+                    </select>
+                </div>
+                <button
+                    onClick={handleExport}
+                    disabled={!selectedProgramId || loading || isExporting}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                    <option value="" disabled>Pilih tahun</option>
-                    {programKerjaList.map(pk => (
-                        <option key={pk.id} value={pk.id}>{pk.tahun}</option>
-                    ))}
-                </select>
+                    {isExporting ? <FiLoader className="animate-spin -ml-1 mr-2 h-5 w-5" /> : <FiDownload className="-ml-1 mr-2 h-5 w-5" />}
+                    {isExporting ? 'Mengekspor...' : 'Ekspor ke PDF'}
+                </button>
             </div>
 
             {loading ? (
@@ -66,7 +99,7 @@ const AnnualReportPage = () => {
                         <StatCard title="Total Rencana Aksi" value={total} icon={<FiClipboard size={24}/>} color="blue" />
                         <StatCard title="Selesai" value={reportData.summary.completed || 0} icon={<FiCheckSquare size={24}/>} color="green" />
                         <StatCard title="Dalam Pengerjaan" value={reportData.summary.in_progress || 0} icon={<FiLoader size={24}/>} color="yellow" />
-                        <StatCard title="Terlambat" value={reportData.summary.delayed || 0} icon={<FiAlertTriangle size={24}/>} color="red" />
+                        <StatCard title="Terlambat" value={reportData.summary.overdue || 0} icon={<FiAlertTriangle size={24}/>} color="red" />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
