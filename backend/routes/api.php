@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Route untuk mengambil progress berdasarkan Rencana Aksi
     Route::get('/rencana-aksi/{rencanaAksi}/progress', [ProgressMonitoringController::class, 'indexByRencanaAksi']);
+    Route::post('/rencana-aksi/{rencanaAksi}/progress-monitoring', [ProgressMonitoringController::class, 'store']);
 
 
     // Rute spesifik

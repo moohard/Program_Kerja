@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Feature;
+namespace Tests\Feature;
 
 use App\Models\ProgressMonitoring;
 use App\Models\RencanaAksi;
@@ -35,5 +35,30 @@ class ProgressMonitoringControllerTest extends TestCase
                     ]
                 ]
             ]);
+    }
+
+    public function test_can_create_a_new_progress_report(): void
+    {
+        $user = User::factory()->create();
+        $rencanaAksi = RencanaAksi::factory()->create(['status' => 'planned']);
+
+        $progressData = [
+            'progress_percentage' => 50,
+            'catatan' => 'Ini adalah catatan progress.',
+            'report_year' => now()->year,
+            'report_month' => now()->month,
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+                         ->postJson("/api/rencana-aksi/{$rencanaAksi->id}/progress-monitoring", $progressData);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('progress_monitoring', [
+            'rencana_aksi_id' => $rencanaAksi->id,
+            'progress_percentage' => 50,
+        ]);
+
+        $this->assertEquals('in_progress', $rencanaAksi->fresh()->status);
     }
 }

@@ -33,3 +33,19 @@ Berikut adalah daftar fitur yang telah diselesaikan:
   - [x] Backend: `ProgramKerjaResource` dibuat untuk standarisasi output API.
   - [x] Backend: Menambahkan logika transaksi database untuk memastikan hanya ada satu program kerja yang bisa aktif.
   - [x] Frontend: Penyesuaian kecil pada halaman terkait.
+
+### Fase 5: Testing (Backend)
+
+- [x] **#1: Inisiasi Fase Testing & Perbaikan Environment.**
+  - [x] Memperbaiki serangkaian isu pada environment testing (SQLite) yang disebabkan oleh migrasi database yang tidak kompatibel.
+  - [x] Memperbaiki dan membuat beberapa Model Factory (`User`, `ProgramKerja`, `RencanaAksi`, dll.) untuk memastikan data tes yang valid.
+  - [x] Melakukan refactor pada `KategoriUtamaController` agar konsisten menggunakan API Resource dan memperbaiki logika yang salah.
+
+- [x] **#2: Penambahan Feature Test untuk Core Controllers.**
+  - [x] `ReportController`: Menambahkan tes untuk endpoint ringkasan tahunan dan ekspor PDF.
+  - [x] `ProgramKerjaController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
+  - [x] `KategoriUtamaController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
+  - [x] `KegiatanController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
+  - [x] `RencanaAksiController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
+  - [x] `TodoItemController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
+  - [x] `ProgressMonitoringController`: Menambahkan tes awal untuk endpoint list progress.

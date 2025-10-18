@@ -62,24 +62,7 @@ class ProgressMonitoringController extends Controller
                 'actual_tanggal' => $highestProgress == 100 ? ($rencanaAksi->actual_tanggal ?? now()) : NULL
             ]);
 
-            // 3. Process attachments
-            if ($request->hasFile('attachments'))
-            {
-                // Hapus lampiran lama jika ada (untuk laporan bulan ini)
-                $progress->attachments()->delete();
-                foreach ($request->file('attachments') as $file)
-                {
-                    $path = $file->store('public/attachments');
-                    $progress->attachments()->create([
-                        'file_name' => $file->getClientOriginalName(),
-                        'file_path' => str_replace('public/', '', $path),
-                        'file_type' => $file->getClientMimeType(),
-                        'file_size' => $file->getSize(),
-                    ]);
-                }
-            }
-
-            // 4. Audit log
+            // 3. Audit log
             AuditLog::create([
                 'user_id'    => Auth::id(),
                 'action'     => 'UPDATE',
@@ -94,7 +77,7 @@ class ProgressMonitoringController extends Controller
             DB::commit();
 
             // Refresh relationships
-            $rencanaAksi->refresh()->load([ 'assignedTo', 'latestProgress', 'progressMonitorings.attachments' ]);
+            $rencanaAksi->refresh()->load([ 'assignedTo', 'latestProgress', 'progressMonitorings' ]);
 
             return new RencanaAksiResource($rencanaAksi);
 
