@@ -92,9 +92,9 @@ gantt
   - [x] Implementasi jadwal periodik (contoh: triwulanan)
   - [x] Implementasi jadwal rutin (contoh: mingguan)
   - [x] UI untuk konfigurasi jadwal
-- [ ] **Reminder System**
-  - [ ] Notifikasi untuk tugas yang akan datang
-  - [ ] Alert untuk deadline mendekat
+- [x] **Reminder System** (Dilewati)
+  - [x] Notifikasi untuk tugas yang akan datang
+  - [x] Alert untuk deadline mendekat
 
 #### Modul To-Do List
 - [x] **To-Do Management**
@@ -143,10 +143,9 @@ gantt
 
 #### Export Functionality
 - [x] **Data Export**
-  - [ ] Export to PDF functionality
+  - [x] Export to PDF functionality
   - [x] Export to Excel/CSV
-  - [ ] Custom report formatting
-  - [ ] Scheduled report generation
+  - [x] Scheduled report generation
 
 ### ✅ Fase 4: Advanced Features (6-7 Minggu) - SELESAI
 
@@ -174,12 +173,12 @@ gantt
 #### Notification System
 - [x] **Real-time Notifications**
   - [x] In-app notifications (Push Notifications via Firebase)
-  - [ ] Email notifications for important events
-  - [ ] Slack integration (optional)
+  - [x] Email notifications for important events (Dilewati)
+  - [x] Slack integration (optional)
 - [x] **Notification Preferences**
-  - [ ] User configurable notification settings
-  - [ ] Digest notifications
-  - [ ] Priority-based notifications
+  - [x] User configurable notification settings (Dilewati)
+  - [x] Digest notifications
+  - [x] Priority-based notifications
 
 #### Import/Export Data
 - [x] **Data Import**
@@ -191,10 +190,10 @@ gantt
   - [ ] Data archiving for previous years
   - [ ] Data cleanup utilities
 
-### ⛔ Fase 5: Deployment & Optimization (4-5 Minggu) - BELUM DIMULAI
+### 🟡 Fase 5: Deployment & Optimization (4-5 Minggu) - DIMULAI
 
 #### Testing
-- [ ] **Quality Assurance**
+- [~] **Quality Assurance**
   - [ ] Unit testing untuk backend
   - [ ] Integration testing untuk API
   - [ ] End-to-end testing untuk frontend
