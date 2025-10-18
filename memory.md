@@ -32,8 +32,17 @@ Berikut adalah daftar fitur yang telah diselesaikan:
 
 ---
 
-### **NEXT STEP: Fase 5: Testing (Frontend E2E)**
+### Fase 5: Testing (Frontend E2E)
 
-- [ ] **#1: Setup Cypress untuk End-to-End Testing.**
-  - [ ] Instalasi dan konfigurasi Cypress di dalam direktori `frontend`.
-  - [ ] Membuat tes E2E pertama untuk alur kerja **Login Pengguna**.
+- [x] **#1: Setup Cypress & Tes Alur Utama.**
+  - [x] Instalasi dan konfigurasi Cypress, termasuk penyesuaian `baseUrl` ke HTTPS.
+  - [x] Membuat perintah `cy.login()` kustom untuk login terprogram yang efisien dengan mengatur `localStorage`.
+  - [x] Menambahkan atribut `data-cy` pada komponen React untuk selector tes yang stabil.
+  - [x] Berhasil membuat dan menjalankan tes E2E untuk **alur login**.
+  - [x] Berhasil membuat dan menjalankan tes E2E untuk **navigasi pasca-login**.
+
+---
+
+### **NEXT STEP**
+
+- [ ] Melanjutkan fase testing (backend atau frontend) atau beralih ke fase **Optimasi**.
