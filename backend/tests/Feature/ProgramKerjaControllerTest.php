@@ -82,4 +82,40 @@ class ProgramKerjaControllerTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors('tahun');
     }
+
+    public function test_can_get_a_single_program_kerja(): void
+    {
+        $user = User::factory()->create();
+        $programKerja = ProgramKerja::factory()->create();
+
+        $response = $this->actingAs($user, 'sanctum')->getJson("/api/program-kerja/{$programKerja->id}");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'id' => $programKerja->id,
+                    'tahun' => $programKerja->tahun,
+                    'is_aktif' => (bool) $programKerja->is_aktif,
+                ]
+            ]);
+    }
+
+    public function test_can_update_a_program_kerja(): void
+    {
+        $user = User::factory()->create();
+        $programKerja = ProgramKerja::factory()->create();
+        $updateData = [
+            'tahun' => '2026',
+            'is_aktif' => true,
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')->putJson("/api/program-kerja/{$programKerja->id}", $updateData);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => $updateData
+            ]);
+
+        $this->assertDatabaseHas('program_kerja', $updateData);
+    }
 }
