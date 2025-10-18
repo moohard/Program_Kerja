@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Feature;
+namespace Tests\Feature;
 
 use App\Models\RencanaAksi;
 use App\Models\TodoItem;
@@ -34,5 +34,30 @@ class TodoItemControllerTest extends TestCase
                     ]
                 ]
             ]);
+    }
+
+    public function test_can_create_a_new_todo_item(): void
+    {
+        $user = User::factory()->create();
+        $rencanaAksi = RencanaAksi::factory()->create();
+
+        $todoData = [
+            'deskripsi' => 'Todo Item Test Baru',
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+                         ->postJson("/api/rencana-aksi/{$rencanaAksi->id}/todo-items", $todoData);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'deskripsi',
+                    'completed',
+                ]
+            ])
+            ->assertJsonFragment($todoData);
+
+        $this->assertDatabaseHas('todo_items', $todoData);
     }
 }

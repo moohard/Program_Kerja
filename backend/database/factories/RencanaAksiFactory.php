@@ -25,6 +25,8 @@ class RencanaAksiFactory extends Factory
             'target_tanggal' => $this->faker->dateTimeBetween('+1 week', '+1 month'),
             'assigned_to' => User::factory(),
             'priority' => 'medium',
+            'jadwal_tipe' => 'insidentil',
+            'jadwal_config' => [],
         ];
     }
 }
