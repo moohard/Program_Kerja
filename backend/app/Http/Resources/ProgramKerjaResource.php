@@ -17,6 +17,7 @@ class ProgramKerjaResource extends JsonResource
         return [
             'id' => $this->id,
             'tahun' => $this->tahun,
+            'nama_pengadilan' => $this->nama_pengadilan,
             'is_aktif' => (bool) $this->is_aktif,
         ];
     }
