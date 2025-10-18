@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Feature;
+namespace Tests\Feature;
 
 use App\Models\Kegiatan;
 use App\Models\KategoriUtama;
@@ -34,5 +34,32 @@ class KegiatanControllerTest extends TestCase
                     ]
                 ]
             ]);
+    }
+
+    public function test_can_create_a_new_kegiatan(): void
+    {
+        $user = User::factory()->create();
+        $kategori = KategoriUtama::factory()->create();
+
+        $kegiatanData = [
+            'kategori_id' => $kategori->id,
+            'nama_kegiatan' => 'Kegiatan Test Baru',
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/kegiatan', $kegiatanData);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'nama_kegiatan',
+                    'is_active',
+                ]
+            ])
+            ->assertJsonFragment([
+                'nama_kegiatan' => 'Kegiatan Test Baru'
+            ]);
+
+        $this->assertDatabaseHas('kegiatan', $kegiatanData);
     }
 }
