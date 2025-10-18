@@ -60,4 +60,32 @@ class TodoItemControllerTest extends TestCase
 
         $this->assertDatabaseHas('todo_items', $todoData);
     }
+
+    public function test_can_update_a_todo_item(): void
+    {
+        $user = User::factory()->create();
+        $todoItem = TodoItem::factory()->create();
+        $updateData = [
+            'deskripsi' => 'Deskripsi Todo Diperbarui',
+            'completed' => true,
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')
+                         ->putJson("/api/todo-items/{$todoItem->id}", $updateData);
+
+        $response->assertStatus(200)->assertJsonFragment($updateData);
+        $this->assertDatabaseHas('todo_items', $updateData);
+    }
+
+    public function test_can_delete_a_todo_item(): void
+    {
+        $user = User::factory()->create();
+        $todoItem = TodoItem::factory()->create();
+
+        $response = $this->actingAs($user, 'sanctum')
+                         ->deleteJson("/api/todo-items/{$todoItem->id}");
+
+        $response->assertStatus(204);
+        $this->assertDatabaseMissing('todo_items', ['id' => $todoItem->id]);
+    }
 }
