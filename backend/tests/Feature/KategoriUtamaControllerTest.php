@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Feature;
+namespace Tests\Feature;
 
 use App\Models\KategoriUtama;
 use App\Models\ProgramKerja;
@@ -37,5 +37,34 @@ class KategoriUtamaControllerTest extends TestCase
                     ]
                 ]
             ]);
+    }
+
+    public function test_can_create_a_new_kategori_utama(): void
+    {
+        $user = User::factory()->create();
+        $programKerja = ProgramKerja::factory()->create();
+
+        $kategoriData = [
+            'program_kerja_id' => $programKerja->id,
+            'nomor' => 1,
+            'nama_kategori' => 'Kategori Test Baru',
+        ];
+
+        $response = $this->actingAs($user, 'sanctum')->postJson('/api/kategori-utama', $kategoriData);
+
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'nomor',
+                    'nama_kategori',
+                    'is_active',
+                ]
+            ])
+            ->assertJsonFragment([
+                'nama_kategori' => 'Kategori Test Baru'
+            ]);
+
+        $this->assertDatabaseHas('kategori_utama', $kategoriData);
     }
 }
