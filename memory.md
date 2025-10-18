@@ -1,48 +1,32 @@
 ## Checkpoint Kemajuan Proyek
 
-Berikut adalah daftar fitur yang telah diselesaikan:
+Berikut adalah ringkasan pekerjaan yang telah diselesaikan dalam sesi ini:
 
-### Fase 3: Monitoring & Reporting
+### Fase 5: Testing (Frontend E2E) - Lanjutan
 
-- [x] **#1: Implementasi "Recent Activity Feed" di Dasbor.**
-- [x] **#2: Implementasi "Advanced Filtering" di Dasbor.**
-- [x] **#3: Buat fitur spesifik "Laporan Tahunan".**
-- [x] **#4: Implementasi Ekspor Laporan Matriks ke PDF via MinIO.**
-- [x] **#5: Refactor Modul Program Kerja.**
+- [x] **#2: Penambahan Tes E2E untuk Modul "Program Kerja".**
+  - [x] Melakukan investigasi dan memahami bahwa "Program Kerja" terdiri dari 3 modul: `Kategori Utama`, `Kegiatan`, dan `Rencana Aksi`.
+  - [x] Menambahkan atribut `data-cy` pada semua komponen React yang relevan untuk memastikan selektor tes yang stabil.
+  - [x] **Membuat tes E2E CRUD untuk `Kategori Utama`**:
+    - Menemukan dan memperbaiki bug pada `KategoriUtamaController` di mana `program_kerja_id` wajib diisi saat pembuatan, yang tidak konsisten dengan logika frontend.
+    - Memperbaiki beberapa masalah pada kode tes, termasuk penanganan promise-chaining yang salah dan asersi status code yang tidak tepat (200 vs 204).
+  - [x] **Membuat tes E2E CRUD untuk `Kegiatan`**:
+    - Mengimplementasikan tes yang independen dengan membuat dan membersihkan data `Kategori Utama` prasyarat melalui API.
+    - Memperbaiki masalah otentikasi pada `cy.request` dengan menyertakan token Bearer secara manual.
+  - [x] **Membuat tes E2E CRUD untuk `Rencana Aksi`**:
+    - Membuat tes yang kompleks dengan prasyarat `Kategori Utama` dan `Kegiatan`.
+    - Men-debug dan memperbaiki serangkaian masalah, termasuk *race condition* pada pembuatan data prasyarat dan inkonsistensi validasi backend antara proses *create* (`StoreRencanaAksiRequest`) dan *update* (`UpdateRencanaAksiRequest`) terkait field `assigned_to`.
 
-### Fase 5: Testing (Backend)
+### Status Akhir
 
-- [x] **#1: Inisiasi Fase Testing & Perbaikan Environment.**
-  - [x] Memperbaiki serangkaian isu pada environment testing (SQLite) yang disebabkan oleh migrasi database yang tidak kompatibel.
-  - [x] Memperbaiki dan membuat beberapa Model Factory (`User`, `ProgramKerja`, `RencanaAksi`, dll.) untuk memastikan data tes yang valid.
-  - [x] Melakukan refactor pada `KategoriUtamaController` agar konsisten menggunakan API Resource dan memperbaiki logika yang salah.
-
-- [x] **#2: Penambahan Feature Test untuk Core Controllers.**
-  - [x] `ReportController`: Menambahkan tes untuk endpoint ringkasan tahunan dan ekspor PDF.
-  - [x] `ProgramKerjaController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
-  - [x] `KategoriUtamaController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
-  - [x] `KegiatanController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
-  - [x] `RencanaAksiController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
-  - [x] `TodoItemController`: Menambahkan tes untuk fungsionalitas CRUD dasar.
-  - [x] `ProgressMonitoringController`: Menambahkan tes untuk fungsionalitas `index` dan `store`.
-  - [x] `DashboardController`: Menambahkan tes untuk memverifikasi agregasi data.
-
-- [x] **#3: Penambahan Unit Test.**
-  - [x] `JadwalService`: Menambahkan unit tes murni untuk memverifikasi logika kalkulasi tanggal.
-
----
-
-### Fase 5: Testing (Frontend E2E)
-
-- [x] **#1: Setup Cypress & Tes Alur Utama.**
-  - [x] Instalasi dan konfigurasi Cypress, termasuk penyesuaian `baseUrl` ke HTTPS.
-  - [x] Membuat perintah `cy.login()` kustom untuk login terprogram yang efisien dengan mengatur `localStorage`.
-  - [x] Menambahkan atribut `data-cy` pada komponen React untuk selector tes yang stabil.
-  - [x] Berhasil membuat dan menjalankan tes E2E untuk **alur login**.
-  - [x] Berhasil membuat dan menjalankan tes E2E untuk **navigasi pasca-login**.
+- **Semua 5 file spesifikasi tes E2E (`kategori_utama.cy.js`, `kegiatan.cy.js`, `rencana_aksi.cy.js`, `login.cy.js`, `navigation.cy.js`) berhasil dijalankan.**
+- Fondasi tes E2E untuk fungsionalitas inti aplikasi telah selesai.
 
 ---
 
 ### **NEXT STEP**
 
-- [ ] Melanjutkan fase testing (backend atau frontend) atau beralih ke fase **Optimasi**.
+- [ ] Beralih ke fase **Optimasi**, seperti yang disarankan sebelumnya. Ini bisa mencakup:
+  - Menganalisis query database yang lambat.
+  - Mengoptimalkan ukuran bundle frontend.
+  - Melakukan perbaikan performa lainnya.

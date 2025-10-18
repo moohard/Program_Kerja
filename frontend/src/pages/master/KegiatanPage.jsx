@@ -53,12 +53,12 @@ function KegiatanPage() {
         <div className="bg-white p-8 rounded-lg shadow">
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-semibold text-gray-900">Master: Kegiatan</h1>
-                <button onClick={() => handleOpenModal()} disabled={!selectedKategori} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300">Tambah Kegiatan</button>
+                <button onClick={() => handleOpenModal()} disabled={!selectedKategori} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300" data-cy="add-kegiatan-button">Tambah Kegiatan</button>
             </div>
 
             <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">Pilih Kategori Utama</label>
-                <select value={selectedKategori} onChange={e => setSelectedKategori(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                <select value={selectedKategori} onChange={e => setSelectedKategori(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md" data-cy="kategori-select">
                     <option value="">-- Silakan Pilih --</option>
                     {kategoriList.map(k => <option key={k.id} value={k.id}>{k.nomor}. {k.nama_kategori}</option>)}
                 </select>
@@ -73,13 +73,13 @@ function KegiatanPage() {
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-gray-200" data-cy="kegiatan-table-body">
                             {kegiatanList.map(item => (
-                                <tr key={item.id}>
+                                <tr key={item.id} data-cy={`kegiatan-row-${item.id}`}>
                                     <td className="px-6 py-4 whitespace-pre-wrap">{item.nama_kegiatan}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
-                                        <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
-                                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900 ml-4">Hapus</button>
+                                        <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900" data-cy={`edit-kegiatan-button-${item.id}`}>Edit</button>
+                                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900 ml-4" data-cy={`delete-kegiatan-button-${item.id}`}>Hapus</button>
                                     </td>
                                 </tr>
                             ))}

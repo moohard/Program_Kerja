@@ -134,6 +134,7 @@ function RencanaAksiPage() {
                     onClick={() => handleOpenModal()}
                     disabled={!selectedKegiatan}
                     className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                    data-cy="add-rencana-aksi-button"
                 >
                     <FiPlus className="mr-2" />
                     Tambah Rencana Aksi
@@ -144,14 +145,14 @@ function RencanaAksiPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="kategori" className="block text-sm font-medium text-gray-700 mb-1">Kategori Utama</label>
-                    <select id="kategori" value={selectedKategori} onChange={handleKategoriChange} className="w-full p-2 border rounded-md">
+                    <select id="kategori" value={selectedKategori} onChange={handleKategoriChange} className="w-full p-2 border rounded-md" data-cy="kategori-select">
                         <option value="">-- Pilih Kategori --</option>
                         {kategoriList.map(k => <option key={k.id} value={k.id}>{k.nomor}. {k.nama_kategori}</option>)}
                     </select>
                 </div>
                 <div>
                     <label htmlFor="kegiatan" className="block text-sm font-medium text-gray-700 mb-1">Kegiatan</label>
-                    <select id="kegiatan" value={selectedKegiatan} onChange={(e) => setSelectedKegiatan(e.target.value)} disabled={!selectedKategori || loading.kegiatan} className="w-full p-2 border rounded-md">
+                    <select id="kegiatan" value={selectedKegiatan} onChange={(e) => setSelectedKegiatan(e.target.value)} disabled={!selectedKategori || loading.kegiatan} className="w-full p-2 border rounded-md" data-cy="kegiatan-select">
                         <option value="">-- Pilih Kegiatan --</option>
                         {kegiatanList.map(k => <option key={k.id} value={k.id}>{k.nama_kegiatan}</option>)}
                     </select>
@@ -171,9 +172,9 @@ function RencanaAksiPage() {
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-gray-200" data-cy="rencana-aksi-table-body">
                             {rencanaAksiList.map(item => (
-                                <tr key={item.id}>
+                                <tr key={item.id} data-cy={`rencana-aksi-row-${item.id}`}>
                                     <td className="px-6 py-4 whitespace-normal w-1/3">{item.deskripsi_aksi}</td>
                                     <td className="px-6 py-4">{item.assigned_to?.name || '-'}</td>
                                     <td className="px-6 py-4">{item.priority}</td>
@@ -189,9 +190,9 @@ function RencanaAksiPage() {
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
-                                        <button onClick={() => handleOpenTodoModal(item)} className="text-gray-600 hover:text-gray-900 mr-4">To-Do & Progress</button>
-                                        <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
-                                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900 ml-4">Hapus</button>
+                                        <button onClick={() => handleOpenTodoModal(item)} className="text-gray-600 hover:text-gray-900 mr-4" data-cy={`todo-progress-button-${item.id}`}>To-Do & Progress</button>
+                                        <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900" data-cy={`edit-rencana-aksi-button-${item.id}`}>Edit</button>
+                                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900 ml-4" data-cy={`delete-rencana-aksi-button-${item.id}`}>Hapus</button>
                                     </td>
                                 </tr>
                             ))}

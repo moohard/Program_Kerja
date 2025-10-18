@@ -17,7 +17,7 @@ class StoreRencanaAksiRequest extends FormRequest
         return [
             'kegiatan_id' => 'required|exists:kegiatan,id',
             'deskripsi_aksi' => 'required|string',
-            'assigned_to' => 'required|exists:users,id',
+            'assigned_to' => 'nullable|exists:users,id',
             'priority' => 'required|in:low,medium,high',
             'catatan' => 'nullable|string',
             'jadwal_tipe' => ['required', Rule::in(['insidentil', 'periodik', 'rutin', 'bulanan'])],

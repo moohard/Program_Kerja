@@ -21,6 +21,7 @@ const JabatanNode = ({ node, level, selectedUser, onUserChange }) => {
                                 checked={selectedUser == user.id}
                                 onChange={onUserChange}
                                 className="form-radio h-4 w-4 text-indigo-600"
+                                data-cy={`user-radio-button-${user.id}`}
                             />
                             <span className="text-gray-800">{user.name}</span>
                         </label>
@@ -62,6 +63,7 @@ const JabatanSelector = ({ jabatanTree, selectedUser, onChange }) => {
                     checked={!selectedUser}
                     onChange={handleUserChange}
                     className="form-radio h-4 w-4 text-indigo-600"
+                    data-cy="user-radio-button-unassigned"
                 />
                 <span className="text-gray-500 italic">-- Tidak Ditugaskan --</span>
             </label>

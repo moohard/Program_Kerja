@@ -36,10 +36,18 @@ class KategoriUtamaController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'program_kerja_id' => 'required|exists:program_kerja,id',
+            'program_kerja_id' => 'sometimes|required|exists:program_kerja,id',
             'nomor'              => 'required|integer',
             'nama_kategori'      => 'required|string|max:255',
         ]);
+
+        if (!isset($validated['program_kerja_id'])) {
+            $activeProgram = ProgramKerja::where('is_aktif', TRUE)->first();
+            if (!$activeProgram) {
+                return response()->json(['message' => 'Tidak ada program kerja aktif.'], 422);
+            }
+            $validated['program_kerja_id'] = $activeProgram->id;
+        }
 
         $kategori = KategoriUtama::create($validated);
 

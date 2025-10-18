@@ -17,7 +17,7 @@ class UpdateRencanaAksiRequest extends FormRequest
         return [
             'kegiatan_id' => 'sometimes|required|exists:kegiatan,id',
             'deskripsi_aksi' => 'sometimes|required|string',
-            'assigned_to' => 'sometimes|required|exists:users,id',
+            'assigned_to' => 'sometimes|nullable|exists:users,id',
             'priority' => 'sometimes|required|in:low,medium,high',
             'catatan' => 'nullable|string',
             'jadwal_tipe' => ['sometimes', 'required', Rule::in(['insidentil', 'periodik', 'rutin', 'bulanan'])],

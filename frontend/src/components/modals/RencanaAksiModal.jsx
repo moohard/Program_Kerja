@@ -190,7 +190,7 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" data-cy="rencana-aksi-modal">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <h2 className="text-xl font-bold mb-4">{currentData ? 'Edit' : 'Tambah'} Rencana Aksi</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -204,6 +204,7 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
                             onChange={handleChange}
                             rows="3"
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                            data-cy="deskripsi-input"
                         />
                         {errors.deskripsi_aksi && <p className="text-red-500 text-xs mt-1">{errors.deskripsi_aksi[0]}</p>}
                     </div>
@@ -213,11 +214,12 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
                         jabatanTree={jabatanTree}
                         selectedUser={formData.assigned_to}
                         onChange={handleChange}
+                        data-cy="jabatan-selector"
                     />
                     {/* Tipe Jadwal */}
                     <div>
                         <label htmlFor="jadwal_tipe" className="block text-sm font-medium text-gray-700">Tipe Jadwal</label>
-                        <select id="jadwal_tipe" name="jadwal_tipe" value={formData.jadwal_tipe} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                        <select id="jadwal_tipe" name="jadwal_tipe" value={formData.jadwal_tipe} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" data-cy="jadwal-tipe-select">
                             <option value="insidentil">Insidentil (Tidak Wajib)</option>
                             <option value="bulanan">Bulanan (Wajib Lapor)</option>
                             <option value="periodik">Periodik (Otomatis)</option>
@@ -227,7 +229,7 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
                     </div>
 
                     {/* Konfigurasi Jadwal */}
-                    <div>
+                    <div data-cy="jadwal-config-insidentil">
                         <label className="block text-sm font-medium text-gray-700">Konfigurasi Jadwal</label>
                         {renderJadwalInputs()}
                         {errors.jadwal_config && <p className="text-red-500 text-xs mt-1">{errors.jadwal_config[0]}</p>}
@@ -235,8 +237,8 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
 
                     {/* Tombol Aksi */}
                     <div className="flex items-center justify-end space-x-2 pt-4">
-                        <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300">Batal</button>
-                        <button type="submit" disabled={loading} className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300">
+                        <button type="button" onClick={onClose} className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300" data-cy="cancel-button">Batal</button>
+                        <button type="submit" disabled={loading} className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300" data-cy="save-rencana-aksi-button">
                             {loading ? 'Menyimpan...' : 'Simpan'}
                         </button>
                     </div>
