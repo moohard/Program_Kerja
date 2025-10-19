@@ -1,26 +1,71 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, useContext } from 'react';
 import apiClient from '../../services/apiClient';
-import { FiPaperclip, FiTrash2, FiCheckCircle, FiCircle, FiUploadCloud } from 'react-icons/fi';
+import { FiPaperclip, FiTrash2, FiUploadCloud, FiGitCommit, FiCheckCircle, FiCircle, FiThumbsUp, FiThumbsDown } from 'react-icons/fi';
+import { debounce } from 'lodash';
+import AuthContext from '../../contexts/AuthContext';
 
-// Komponen FileUploader yang diperbarui
+// Komponen ApprovalControls (BARU)
+const ApprovalControls = ({ todo, onApprovalDone, onStateChange }) => {
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleApproval = async (newStatus) => {
+        setIsLoading(true);
+        try {
+            await apiClient.put(`/todo-items/${todo.id}`, {
+                status_approval: newStatus,
+                month: todo.month || new Date().getMonth() + 1
+            });
+            if (onStateChange) onStateChange(); // <-- Memberi tahu modal ada perubahan
+            if (onApprovalDone) onApprovalDone();
+        } catch (error) {
+            console.error(`Gagal mengubah status approval ke ${newStatus}:`, error);
+            alert('Gagal menyimpan perubahan status.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="mt-2 flex items-center space-x-2">
+            <button 
+                onClick={() => handleApproval('approved')} 
+                disabled={isLoading}
+                className="flex items-center text-xs text-green-600 bg-green-100 hover:bg-green-200 px-2 py-1 rounded-md disabled:opacity-50"
+            >
+                <FiThumbsUp className="mr-1" />
+                Setujui
+            </button>
+            <button 
+                onClick={() => handleApproval('pending_upload')} 
+                disabled={isLoading}
+                className="flex items-center text-xs text-yellow-600 bg-yellow-100 hover:bg-yellow-200 px-2 py-1 rounded-md disabled:opacity-50"
+            >
+                <FiThumbsDown className="mr-1" />
+                Tolak/Revisi
+            </button>
+        </div>
+    );
+};
+
+// Komponen FileUploader (diasumsikan tidak berubah dan berfungsi)
 const FileUploader = ({ todo, onUploadComplete }) => {
     const fileInputRef = useRef(null);
-    const [uploadStatus, setUploadStatus] = useState('idle'); // idle, uploading, success, error
+    const [uploadStatus, setUploadStatus] = useState('idle');
     const [errorMessage, setErrorMessage] = useState('');
 
-    // JIKA TO-DO SUDAH SELESAI, JANGAN TAMPILKAN TOMBOL UPLOAD
-    if (todo.completed) {
-        return null;
+    if (todo.status_approval === 'approved' || todo.status_approval === 'pending_approval') {
+        return null; // Jangan tampilkan uploader jika sudah selesai atau sedang divalidasi
     }
 
-    const handleFileChange = async (event) => {
-        const files = event.target.files;
-        if (files.length === 0) return;
+    const handleFileSelect = () => fileInputRef.current.click();
+
+    const handleUpload = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
 
         const formData = new FormData();
-        for (const file of files) {
-            formData.append('attachments[]', file);
-        }
+        formData.append('attachment', file);
+        formData.append('month', todo.month || new Date().getMonth() + 1);
 
         setUploadStatus('uploading');
         setErrorMessage('');
@@ -29,78 +74,64 @@ const FileUploader = ({ todo, onUploadComplete }) => {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             setUploadStatus('success');
-            setTimeout(() => setUploadStatus('idle'), 2000); // Kembali ke idle setelah 2 detik
-            onUploadComplete();
+            if (onUploadComplete) onUploadComplete();
         } catch (error) {
             setUploadStatus('error');
-            if (error.response && error.response.data.errors) {
-                // Ambil pesan error pertama dari validasi
-                const firstError = Object.values(error.response.data.errors)[0][0];
-                setErrorMessage(firstError);
-            } else {
-                setErrorMessage('Gagal mengunggah file.');
-            }
+            setErrorMessage(error.response?.data?.message || 'Upload gagal.');
+            console.error("Upload error:", error);
         } finally {
+            // Reset input file untuk memungkinkan upload file yang sama lagi
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
         }
     };
-
-    const getButtonContent = () => {
-        switch (uploadStatus) {
-            case 'uploading':
-                return 'Mengunggah...';
-            case 'success':
-                return 'Selesai!';
-            case 'error':
-                return 'Coba Lagi';
-            default:
-                return <><FiUploadCloud className="mr-1" /> Eviden</>;
-        }
-    };
-
+    
     return (
-        <div className="flex flex-col items-end">
-            <input
-                type="file"
-                multiple
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                disabled={uploadStatus === 'uploading'}
-            />
-            <button
-                type="button"
-                onClick={() => uploadStatus !== 'uploading' && fileInputRef.current.click()}
-                disabled={uploadStatus === 'uploading'}
-                className={`text-xs px-2 py-1 rounded flex items-center
-                    ${uploadStatus === 'uploading' ? 'bg-gray-400' : 'bg-indigo-500 hover:bg-indigo-600'}
-                    ${uploadStatus === 'success' ? 'bg-green-500' : ''}
-                    ${uploadStatus === 'error' ? 'bg-red-500' : ''}
-                    text-white transition-colors`}
-            >
-                {getButtonContent()}
+        <div className="text-xs">
+            <input type="file" ref={fileInputRef} onChange={handleUpload} className="hidden" />
+            <button onClick={handleFileSelect} disabled={uploadStatus === 'uploading'} className="flex items-center text-blue-600 hover:text-blue-800 disabled:opacity-50">
+                <FiUploadCloud className="mr-1" />
+                {uploadStatus === 'uploading' ? 'Mengunggah...' : 'Upload Eviden'}
             </button>
-            {uploadStatus === 'error' && <p className="text-red-500 text-xs mt-1 text-right">{errorMessage}</p>}
+            {errorMessage && <p className="text-red-500 mt-1">{errorMessage}</p>}
         </div>
     );
 };
 
 
-function TodoModal({ rencanaAksi, onClose, selectedMonth }) {
+function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
+    // --- HOOKS (SEMUA DI ATAS) ---
+    const { user } = useContext(AuthContext);
+    const [rencanaAksi, setRencanaAksi] = useState(null);
     const [todos, setTodos] = useState([]);
     const [newTodoDesc, setNewTodoDesc] = useState('');
+    const [newTodoPelaksanaId, setNewTodoPelaksanaId] = useState('');
+    const [newTodoBobot, setNewTodoBobot] = useState(100);
     const [loading, setLoading] = useState(true);
     const [hasMadeChanges, setHasMadeChanges] = useState(false);
 
-    const fetchTodos = useCallback(async () => {
-        try {
-            setLoading(true);
-            let url = `/rencana-aksi/${rencanaAksi.id}/todo-items`;
-            if (selectedMonth) {
-                url += `?month=${selectedMonth}`;
+    // --- EFFECTS ---
+    useEffect(() => {
+        const fetchRencanaAksiDetails = async () => {
+            if (!rencanaAksiId) return;
+            try {
+                setLoading(true);
+                const response = await apiClient.get(`/rencana-aksi/${rencanaAksiId}`);
+                setRencanaAksi(response.data.data);
+            } catch (error) {
+                console.error("Gagal memuat detail Rencana Aksi:", error);
+                onClose();
             }
+        };
+        fetchRencanaAksiDetails();
+    }, [rencanaAksiId, onClose]);
+
+    const fetchTodos = useCallback(async () => {
+        if (!rencanaAksiId) return;
+        try {
+            let url = `/rencana-aksi/${rencanaAksiId}/todo-items`;
+            if (selectedMonth) url += `?month=${selectedMonth}`;
             const response = await apiClient.get(url);
             setTodos(response.data.data);
         } catch (error) {
@@ -108,126 +139,181 @@ function TodoModal({ rencanaAksi, onClose, selectedMonth }) {
         } finally {
             setLoading(false);
         }
-    }, [rencanaAksi.id, selectedMonth]);
+    }, [rencanaAksiId, selectedMonth]);
 
     useEffect(() => {
-        fetchTodos();
-    }, [fetchTodos]);
+        if (rencanaAksi) {
+            fetchTodos();
+        }
+    }, [rencanaAksi, fetchTodos]);
 
-    const handleAddTodo = async (e) => {
-        e.preventDefault();
-        if (!newTodoDesc.trim()) return;
+    // --- MEMOS ---
+    const isPIC = useMemo(() => user && rencanaAksi && user.id === rencanaAksi.assigned_to?.id, [user, rencanaAksi]);
+    const progress = useMemo(() => {
+        if (!todos || todos.length === 0) return 0;
+        const totalBobot = todos.reduce((sum, todo) => sum + todo.bobot, 0);
+        if (totalBobot === 0) return 0;
+        const weightedProgressSum = todos.reduce((sum, todo) => sum + (todo.progress_percentage / 100) * todo.bobot, 0);
+        return Math.round((weightedProgressSum / totalBobot) * 100);
+    }, [todos]);
+
+    // --- HANDLERS ---
+    const debouncedUpdate = useCallback(debounce(async (todoId, payload) => {
         try {
-            await apiClient.post(`/rencana-aksi/${rencanaAksi.id}/todo-items`, {
+            if (selectedMonth) payload.month = selectedMonth;
+            await apiClient.put(`/todo-items/${todoId}`, payload);
+            setHasMadeChanges(true);
+        } catch (error) {
+            console.error("Gagal update to-do:", error);
+            alert('Gagal menyimpan perubahan. Data akan dimuat ulang.');
+            fetchTodos();
+        }
+    }, 1000), [fetchTodos, selectedMonth]);
+
+    const handleAddTodo = useCallback(async (e) => {
+        e.preventDefault();
+        if (!newTodoDesc.trim() || !rencanaAksiId) return;
+        try {
+            await apiClient.post(`/rencana-aksi/${rencanaAksiId}/todo-items`, {
                 deskripsi: newTodoDesc,
+                pelaksana_id: newTodoPelaksanaId || null,
+                bobot: newTodoBobot,
                 month: selectedMonth || null
             });
             setNewTodoDesc('');
+            setNewTodoPelaksanaId('');
+            setNewTodoBobot(100);
             setHasMadeChanges(true);
             fetchTodos();
         } catch (error) {
             alert('Gagal menambahkan to-do.');
         }
-    };
+    }, [newTodoDesc, newTodoPelaksanaId, newTodoBobot, rencanaAksiId, selectedMonth, fetchTodos]);
 
-    const handleToggleTodo = async (todoId, currentStatus) => {
-        try {
-            setTodos(prevTodos =>
-                prevTodos.map(t =>
-                    t.id === todoId ? { ...t, completed: !currentStatus } : t
-                )
-            );
-            await apiClient.put(`/todo-items/${todoId}`, {
-                completed: !currentStatus,
-                month: selectedMonth || null
-            });
-            setHasMadeChanges(true);
-        } catch (error) {
-            console.error("Gagal mengubah status to-do:", error);
-            alert('Gagal mengubah status to-do. Mengembalikan ke status semula.');
-            setTodos(prevTodos =>
-                prevTodos.map(t =>
-                    t.id === todoId ? { ...t, completed: currentStatus } : t
-                )
-            );
-        }
-    };
+    const handleUpdateBobot = useCallback((todoId, value) => {
+        const bobot = Math.max(0, Math.min(100, parseInt(value, 10) || 0));
+        setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, bobot } : t));
+        debouncedUpdate(todoId, { bobot });
+    }, [debouncedUpdate]);
 
-    const handleDeleteTodo = async (todoId) => {
+    const handleUpdatePelaksana = useCallback((todoId, newPelaksanaId) => {
+        setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, pelaksana_id: newPelaksanaId, pelaksana: userList.find(u => u.id === newPelaksanaId) } : t));
+        debouncedUpdate(todoId, { pelaksana_id: newPelaksanaId || null });
+    }, [debouncedUpdate, userList]);
+
+    const handleDeleteTodo = useCallback(async (todoId) => {
         if (window.confirm('Yakin ingin menghapus to-do ini?')) {
             try {
-                await apiClient.delete(`/todo-items/${todoId}`, {
-                    data: { month: selectedMonth || null }
-                });
+                await apiClient.delete(`/todo-items/${todoId}`, { data: { month: selectedMonth || null } });
                 setHasMadeChanges(true);
                 fetchTodos();
             } catch (error) {
-                console.error("Gagal menghapus to-do:", error);
                 alert('Gagal menghapus to-do.');
             }
         }
-    };
+    }, [fetchTodos, selectedMonth]);
 
-    const completedCount = todos.filter(t => t.completed).length;
-    const progress = todos.length > 0 ? Math.round((completedCount / todos.length) * 100) : 0;
+    // --- KONDISIONAL RETURN (SETELAH SEMUA HOOKS) ---
+    if (loading || !rencanaAksi) {
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-4xl"><div className="flex justify-center items-center p-8"><div className="loader w-12 h-12"></div></div></div>
+            </div>
+        );
+    }
 
+    // --- RENDER UTAMA ---
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 overflow-y-auto pt-10">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-3xl mb-10">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-4xl mb-10">
                 <h2 className="text-xl font-bold mb-2">To-Do List & Progress</h2>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Jadwal Laporan: {rencanaAksi.jadwal_tipe.charAt(0).toUpperCase() + rencanaAksi.jadwal_tipe.slice(1)}</p>
                 <p className="text-sm text-gray-600 mb-4">{rencanaAksi.deskripsi_aksi}</p>
 
-                {/* Progress Bar */}
                 <div className="mb-4">
-                    <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">Progress Otomatis</span>
-                        <span className="text-sm font-medium text-gray-700">{progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                        <div className="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
-                    </div>
+                    <div className="flex justify-between mb-1"><span className="text-sm font-medium text-gray-700">Progress Otomatis (Tertimbang)</span><span className="text-sm font-medium text-gray-700">{progress}%</span></div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5"><div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div></div>
                 </div>
 
-                {/* Form Tambah To-Do */}
-                <form onSubmit={handleAddTodo} className="flex gap-2 mb-4">
-                    <input type="text" value={newTodoDesc} onChange={e => setNewTodoDesc(e.target.value)} placeholder="Tambah tugas baru..." className="flex-grow border-gray-300 rounded-md shadow-sm" />
-                    <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Tambah</button>
-                </form>
+                {isPIC && (
+                    <form onSubmit={handleAddTodo} className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4 items-center">
+                        <input type="text" value={newTodoDesc} onChange={e => setNewTodoDesc(e.target.value)} placeholder="Tambah tugas baru..." className="md:col-span-3 border-gray-300 rounded-md shadow-sm" />
+                        <select value={newTodoPelaksanaId} onChange={e => setNewTodoPelaksanaId(e.target.value)} className="border-gray-300 rounded-md shadow-sm">
+                            <option value="">-- Pilih Pelaksana --</option>
+                            {userList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                        </select>
+                        <input type="number" value={newTodoBobot} onChange={e => setNewTodoBobot(parseInt(e.target.value, 10))} min="0" max="100" placeholder="Bobot" className="border-gray-300 rounded-md shadow-sm" />
+                        <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Tambah</button>
+                    </form>
+                )}
 
-                {/* Daftar To-Do */}
                 <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                    {loading ? <div className="flex justify-center p-4"><div className="loader w-8 h-8"></div></div> :
-                        todos.map(todo => (
+                    {todos.map(todo => {
+                        const isPelaksana = user && user.id === todo.pelaksana_id;
+                        return (
                             <div key={todo.id} className="p-3 rounded-md border bg-gray-50">
                                 <div className="flex items-start">
-                                    <div className="mt-1 mr-3 cursor-pointer" onClick={() => handleToggleTodo(todo.id, todo.completed)}>
-                                        {todo.completed ? <FiCheckCircle className="text-green-500" size={20} /> : <FiCircle className="text-gray-400" size={20} />}
+                                    <div className="mt-1 mr-3">
+                                        {todo.progress_percentage === 100 ? <FiCheckCircle className="text-green-500" size={20} /> : <FiCircle className="text-gray-400" size={20} />}
                                     </div>
                                     <div className="flex-grow">
-                                        <p className={`text-sm ${todo.completed ? 'line-through text-gray-500' : 'text-gray-900'}`}>{todo.deskripsi}</p>
-                                        
+                                        <div className="flex items-center">
+                                            <p className={`text-sm ${todo.progress_percentage === 100 ? 'line-through text-gray-500' : 'text-gray-900'}`}>{todo.deskripsi}</p>
+                                            {todo.deadline && (
+                                                <span className="ml-2 text-xs font-medium bg-gray-200 text-gray-800 px-2 py-0.5 rounded-full">
+                                                    {new Date(todo.deadline).toLocaleString('id-ID', { month: 'long' })}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-gray-500 mt-2">
+                                            Pelaksana:
+                                            {isPIC ? (
+                                                <select value={todo.pelaksana_id || ''} onChange={(e) => handleUpdatePelaksana(todo.id, parseInt(e.target.value, 10) || null)} className="ml-1 border-none bg-gray-50 text-xs p-0 focus:ring-0">
+                                                    <option value="">Belum Ditugaskan</option>
+                                                    {userList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                                                </select>
+                                            ) : (
+                                                <span className="ml-1 font-semibold">{todo.pelaksana?.name || 'Belum Ditugaskan'}</span>
+                                            )}
+                                        </div>
                                         <div className="mt-2 space-y-1">
-                                            {todo.attachments && todo.attachments.map(file => (
-                                                <div key={file.id} className="flex items-center text-xs text-gray-600">
-                                                    <FiPaperclip className="mr-1" />
-                                                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{file.file_name}</a>
-                                                </div>
+                                            {todo.attachments?.map(file => (
+                                                <div key={file.id} className="flex items-center text-xs text-gray-600"><FiPaperclip className="mr-1" /><a href={file.url} target="_blank" rel="noopener noreferrer" className="hover:underline">{file.file_name}</a></div>
                                             ))}
                                         </div>
-                                    </div>
-                                    <div className="ml-4 flex flex-col items-end space-y-2">
-                                        <FileUploader todo={todo} onUploadComplete={fetchTodos} />
-                                        {!todo.completed && (
-                                            <button onClick={() => handleDeleteTodo(todo.id)} className="text-red-500 hover:text-red-700 text-xs">
-                                                <FiTrash2 />
-                                            </button>
+
+                                        {/* --- LOGIKA APPROVAL BARU --- */}
+                                        {todo.status_approval === 'pending_approval' && (
+                                            <div className="mt-2 text-xs font-semibold text-blue-600">
+                                                Menunggu Validasi PIC
+                                            </div>
                                         )}
+                                        {isPIC && todo.status_approval === 'pending_approval' && (
+                                            <ApprovalControls todo={todo} onApprovalDone={fetchTodos} onStateChange={() => setHasMadeChanges(true)} />
+                                        )}
+                                        {todo.status_approval === 'approved' && (
+                                            <div className="mt-2 text-xs font-semibold text-green-600">
+                                                Disetujui
+                                            </div>
+                                        )}
+                                        {/* --- AKHIR LOGIKA APPROVAL --- */}
+                                        
+                                    </div>
+                                    <div className="ml-4 flex flex-col items-end space-y-2" style={{ minWidth: '150px' }}>
+                                        {isPIC ? (
+                                            <div className="relative flex items-center">
+                                                <FiGitCommit className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" size={12} />
+                                                <input type="number" value={todo.bobot} onChange={(e) => handleUpdateBobot(todo.id, e.target.value)} min="0" max="100" className="w-20 pl-6 pr-1 py-1 text-xs border-gray-300 rounded-md" />
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-gray-500">Bobot: {todo.bobot}</div>
+                                        )}
+                                        {isPelaksana && <FileUploader todo={todo} onUploadComplete={fetchTodos} />}
+                                        {isPIC && <button onClick={() => handleDeleteTodo(todo.id)} className="text-red-500 hover:text-red-700 text-xs self-end"><FiTrash2 /></button>}
                                     </div>
                                 </div>
                             </div>
-                        ))
-                    }
+                        );
+                    })}
                 </div>
 
                 <div className="flex justify-end mt-6">

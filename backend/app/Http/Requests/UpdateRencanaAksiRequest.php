@@ -15,18 +15,15 @@ class UpdateRencanaAksiRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'kegiatan_id' => 'sometimes|required|exists:kegiatan,id',
             'deskripsi_aksi' => 'sometimes|required|string',
             'assigned_to' => 'sometimes|nullable|exists:users,id',
             'priority' => 'sometimes|required|in:low,medium,high',
-            'catatan' => 'nullable|string',
+            'catatan' => 'sometimes|nullable|string',
             'jadwal_tipe' => ['sometimes', 'required', Rule::in(['insidentil', 'periodik', 'rutin', 'bulanan'])],
-            'jadwal_config' => 'sometimes|required|array',
-            'jadwal_config.months' => 'required_if:jadwal_tipe,insidentil,bulanan|array|min:1',
-            'jadwal_config.months.*' => 'integer|min:1|max:12',
-            'jadwal_config.periode' => ['required_if:jadwal_tipe,periodik', Rule::in(['triwulanan', 'semesteran'])],
-            'jadwal_config.hari' => 'required_if:jadwal_tipe,rutin|array|min:1',
-            'jadwal_config.hari.*' => 'integer|min:0|max:6',
+            'jadwal_config' => 'sometimes|nullable|array',
+            'jadwal_config.periode' => ['sometimes', 'required_if:jadwal_tipe,periodik', 'string', Rule::in(['triwulanan', 'semesteran'])],
+            'jadwal_config.months' => ['sometimes', 'nullable', 'array'],
+            'jadwal_config.months.*' => 'sometimes|integer|min:1|max:12',
         ];
     }
 }

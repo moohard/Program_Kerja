@@ -19,7 +19,7 @@ class TodoItemController extends Controller
     {
         $month = $request->input('month');
 
-        $query = $rencanaAksi->todoItems()->with('attachments')->orderBy('created_at');
+        $query = $rencanaAksi->todoItems()->with(['attachments', 'pelaksana', 'rencanaAksi.assignedTo'])->orderBy('created_at');
 
         if ($month) {
             $query->whereMonth('deadline', $month);
@@ -40,14 +40,36 @@ class TodoItemController extends Controller
 
         $todoItem = $rencanaAksi->todoItems()->create($validated);
         $this->recalculateProgressPublic($rencanaAksi, "To-do item '{$todoItem->deskripsi}' ditambahkan.", $month);
-        return new TodoItemResource($todoItem->load('attachments'));
+        return new TodoItemResource($todoItem->load(['attachments', 'pelaksana']));
     }
 
     public function update(UpdateTodoItemRequest $request, TodoItem $todoItem)
     {
-        $todoItem->update($request->validated());
-        $this->recalculateProgressPublic($todoItem->rencanaAksi, "Status to-do '{$todoItem->deskripsi}' diubah.", $request->input('month'));
-        return new TodoItemResource($todoItem->load('attachments'));
+        $validated = $request->validated();
+        $note = "Status to-do '{$todoItem->deskripsi}' diubah.";
+
+        // Logika khusus untuk approval oleh PIC
+        if (isset($validated['status_approval'])) {
+            // Otorisasi: Hanya PIC dari Rencana Aksi yang bisa approve/reject
+            $rencanaAksi = $todoItem->rencanaAksi;
+            if (Auth::id() !== $rencanaAksi->assigned_to) {
+                return response()->json(['message' => 'Hanya penanggung jawab yang bisa mengubah status approval.'], 403);
+            }
+
+            if ($validated['status_approval'] === 'approved') {
+                $validated['progress_percentage'] = 100;
+                $note = "To-do '{$todoItem->deskripsi}' disetujui oleh PIC.";
+            } elseif ($validated['status_approval'] === 'pending_upload') { // Ini berarti ditolak/revisi
+                $validated['progress_percentage'] = 0;
+                $note = "To-do '{$todoItem->deskripsi}' ditolak oleh PIC, butuh perbaikan.";
+            }
+        }
+        
+        $todoItem->update($validated);
+
+        $this->recalculateProgressPublic($todoItem->rencanaAksi, $note, $request->input('month'));
+        
+        return new TodoItemResource($todoItem->load(['attachments', 'pelaksana']));
     }
 
     public function destroy(Request $request, TodoItem $todoItem)
@@ -65,27 +87,28 @@ class TodoItemController extends Controller
     public function recalculateProgressPublic(RencanaAksi $rencanaAksi, string $note, ?int $month = null)
     {
         DB::transaction(function () use ($rencanaAksi, $note, $month) {
-            
-            // Tentukan query dasar untuk to-do item
+            // Start a fresh query builder from the relationship
             $todoQuery = $rencanaAksi->todoItems();
 
-            // Jika ada konteks bulan, filter to-do berdasarkan bulan deadline
+            // Conditionally apply the month filter
             if ($month) {
                 $todoQuery->whereMonth('deadline', $month);
             }
 
-            // Penting: Klon query sebelum menambahkan kondisi lebih lanjut
-            $totalTodos = $todoQuery->count();
-            $completedTodos = $todoQuery->clone()->where('completed', true)->count();
+            // Now, execute the query to get the relevant todos
+            $todos = $todoQuery->get(['progress_percentage', 'bobot']);
 
-            $progressPercentage = ($totalTodos > 0) ? round(($completedTodos / $totalTodos) * 100) : 0;
+            $totalBobot = $todos->sum('bobot');
+            $weightedProgressSum = $todos->sum(function ($todo) {
+                return ($todo->progress_percentage / 100) * $todo->bobot;
+            });
 
-            // Panggil JadwalService untuk mendapatkan tanggal laporan yang benar
+            $progressPercentage = ($totalBobot > 0) ? round(($weightedProgressSum / $totalBobot) * 100) : 0;
+
             $jadwalService = app(\App\Services\JadwalService::class);
             $reportDate = $jadwalService->getApplicableReportDate($rencanaAksi, null, $month);
             $isLate = now()->gt($reportDate);
 
-            // Gunakan updateOrCreate untuk mencatat progress pada periode yang benar
             ProgressMonitoring::updateOrCreate(
                 [
                     'rencana_aksi_id' => $rencanaAksi->id,
@@ -99,18 +122,15 @@ class TodoItemController extends Controller
                 ]
             );
 
-            // Update status Rencana Aksi based on all required reports being complete
             $targetMonths = $jadwalService->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config);
             
             if (empty($targetMonths)) {
-                // For 'rutin' or non-periodic tasks, original logic applies
                 $status = ($progressPercentage >= 100) ? 'completed' : (($progressPercentage > 0) ? 'in_progress' : 'planned');
             } else {
-                // For periodic tasks, check if all target months are 100% complete
                 $completedMonths = ProgressMonitoring::where('rencana_aksi_id', $rencanaAksi->id)
                     ->where('progress_percentage', 100)
                     ->pluck('report_date')
-                    ->map(fn($date) => Carbon::parse($date)->month)
+                    ->map(fn($date) => \Carbon\Carbon::parse($date)->month)
                     ->unique()
                     ->toArray();
 
@@ -119,7 +139,6 @@ class TodoItemController extends Controller
                 if ($isFullyComplete) {
                     $status = 'completed';
                 } elseif ($rencanaAksi->progressMonitorings()->where('progress_percentage', '>', 0)->exists()) {
-                    // If any progress exists at all, it's in_progress
                     $status = 'in_progress';
                 } else {
                     $status = 'planned';

@@ -148,7 +148,7 @@ File yang terlibat:
 
 - src/pages/LaporanMatriks.jsx (tombol dan fungsi ekspor).
 
-⏳ Fase 4: Advanced Features (SEDANG BERJALAN)
+✅ Fase 4: Advanced Features (SELESAI)
 [x] CRUD Program Templates & Apply Logic
 
 File yang terlibat:
@@ -174,7 +174,7 @@ File yang terlibat:
 
 ## Frontend: src/pages/AuditLogPage.jsx.
 
-[x] Real-time Notifications (Push ke Flutter & fondasi In-app)  ----Masih Progress----
+[x] Real-time Notifications (Push ke Flutter & fondasi In-app)
 
 File yang terlibat:
 
@@ -188,16 +188,16 @@ File yang terlibat:
 
 ## Flutter: Semua file Flutter yang telah kita perbarui.
 
-[ ] Import/Export Data (dari Excel)
+[x] Import/Export Data (dari Excel)
 
 Tugas ini akan memungkinkan pengguna mengimpor data Rencana Aksi secara massal dari file Excel, sangat berguna di awal tahun program kerja.
 
-📋 Fase 5: Deployment & Optimization (BELUM DIMULAI)
-[ ] Testing (Unit, Integration, E2E, UAT)
+⏳ Fase 5: Deployment & Optimization (SEDANG BERJALAN)
+[x] Testing (Unit, Integration, E2E, UAT)
 
 Menulis tes otomatis untuk backend dan frontend untuk memastikan kualitas dan mencegah bug di masa depan.
 
-[ ] Performance Optimization (Query, Frontend Bundle)
+[x] Performance Optimization (Query, Frontend Bundle)
 
 Menganalisis query database yang lambat, mengoptimalkan ukuran file JavaScript di frontend.
 

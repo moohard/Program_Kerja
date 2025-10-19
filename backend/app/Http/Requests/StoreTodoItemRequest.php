@@ -17,9 +17,12 @@ class StoreTodoItemRequest extends FormRequest
     {
 
         return [
-            'deskripsi' => 'required|string|max:255',
-            'deadline'  => 'nullable|date',
-            'month'     => 'nullable|integer|min:1|max:12',
+            'deskripsi'           => 'required|string|max:255',
+            'deadline'            => 'nullable|date',
+            'month'               => 'nullable|integer|min:1|max:12',
+            'pelaksana_id'        => 'nullable|integer|exists:users,id',
+            'bobot'               => 'nullable|integer|min:0|max:100',
+            'progress_percentage' => 'nullable|integer|min:0|max:100',
         ];
     }
 

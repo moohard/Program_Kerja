@@ -1,32 +1,24 @@
-## Checkpoint Kemajuan Proyek
+# Checkpoint: Tahap Testing Modul Rencana Aksi V2
 
-Berikut adalah ringkasan pekerjaan yang telah diselesaikan dalam sesi ini:
+Implementasi fitur-fitur baru berdasarkan masukan dari pimpinan (`gambaran_modul_rencana_aksi.md`) telah selesai. Saat ini kita memasuki **tahap pengujian dan verifikasi**.
 
-### Fase 5: Testing (Frontend E2E) - Lanjutan
+**Fitur yang Sedang Diuji:**
 
-- [x] **#2: Penambahan Tes E2E untuk Modul "Program Kerja".**
-  - [x] Melakukan investigasi dan memahami bahwa "Program Kerja" terdiri dari 3 modul: `Kategori Utama`, `Kegiatan`, dan `Rencana Aksi`.
-  - [x] Menambahkan atribut `data-cy` pada semua komponen React yang relevan untuk memastikan selektor tes yang stabil.
-  - [x] **Membuat tes E2E CRUD untuk `Kategori Utama`**:
-    - Menemukan dan memperbaiki bug pada `KategoriUtamaController` di mana `program_kerja_id` wajib diisi saat pembuatan, yang tidak konsisten dengan logika frontend.
-    - Memperbaiki beberapa masalah pada kode tes, termasuk penanganan promise-chaining yang salah dan asersi status code yang tidak tepat (200 vs 204).
-  - [x] **Membuat tes E2E CRUD untuk `Kegiatan`**:
-    - Mengimplementasikan tes yang independen dengan membuat dan membersihkan data `Kategori Utama` prasyarat melalui API.
-    - Memperbaiki masalah otentikasi pada `cy.request` dengan menyertakan token Bearer secara manual.
-  - [x] **Membuat tes E2E CRUD untuk `Rencana Aksi`**:
-    - Membuat tes yang kompleks dengan prasyarat `Kategori Utama` dan `Kegiatan`.
-    - Men-debug dan memperbaiki serangkaian masalah, termasuk *race condition* pada pembuatan data prasyarat dan inkonsistensi validasi backend antara proses *create* (`StoreRencanaAksiRequest`) dan *update* (`UpdateRencanaAksiRequest`) terkait field `assigned_to`.
+1.  **Pemisahan Peran (PIC vs. Pelaksana):**
+    *   Kemampuan untuk menugaskan `pelaksana` yang berbeda dari `PIC` pada setiap to-do item.
 
-### Status Akhir
+2.  **Sistem Progress Hybrid (Bobot & Checklist):**
+    *   Progress to-do dikontrol oleh checklist (otomatis 0% atau 100%).
+    *   Kemampuan untuk memberikan `bobot` pada setiap to-do untuk mempengaruhi perhitungan progress keseluruhan.
+    *   Kalkulasi progress Rencana Aksi menggunakan formula rata-rata tertimbang.
 
-- **Semua 5 file spesifikasi tes E2E (`kategori_utama.cy.js`, `kegiatan.cy.js`, `rencana_aksi.cy.js`, `login.cy.js`, `navigation.cy.js`) berhasil dijalankan.**
-- Fondasi tes E2E untuk fungsionalitas inti aplikasi telah selesai.
+3.  **Alur Kerja Approval (Workflow):**
+    *   **Pelaksana:** Mengunggah eviden, yang secara otomatis mengubah status to-do menjadi "Menunggu Validasi" dan progress 100%.
+    *   **PIC:** Memvalidasi hasil kerja. Bisa menyetujui ("Approved") atau meminta revisi ("Pending Upload"), yang akan mengembalikan progress to-do ke 0%.
+    *   UI/UX yang dinamis berdasarkan peran (PIC/Pelaksana) dan status to-do.
 
----
+**Perbaikan Bug:**
+*   Bug "data hilang" setelah mengedit Rencana Aksi telah diperbaiki. Pengujian regresi untuk bug ini juga sedang dilakukan.
 
-### **NEXT STEP**
-
-- [ ] Beralih ke fase **Optimasi**, seperti yang disarankan sebelumnya. Ini bisa mencakup:
-  - Menganalisis query database yang lambat.
-  - Mengoptimalkan ukuran bundle frontend.
-  - Melakukan perbaikan performa lainnya.
+**Status Saat Ini:**
+Implementasi fitur telah selesai dan saat ini sedang dalam **tahap pengujian fungsional**. Semua fitur baru memerlukan verifikasi sebelum dianggap selesai sepenuhnya.

@@ -10,6 +10,7 @@ function RencanaAksiPage() {
     const [kegiatanList, setKegiatanList] = useState([]);
     const [rencanaAksiList, setRencanaAksiList] = useState([]);
     const [jabatanTree, setJabatanTree] = useState([]);
+    const [userList, setUserList] = useState([]); // <-- State baru
 
     const [selectedKategori, setSelectedKategori] = useState('');
     const [selectedKegiatan, setSelectedKegiatan] = useState('');
@@ -53,6 +54,19 @@ function RencanaAksiPage() {
         fetchJabatanTree();
     }, []);
 
+    // Fetch User List
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const response = await apiClient.get('/users');
+                setUserList(response.data.data);
+            } catch (error) {
+                console.error("Error fetching users:", error);
+            }
+        };
+        fetchUsers();
+    }, []);
+
     // Fetch Kegiatan based on selected Kategori
     const fetchKegiatan = useCallback(async (kategoriId) => {
         if (!kategoriId) return;
@@ -80,6 +94,7 @@ function RencanaAksiPage() {
                 url += `&month=${selectedMonth}`;
             }
             const response = await apiClient.get(url);
+            console.log(response.data.data);
             setRencanaAksiList(response.data.data);
         } catch (error) {
             console.error("Error fetching rencana aksi:", error);
@@ -112,7 +127,7 @@ function RencanaAksiPage() {
 
     // --- Handlers for TodoModal ---
     const handleOpenTodoModal = (item) => {
-        setSelectedRencanaAksi(item);
+        setSelectedRencanaAksi(item.id); // Hanya simpan ID
         setIsTodoModalOpen(true);
     };
     const handleCloseTodoModal = (shouldRefetch = false) => {
@@ -234,13 +249,14 @@ function RencanaAksiPage() {
                 onSave={fetchRencanaAksi}
             />}
             {isTodoModalOpen && <TodoModal 
-                rencanaAksi={selectedRencanaAksi} 
-                currentUser={currentUser} 
+                rencanaAksiId={selectedRencanaAksi} 
                 selectedMonth={selectedMonth}
+                userList={userList}
                 onClose={handleCloseTodoModal} 
             />}
         </div>
     );
 }
+
 
 export default RencanaAksiPage;

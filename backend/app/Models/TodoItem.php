@@ -12,13 +12,18 @@ class TodoItem extends Model
 
     protected $table    = 'todo_items';
 
-    protected $fillable = [ 'rencana_aksi_id', 'deskripsi', 'completed', 'deadline' ];
+    protected $fillable = [ 'rencana_aksi_id', 'pelaksana_id', 'deskripsi', 'deadline', 'bobot', 'progress_percentage', 'status_approval' ];
 
-    protected $casts    = [ 'completed' => 'boolean', 'deadline' => 'datetime' ];
+    protected $casts    = [ 'deadline' => 'datetime', 'bobot' => 'integer', 'progress_percentage' => 'integer' ];
 
     public function rencanaAksi()
     {
         return $this->belongsTo(RencanaAksi::class);
+    }
+
+    public function pelaksana()
+    {
+        return $this->belongsTo(User::class, 'pelaksana_id');
     }
 
     /**
