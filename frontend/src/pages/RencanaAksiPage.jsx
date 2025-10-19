@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
+import AuthContext from '../contexts/AuthContext';
 import apiClient from '../services/apiClient';
 import RencanaAksiModal from '../components/modals/RencanaAksiModal';
 import TodoModal from '../components/modals/TodoModal';
-import { FiPlus } from 'react-icons/fi';
+import { FiPlus, FiAlertTriangle } from 'react-icons/fi';
 
 function RencanaAksiPage() {
     const [kategoriList, setKategoriList] = useState([]);
@@ -20,6 +21,7 @@ function RencanaAksiPage() {
 
     const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
     const [selectedRencanaAksi, setSelectedRencanaAksi] = useState(null);
+    const { user: currentUser } = useContext(AuthContext);
 
     // Fetch Kategori Utama
     useEffect(() => {
@@ -73,7 +75,6 @@ function RencanaAksiPage() {
         setLoading(prev => ({ ...prev, rencana: true }));
         try {
             const response = await apiClient.get(`/rencana-aksi?kegiatan_id=${selectedKegiatan}`);
-            console.log(response.data.data);
             setRencanaAksiList(response.data.data);
         } catch (error) {
             console.error("Error fetching rencana aksi:", error);
@@ -201,6 +202,7 @@ function RencanaAksiPage() {
                 </div>
             }
             {isModalOpen && <RencanaAksiModal
+                key={currentItem ? currentItem.id : 'new'}
                 isOpen={isModalOpen}
                 currentData={currentItem}
                 kegiatanId={selectedKegiatan}
@@ -208,7 +210,7 @@ function RencanaAksiPage() {
                 onClose={handleCloseModal}
                 onSave={fetchRencanaAksi}
             />}
-            {isTodoModalOpen && <TodoModal rencanaAksi={selectedRencanaAksi} onClose={handleCloseTodoModal} onUpdate={fetchRencanaAksi} />}
+            {isTodoModalOpen && <TodoModal rencanaAksi={selectedRencanaAksi} currentUser={currentUser} onClose={handleCloseTodoModal} onUpdate={fetchRencanaAksi} />}
         </div>
     );
 }

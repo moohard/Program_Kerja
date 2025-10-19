@@ -24,6 +24,17 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
     ];
     const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
+    const getPeriodeValue = (config) => {
+        const periode = config?.periode || config?.interval;
+        if (periode === 'monthly' || periode === 'quarterly') {
+            return 'triwulanan';
+        }
+        if (periode === 'biannual') {
+            return 'semesteran';
+        }
+        return periode;
+    }
+
     useEffect(() => {
         if (isOpen) {
             if (currentData) {
@@ -39,7 +50,7 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
                     jadwal_tipe: currentData.jadwal_tipe || 'insidentil',
                     jadwal_config: {
                         months: currentData.jadwal_config?.months || [],
-                        periode: currentData.jadwal_config?.periode || '',
+                        periode: getPeriodeValue(currentData.jadwal_config) || '',
                         hari: currentData.jadwal_config?.hari || [],
                     },
                 });
