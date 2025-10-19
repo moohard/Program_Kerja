@@ -216,6 +216,18 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
                         onChange={handleChange}
                         data-cy="jabatan-selector"
                     />
+
+                    {/* Prioritas */}
+                    <div>
+                        <label htmlFor="priority" className="block text-sm font-medium text-gray-700">Prioritas</label>
+                        <select id="priority" name="priority" value={formData.priority} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            <option value="low">Rendah</option>
+                            <option value="medium">Sedang</option>
+                            <option value="high">Tinggi</option>
+                        </select>
+                        {errors.priority && <p className="text-red-500 text-xs mt-1">{errors.priority[0]}</p>}
+                    </div>
+
                     {/* Tipe Jadwal */}
                     <div>
                         <label htmlFor="jadwal_tipe" className="block text-sm font-medium text-gray-700">Tipe Jadwal</label>
