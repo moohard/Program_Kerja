@@ -199,15 +199,25 @@ gantt
   - [ ] End-to-end testing untuk frontend
   - [ ] User acceptance testing (UAT)
 - [ ] **Bug Fixing**
+  - [x] Fix periodic schedule display in Rencana Aksi modal
   - [ ] Priority-based bug resolution
   - [ ] Regression testing
   - [ ] Performance testing
 
 #### Optimization
-- [ ] **Performance Optimization**
-  - [ ] Database query optimization
-  - [ ] Frontend bundle optimization
-  - [ ] Caching strategy implementation
+- [~] **Performance Optimization**
+  - [x] Database query optimization (N+1 Problem)
+    - [x] Fix N+1 in `RencanaAksiController`
+    - [x] Fix N+1 in `TodoItemController`
+    - [x] Fix N+1 in `ProgressMonitoringController`
+    - [x] Fix N+1 in `DashboardController`
+    - [x] Fix N+1 in `SendDeadlineReminders` command and `DeadlineReminderNotification`
+  - [x] Frontend bundle optimization
+    - [x] Implement code splitting for chart pages (`Dashboard`, `AnnualReport`) using React.lazy.
+  - [~] Caching strategy implementation
+    - [x] Implement caching for `JabatanController`
+    - [x] Implement caching for `ProgramKerjaController`
+    - [x] Implement caching for `KategoriUtamaController`
   - [ ] Lazy loading for large datasets
 - [ ] **Security Hardening**
   - [ ] Security vulnerability assessment
