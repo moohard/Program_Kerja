@@ -1,24 +1,23 @@
-# Checkpoint: Tahap Testing Modul Rencana Aksi V2
+# Checkpoint: Tahap Pengujian Alur Kerja Approval V3
 
-Implementasi fitur-fitur baru berdasarkan masukan dari pimpinan (`gambaran_modul_rencana_aksi.md`) telah selesai. Saat ini kita memasuki **tahap pengujian dan verifikasi**.
+Implementasi alur kerja approval dari Pelaksana ke PIC telah selesai, beserta perbaikan bug terkait.
 
-**Fitur yang Sedang Diuji:**
+**Fitur yang Siap Diuji:**
 
-1.  **Pemisahan Peran (PIC vs. Pelaksana):**
-    *   Kemampuan untuk menugaskan `pelaksana` yang berbeda dari `PIC` pada setiap to-do item.
+1.  **Alur Kerja Approval Lengkap:**
+    *   **Pelaksana:** Mengunggah eviden, yang mengubah status to-do menjadi `pending_approval`. Tombol upload kemudian hilang.
+    *   **PIC:** Melihat status "Menunggu Validasi" dan mendapatkan tombol "Setujui" / "Tolak/Revisi".
+    *   **PIC:** Tindakan approval/rejection mengubah status to-do dan progress-nya.
 
-2.  **Sistem Progress Hybrid (Bobot & Checklist):**
-    *   Progress to-do dikontrol oleh checklist (otomatis 0% atau 100%).
-    *   Kemampuan untuk memberikan `bobot` pada setiap to-do untuk mempengaruhi perhitungan progress keseluruhan.
-    *   Kalkulasi progress Rencana Aksi menggunakan formula rata-rata tertimbang.
+2.  **Otorisasi Berbasis Peran & Kepemilikan (Model Birokrasi):**
+    *   **Ketua/Admin:** Dapat melihat semua Rencana Aksi dan berhak membuat, mendelegasikan, serta menghapus.
+    *   **PIC:** Hanya melihat Rencana Aksi yang ditugaskan kepadanya.
+    *   **Pelaksana:** Hanya melihat Rencana Aksi di mana ia memiliki setidaknya satu to-do item, dan hanya pada bulan yang relevan dengan `deadline` to-do tersebut.
 
-3.  **Alur Kerja Approval (Workflow):**
-    *   **Pelaksana:** Mengunggah eviden, yang secara otomatis mengubah status to-do menjadi "Menunggu Validasi" dan progress 100%.
-    *   **PIC:** Memvalidasi hasil kerja. Bisa menyetujui ("Approved") atau meminta revisi ("Pending Upload"), yang akan mengembalikan progress to-do ke 0%.
-    *   UI/UX yang dinamis berdasarkan peran (PIC/Pelaksana) dan status to-do.
-
-**Perbaikan Bug:**
-*   Bug "data hilang" setelah mengedit Rencana Aksi telah diperbaiki. Pengujian regresi untuk bug ini juga sedang dilakukan.
+3.  **Perbaikan Bug Kritis:**
+    *   **Preview Eviden:** Masalah "Access Denied" telah diperbaiki dengan menggunakan Pre-Signed URL.
+    *   **Progress Indicator:** Progress bar di halaman utama sekarang akan ter-update setelah ada perubahan di dalam modal.
+    *   **Konsistensi Data:** Proses upload sekarang menggunakan transaksi database untuk mencegah data parsial tersimpan jika terjadi error.
 
 **Status Saat Ini:**
-Implementasi fitur telah selesai dan saat ini sedang dalam **tahap pengujian fungsional**. Semua fitur baru memerlukan verifikasi sebelum dianggap selesai sepenuhnya.
+Semua implementasi dan perbaikan bug telah di-commit dan di-push. Kita siap untuk melanjutkan **pengujian menyeluruh** terhadap semua skenario di atas.
