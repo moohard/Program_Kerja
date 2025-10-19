@@ -70,25 +70,29 @@ function RencanaAksiPage() {
         }
     }, []);
 
-    // Fetch Rencana Aksi based on selected Kegiatan
+    // Fetch Rencana Aksi based on selected Kegiatan and Month
     const fetchRencanaAksi = useCallback(async () => {
         if (!selectedKegiatan) return;
         setLoading(prev => ({ ...prev, rencana: true }));
         try {
-            const response = await apiClient.get(`/rencana-aksi?kegiatan_id=${selectedKegiatan}`);
+            let url = `/rencana-aksi?kegiatan_id=${selectedKegiatan}`;
+            if (selectedMonth) {
+                url += `&month=${selectedMonth}`;
+            }
+            const response = await apiClient.get(url);
             setRencanaAksiList(response.data.data);
         } catch (error) {
             console.error("Error fetching rencana aksi:", error);
         } finally {
             setLoading(prev => ({ ...prev, rencana: false }));
         }
-    }, [selectedKegiatan]);
+    }, [selectedKegiatan, selectedMonth]);
 
     useEffect(() => {
         if (selectedKegiatan) {
             fetchRencanaAksi();
         }
-    }, [selectedKegiatan, fetchRencanaAksi]);
+    }, [selectedKegiatan, selectedMonth, fetchRencanaAksi]);
 
     const handleKategoriChange = (e) => {
         const kategoriId = e.target.value;
@@ -128,61 +132,19 @@ function RencanaAksiPage() {
         }
     };
 
-    const getTargetMonths = (tipe, config) => {
-        if (!config) {
-            return [];
-        }
-        switch (tipe) {
-            case 'periodik':
-                if (config.periode === 'triwulanan' || config.interval === 'triwulanan' || config.interval === 'quarterly') {
-                    return [3, 6, 9, 12];
-                }
-                if (config.periode === 'semesteran' || config.interval === 'semesteran' || config.interval === 'biannual') {
-                    return [6, 12];
-                }
-                return [];
-            case 'insidentil':
-            case 'bulanan':
-                return config.months || [];
-            case 'rutin':
-                return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // Active every month
-            default:
-                return [];
-        }
-    };
-
-    const filteredRencanaAksiList = React.useMemo(() => {
-        if (!selectedMonth) {
-            return rencanaAksiList;
-        }
-        return rencanaAksiList.filter(item => {
-            const targetMonths = getTargetMonths(item.jadwal_tipe, item.jadwal_config);
-            return targetMonths.includes(parseInt(selectedMonth, 10));
-        });
-    }, [rencanaAksiList, selectedMonth]);
-
     return (
         <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">Rencana Aksi</h1>
-                <div className="flex items-center space-x-2">
-                    <button
-                        onClick={() => alert('Report generation not implemented yet.')}
-                        disabled={!selectedMonth}
-                        className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
-                    >
-                        Generate Laporan
-                    </button>
-                    <button
-                        onClick={() => handleOpenModal()}
-                        disabled={!selectedKegiatan}
-                        className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
-                        data-cy="add-rencana-aksi-button"
-                    >
-                        <FiPlus className="mr-2" />
-                        Tambah Rencana Aksi
-                    </button>
-                </div>
+                <button
+                    onClick={() => handleOpenModal()}
+                    disabled={!selectedKegiatan}
+                    className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                    data-cy="add-rencana-aksi-button"
+                >
+                    <FiPlus className="mr-2" />
+                    Tambah Rencana Aksi
+                </button>
             </div>
 
             {/* Filters */}
@@ -226,12 +188,12 @@ function RencanaAksiPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200" data-cy="rencana-aksi-table-body">
-                            {filteredRencanaAksiList.map(item => (
+                            {rencanaAksiList.map(item => (
                                 <tr key={item.id} data-cy={`rencana-aksi-row-${item.id}`}>
                                     <td className="px-6 py-4 whitespace-normal w-1/3">{item.deskripsi_aksi}</td>
                                     <td className="px-6 py-4">{item.assigned_to?.name || '-'}</td>
                                     <td className="px-6 py-4">{item.priority}</td>
-                                    <td className="px-6 py-4">{item.status}</td>
+                                    <td className="px-6 py-4">{item.monthly_status || item.status}</td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center">
                                             <div className="w-full bg-gray-200 rounded-full h-2.5">
