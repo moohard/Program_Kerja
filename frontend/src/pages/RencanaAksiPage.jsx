@@ -115,9 +115,12 @@ function RencanaAksiPage() {
         setSelectedRencanaAksi(item);
         setIsTodoModalOpen(true);
     };
-    const handleCloseTodoModal = () => {
+    const handleCloseTodoModal = (shouldRefetch = false) => {
         setIsTodoModalOpen(false);
         setSelectedRencanaAksi(null);
+        if (shouldRefetch) {
+            fetchRencanaAksi();
+        }
     };
 
     const handleDelete = async (id) => {
@@ -197,11 +200,17 @@ function RencanaAksiPage() {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center">
                                             <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                                <div className="bg-green-500 h-2.5 rounded-full" style={{ width: `${item.latest_progress?.progress_percentage || 0}%` }}></div>
+                                                <div 
+                                                    className="bg-green-500 h-2.5 rounded-full" 
+                                                    style={{ width: `${(selectedMonth ? item.monthly_progress?.progress_percentage : item.latest_progress?.progress_percentage) || 0}%` }}>
+                                                </div>
                                             </div>
-                                            {item.latest_progress?.is_late && (
+                                            <span className="text-xs text-gray-500 ml-2">
+                                                {`${(selectedMonth ? item.monthly_progress?.progress_percentage : item.latest_progress?.progress_percentage) || 0}%`}
+                                            </span>
+                                            {(selectedMonth ? item.monthly_progress?.is_late : item.latest_progress?.is_late) ? (
                                                 <FiAlertTriangle className="ml-2 text-yellow-500" title="Progress dilaporkan terlambat" />
-                                            )}
+                                            ) : null}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
@@ -224,7 +233,12 @@ function RencanaAksiPage() {
                 onClose={handleCloseModal}
                 onSave={fetchRencanaAksi}
             />}
-            {isTodoModalOpen && <TodoModal rencanaAksi={selectedRencanaAksi} currentUser={currentUser} onClose={handleCloseTodoModal} onUpdate={fetchRencanaAksi} />}
+            {isTodoModalOpen && <TodoModal 
+                rencanaAksi={selectedRencanaAksi} 
+                currentUser={currentUser} 
+                selectedMonth={selectedMonth}
+                onClose={handleCloseTodoModal} 
+            />}
         </div>
     );
 }

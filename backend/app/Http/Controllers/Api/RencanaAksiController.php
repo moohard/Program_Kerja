@@ -32,32 +32,45 @@ class RencanaAksiController extends Controller
         $month = $request->month;
 
         $rencanaAksiQuery = RencanaAksi::where('kegiatan_id', $kegiatanId)
-            ->with(['assignedTo:id,name', 'latestProgress']);
+            ->with('assignedTo:id,name');
 
-        // Eager load progress specific to the requested month if provided
+        // Eager load progress specific to the requested month if provided, otherwise load the latest
         if ($month) {
             $rencanaAksiQuery->with(['progressMonitorings' => function ($query) use ($month) {
                 $query->whereMonth('report_date', $month);
             }]);
         } else {
-            $rencanaAksiQuery->with('progressMonitorings');
+            $rencanaAksiQuery->with('latestProgress');
+        }
+
+        // If a month is specified, filter the results at the database level
+        if ($month) {
+            $rencanaAksiQuery->where(function ($query) use ($month) {
+                // Handles cases where a 'months' array is present, regardless of type
+                $query->orWhereJsonContains('jadwal_config->months', $month);
+
+                // Handles periodik quarterly
+                if (in_array($month, [3, 6, 9, 12])) {
+                    $query->orWhere(function ($q) {
+                        $q->where('jadwal_tipe', 'periodik')
+                          ->where('jadwal_config->interval', 'quarterly');
+                    });
+                }
+
+                // Handles periodik biannual (semesteran)
+                if (in_array($month, [6, 12])) {
+                    $query->orWhere(function ($q) {
+                        $q->where('jadwal_tipe', 'periodik')
+                          ->where('jadwal_config->interval', 'biannual');
+                    });
+                }
+            });
         }
 
         $rencanaAksi = $rencanaAksiQuery->latest()->get();
         $jadwalService = app(JadwalService::class);
 
-        // If a month is specified, filter the results and calculate monthly status
-        if ($month) {
-            $rencanaAksi = $rencanaAksi->filter(function ($item) use ($month, $jadwalService) {
-                $targetMonths = $jadwalService->getTargetMonths($item->jadwal_tipe, $item->jadwal_config);
-                return in_array($month, $targetMonths);
-            });
 
-            $rencanaAksi->each(function ($item) use ($month, $jadwalService) {
-                $targetMonths = $jadwalService->getTargetMonths($item->jadwal_tipe, $item->jadwal_config);
-                $item->monthly_status = $this->calculateMonthlyStatus($item, $month, $targetMonths);
-            });
-        }
 
         return RencanaAksiResource::collection($rencanaAksi);
     }
@@ -126,30 +139,6 @@ class RencanaAksiController extends Controller
         return response()->noContent();
         }
 
-    private function calculateMonthlyStatus(RencanaAksi $aksi, int $month, array $targetMonths): string
-    {
-        // This check is technically redundant if called after filtering, but good for safety
-        if (!in_array($month, $targetMonths)) {
-            return 'not_applicable';
-        }
 
-        $progressInMonth = $aksi->progressMonitorings->first(); // We eager loaded only the relevant month's progress
-
-        if ($progressInMonth && $progressInMonth->progress_percentage == 100) {
-            return 'completed';
-        }
-
-        if ($progressInMonth) {
-            return 'in_progress';
-        }
-
-        // If no progress, check if the reporting period has passed
-        $endOfMonth = \Carbon\Carbon::create(date('Y'), $month)->endOfMonth();
-        if (now()->gt($endOfMonth)) {
-            return 'missed';
-        }
-
-        return 'planned';
-    }
 
     }

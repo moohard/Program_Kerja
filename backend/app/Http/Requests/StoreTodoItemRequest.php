@@ -17,8 +17,9 @@ class StoreTodoItemRequest extends FormRequest
     {
 
         return [
-            'deskripsi' => 'required|string|max:65535',
+            'deskripsi' => 'required|string|max:255',
             'deadline'  => 'nullable|date',
+            'month'     => 'nullable|integer|min:1|max:12',
         ];
     }
 

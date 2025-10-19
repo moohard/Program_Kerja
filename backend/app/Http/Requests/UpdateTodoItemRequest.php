@@ -17,9 +17,10 @@ class UpdateTodoItemRequest extends FormRequest
     {
 
         return [
-            'deskripsi' => 'sometimes|required|string|max:65535',
+            'deskripsi' => 'sometimes|string|max:255',
             'completed' => 'sometimes|boolean',
-            'deadline'  => 'sometimes|nullable|date',
+            'deadline'  => 'nullable|date',
+            'month'     => 'nullable|integer|min:1|max:12',
         ];
     }
 

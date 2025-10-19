@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             KategoriUtamaSeeder::class,
             KegiatanSeeder::class,
             RencanaAksiSeeder::class,
-            TodoItemsSeeder::class,
+            // TodoItemsSeeder::class,
             ProgramTemplateSeeder::class,
         ]);
 

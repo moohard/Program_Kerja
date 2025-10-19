@@ -24,9 +24,12 @@ class JadwalService
     {
         switch ($tipe) {
             case 'periodik':
+                if (($config['interval'] ?? null) === 'quarterly') return [3, 6, 9, 12];
+                if (($config['interval'] ?? null) === 'biannual') return [6, 12];
+                // Fallback untuk format lama jika masih ada
                 if (($config['periode'] ?? null) === 'triwulanan') return [3, 6, 9, 12];
                 if (($config['periode'] ?? null) === 'semesteran') return [6, 12];
-                return [];
+                return $config['months'] ?? []; // Menangani periodik dengan bulan kustom
             case 'insidentil':
             case 'bulanan':
                 return $config['months'] ?? [];
@@ -37,32 +40,39 @@ class JadwalService
 
     /**
      * Menentukan tanggal laporan yang berlaku berdasarkan jadwal dan tanggal saat ini.
+     *
+     * @param RencanaAksi $rencanaAksi
+     * @param Carbon|null $currentDate Tanggal saat ini (untuk testing atau kasus spesifik)
+     * @param int|null $contextMonth Bulan spesifik yang menjadi konteks (misalnya dari filter UI)
+     * @return Carbon
      */
-    public function getApplicableReportDate(RencanaAksi $rencanaAksi, Carbon $currentDate = null): Carbon
+    public function getApplicableReportDate(RencanaAksi $rencanaAksi, Carbon $currentDate = null, ?int $contextMonth = null): Carbon
     {
         $currentDate = $currentDate ?? Carbon::now();
+        $year = $currentDate->year;
         $targetMonths = $this->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config);
 
         if (empty($targetMonths)) {
-            // Untuk jadwal 'rutin' atau yang tidak memiliki target bulan, gunakan akhir bulan saat ini.
-            return $currentDate->endOfMonth();
+            // Untuk jadwal 'rutin', gunakan akhir bulan dari konteks jika ada, jika tidak gunakan bulan saat ini.
+            return Carbon::create($year, $contextMonth ?? $currentDate->month)->endOfMonth();
         }
 
         sort($targetMonths);
 
-        // Cari bulan target berikutnya atau yang sedang berjalan
-        foreach ($targetMonths as $month) {
-            if ($month >= $currentDate->month) {
-                return Carbon::create($currentDate->year, $month)->endOfMonth();
-            }
+        // Jika ada konteks bulan dan itu adalah salah satu bulan target, gunakan itu.
+        if ($contextMonth && in_array($contextMonth, $targetMonths)) {
+            return Carbon::create($year, $contextMonth)->endOfMonth();
         }
 
-        // Jika semua target bulan di tahun ini sudah lewat, ada dua kemungkinan:
-        // 1. Pekerjaan terlambat: Atribusikan ke target terakhir yang terlewat.
-        // 2. Pekerjaan untuk tahun depan: Atribusikan ke target pertama tahun depan.
+        // Jika tidak ada konteks, cari bulan target berikutnya atau yang sedang berjalan
+        $currentMonth = $currentDate->month;
+        foreach ($targetMonths as $month) {
+            if ($month >= $currentMonth) {
+                return Carbon::create($year, $month)->endOfMonth();
+            }
+        }
         
-        // Untuk saat ini, kita asumsikan kita selalu melaporkan untuk target terdekat,
-        // bahkan jika sudah lewat (kasus terlambat).
-        return Carbon::create($currentDate->year, end($targetMonths))->endOfMonth();
+        // Jika semua target bulan di tahun ini sudah lewat, atribusikan ke target terakhir yang terlewat.
+        return Carbon::create($year, end($targetMonths))->endOfMonth();
     }
 }

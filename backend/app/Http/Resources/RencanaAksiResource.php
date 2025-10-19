@@ -27,7 +27,8 @@ class RencanaAksiResource extends JsonResource
             'monthly_status'   => $this->when(isset($this->monthly_status), $this->monthly_status),
             'assigned_to'      => new UserResource($this->whenLoaded('assignedTo')),
             'progress_history' => ProgressMonitoringResource::collection($this->whenLoaded('progressMonitorings')),
-            'latest_progress'  => $this->latest_progress_percentage,
+            'monthly_progress' => new ProgressMonitoringResource($this->whenLoaded('progressMonitorings')->first()),
+            'latest_progress'  => $this->latestProgress,
         ];
     }
 
