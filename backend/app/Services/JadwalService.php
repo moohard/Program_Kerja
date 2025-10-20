@@ -59,20 +59,17 @@ class JadwalService
 
         sort($targetMonths);
 
-        // Jika ada konteks bulan dan itu adalah salah satu bulan target, gunakan itu.
-        if ($contextMonth && in_array($contextMonth, $targetMonths)) {
-            return Carbon::create($year, $contextMonth)->endOfMonth();
-        }
+        // Prioritaskan bulan dari konteks (filter UI) untuk perbandingan
+        $monthToCompare = $contextMonth ?? $currentDate->month;
 
-        // Jika tidak ada konteks, cari bulan target berikutnya atau yang sedang berjalan
-        $currentMonth = $currentDate->month;
+        // Cari bulan target berikutnya atau yang sedang berjalan dari konteks
         foreach ($targetMonths as $month) {
-            if ($month >= $currentMonth) {
+            if ($month >= $monthToCompare) {
                 return Carbon::create($year, $month)->endOfMonth();
             }
         }
         
-        // Jika semua target bulan di tahun ini sudah lewat, atribusikan ke target terakhir yang terlewat.
+        // Jika semua target bulan di tahun ini sudah lewat, atribusikan ke target terakhir.
         return Carbon::create($year, end($targetMonths))->endOfMonth();
     }
 }

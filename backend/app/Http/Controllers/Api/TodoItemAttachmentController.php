@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class TodoItemAttachmentController extends Controller
 {
@@ -25,31 +27,44 @@ class TodoItemAttachmentController extends Controller
         }
 
         $attachment = DB::transaction(function () use ($request, $todoItem) {
+            // 1. Hapus lampiran lama jika ada
+            if ($todoItem->attachments()->exists()) {
+                foreach ($todoItem->attachments as $oldAttachment) {
+                    Storage::disk('s3')->delete($oldAttachment->file_path);
+                    $oldAttachment->delete();
+                }
+            }
+
             $file = $request->file('attachment');
             
-            // Menggunakan disk 's3' yang sudah dikonfigurasi
-            $path = $file->store('todo_attachments', 's3');
+            // 2. Buat nama file baru yang deskriptif
+            $slug = Str::slug($todoItem->deskripsi);
+            $extension = $file->getClientOriginalExtension();
+            $newFileName = "{$slug}-" . time() . ".{$extension}";
+            
+            // 3. Simpan file baru dengan nama kustom ke disk 's3'
+            $path = $file->storeAs('todo_attachments', $newFileName, 's3');
             
             $newAttachment = $todoItem->attachments()->create([
-                'file_name' => $file->getClientOriginalName(),
+                'file_name' => $newFileName, // Simpan nama baru
                 'file_path' => $path,
                 'file_type' => $file->getClientMimeType(),
                 'file_size' => $file->getSize(),
             ]);
 
-            // Setelah file berhasil diunggah, update status to-do item
+            // 4. Update status to-do item
             $todoItem->update([
                 'status_approval' => 'pending_approval',
-                'progress_percentage' => 100,
+                // Progress di-set 100 saat upload, akan di-reset jika ditolak
+                'progress_percentage' => 100, 
             ]);
 
-            // Ambil bulan dari request untuk diteruskan
             $month = $request->input('month');
 
-            // Panggil method recalculateProgress dari TodoItemController untuk update progress Rencana Aksi
+            // 5. Panggil recalculateProgress untuk update progress Rencana Aksi
             (new TodoItemController)->recalculateProgressPublic(
                 $todoItem->rencanaAksi,
-                "Eviden diunggah untuk to-do: '{$todoItem->deskripsi}', menunggu validasi.",
+                "Eviden direvisi/diunggah untuk to-do: '{$todoItem->deskripsi}', menunggu validasi.",
                 $month ? (int)$month : null
             );
 

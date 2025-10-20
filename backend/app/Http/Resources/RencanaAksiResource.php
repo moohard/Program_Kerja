@@ -23,14 +23,16 @@ class RencanaAksiResource extends JsonResource
             'priority'         => $this->priority,
             'jadwal_tipe'      => $this->jadwal_tipe,
             'jadwal_config'    => $this->jadwal_config,
-            'target_months'    => $this->target_months, // Tambahkan baris ini
-            'monthly_status'   => $this->when(isset($this->monthly_status), $this->monthly_status),
+            'target_months'    => $this->target_months,
+            'overall_progress_percentage' => $this->overall_progress_percentage, // <-- FIELD BARU
             'assigned_to'      => new UserResource($this->whenLoaded('assignedTo')),
             'progress_history' => ProgressMonitoringResource::collection($this->whenLoaded('progressMonitorings')),
-            'monthly_progress' => $this->when($this->relationLoaded('progressMonitorings') && $this->progressMonitorings->isNotEmpty(), function () {
-                return new ProgressMonitoringResource($this->progressMonitorings->first());
+            
+            'monthly_progress' => $this->when(isset($this->monthly_progress), function () {
+                return new ProgressMonitoringResource($this->monthly_progress);
             }),
-            'latest_progress'  => $this->latestProgress,
+
+            'latest_progress'  => new ProgressMonitoringResource($this->whenLoaded('latestProgress')),
         ];
     }
 

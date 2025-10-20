@@ -86,14 +86,42 @@ class RencanaAksi extends Model
 
     public function progressMonitorings()
     {
-
         return $this->hasMany(ProgressMonitoring::class, 'rencana_aksi_id')->orderBy('tanggal_monitoring', 'desc');
     }
 
     public function latestProgress()
     {
+        // Menambahkan 'id' sebagai tie-breaker jika tanggal_monitoring identik
+        return $this->hasOne(ProgressMonitoring::class, 'rencana_aksi_id')->latestOfMany(['tanggal_monitoring', 'id']);
+    }
 
-        return $this->hasOne(ProgressMonitoring::class, 'rencana_aksi_id')->latestOfMany('created_at');
+    /**
+     * [NEW] Accessor untuk menghitung rata-rata progress dari semua bulan target.
+     */
+    protected function overallProgressPercentage(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $targetMonths = $this->target_months;
+
+                // Jika tidak ada bulan target (misal: tahunan), gunakan progress terakhir.
+                if (empty($targetMonths)) {
+                    return $this->latestProgress?->progress_percentage ?? 0;
+                }
+
+                // Ambil semua progress yang relevan sekaligus untuk efisiensi
+                $progresses = $this->progressMonitorings->keyBy(function ($item) {
+                    return \Carbon\Carbon::parse($item->report_date)->month;
+                });
+
+                $totalPercentage = 0;
+                foreach ($targetMonths as $month) {
+                    $totalPercentage += $progresses[$month]->progress_percentage ?? 0;
+                }
+
+                return round($totalPercentage / count($targetMonths));
+            }
+        );
     }
 
     /**

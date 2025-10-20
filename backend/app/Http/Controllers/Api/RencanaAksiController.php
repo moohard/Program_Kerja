@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Notifications\RencanaAksiAssigned;
 use App\Services\JadwalService;
+use Illuminate\Support\Facades\Log;
 
 class RencanaAksiController extends Controller
 {
@@ -118,91 +119,65 @@ class RencanaAksiController extends Controller
     
 
             // --- Apply Filters Based on Role ---
-
             if (in_array($userJabatan, ['Administrator', 'Ketua'])) {
-
-                // Privileged users: Apply the standard month filter to all results.
-
                 if ($month) {
-
                     $rencanaAksiQuery->where($monthFilterLogic);
-
                 }
-
             } else {
+                // For non-privileged users, fetch all RAs they are involved in first.
+                $rencanaAksiQuery->where(function ($query) use ($user) {
+                    $query->where('assigned_to', $user->id)
+                          ->orWhereHas('todoItems', function ($todoQuery) use ($user) {
+                              $todoQuery->where('pelaksana_id', $user->id);
+                          });
+                });
+            }
 
-                // Non-privileged users: Apply a combined ownership and month filter.
+            $rencanaAksi = $rencanaAksiQuery->with('latestProgress', 'progressMonitorings', 'todoItems')->latest()->get();
 
-                $rencanaAksiQuery->where(function ($query) use ($user, $month, $monthFilterLogic) {
+            // Now, if a month is selected, filter the collection in PHP for non-privileged users
+            if ($month && !in_array($userJabatan, ['Administrator', 'Ketua'])) {
+                $jadwalService = $this->jadwalService;
+                $rencanaAksi = $rencanaAksi->filter(function ($ra) use ($month, $jadwalService, $user) {
+                    // Determine the applicable report date for the filtered month
+                    $applicableReportDate = $jadwalService->getApplicableReportDate($ra, null, $month);
+                    $targetMonths = $jadwalService->getTargetMonths($ra->jadwal_tipe, $ra->jadwal_config);
 
-                    // Condition A: User is the PIC, and the RencanaAksi matches the month filter.
+                    // Check if the month of the applicable report date is in the target months.
+                    // This correctly handles quarterly/semester logic.
+                    $isMonthRelevant = in_array($applicableReportDate->month, $targetMonths);
 
-                    $query->where(function ($picQuery) use ($user, $month, $monthFilterLogic) {
-
-                        $picQuery->where('assigned_to', $user->id);
-
-                        if ($month) {
-
-                            $picQuery->where($monthFilterLogic);
-
-                        }
-
-                    });
-
-    
-
-                    // Condition B: User is a Pelaksana on a TodoItem within the selected month.
-
-                    if ($month) {
-
-                        $query->orWhereHas('todoItems', function ($todoQuery) use ($user, $month) {
-
-                            $todoQuery->where('pelaksana_id', $user->id)
-
-                                      ->whereMonth('deadline', $month);
-
-                        });
-
-                    } else {
-
-                        // If no month is selected, show all RAs where the user is a pelaksana.
-
-                        $query->orWhereHas('todoItems', function ($todoQuery) use ($user) {
-
-                            $todoQuery->where('pelaksana_id', $user->id);
-
-                        });
-
+                    // Keep if user is PIC and the month is relevant
+                    if ($ra->assigned_to == $user->id && $isMonthRelevant) {
+                        return true;
                     }
 
+                    // Keep if user is a pelaksana on ANY todo item AND the month is relevant
+                    if ($ra->todoItems->where('pelaksana_id', $user->id)->isNotEmpty() && $isMonthRelevant) {
+                        return true;
+                    }
+
+                    return false;
                 });
-
             }
 
-    
-
-            // Eager load progress specific to the requested month if provided, otherwise load the latest.
-
+            // If a month is selected, attach the correct monthly progress
             if ($month) {
+                $jadwalService = $this->jadwalService;
+                $rencanaAksi->map(function ($ra) use ($month, $jadwalService) {
+                    $applicableReportDate = $jadwalService->getApplicableReportDate($ra, null, $month);
+                    $ra->monthly_progress = $ra->progressMonitorings->firstWhere('report_date', $applicableReportDate->format('Y-m-d'));
 
-                $rencanaAksiQuery->with(['progressMonitorings' => function ($query) use ($month) {
+                    // --- LOGGING UNTUK DEBUGGING ---
+                    Log::info("Debugging RencanaAksi ID: {$ra->id} untuk Bulan Filter: {$month}");
+                    Log::info(" - Tanggal Laporan Dicari: " . $applicableReportDate->format('Y-m-d'));
+                    Log::info(" - Progress Ditemukan: " . ($ra->monthly_progress ? "ID {$ra->monthly_progress->id} ({$ra->monthly_progress->progress_percentage}%)" : "Tidak ada"));
+                    // --- AKHIR LOGGING ---
 
-                    $query->whereMonth('report_date', $month);
-
-                }]);
-
-            } else {
-
-                $rencanaAksiQuery->with('latestProgress');
-
+                    return $ra;
+                });
             }
-
     
-
-            $rencanaAksi = $rencanaAksiQuery->latest()->get();
-
-    
-
             return RencanaAksiResource::collection($rencanaAksi);
 
         }

@@ -21,8 +21,8 @@ class ProgressMonitoringResource extends JsonResource
             'progress_percentage' => $this->progress_percentage,
             'keterangan'          => $this->keterangan,
             'is_late'             => (bool) $this->is_late,
-            'tanggal_monitoring'  => $this->tanggalMonitoring?->format('d-m-Y'),
-            'created_at'          => $this->createdAt?->format('d-m-Y H:i:s'),
+            'tanggal_monitoring'  => $this->tanggal_monitoring ? \Carbon\Carbon::parse($this->tanggal_monitoring)->format('d-m-Y') : null,
+            'created_at'          => $this->created_at ? $this->created_at->format('d-m-Y H:i:s') : null,
             'attachments'         => ProgressAttachmentResource::collection($this->whenLoaded('attachments')),
         ];
     }
