@@ -5,17 +5,21 @@ import apiClient from '../services/apiClient';
 import useAuth from './useAuth';
 
 const useFirebaseMessaging = () => {
+    // [FIX] Check for Notification API support first to prevent crashes on iOS Safari.
+    const isSupported = 'Notification' in window;
+
     const { user } = useAuth();
-    const [notificationStatus, setNotificationStatus] = useState(Notification.permission);
+    const [notificationStatus, setNotificationStatus] = useState(isSupported ? Notification.permission : 'unsupported');
     const [messaging, setMessaging] = useState(null);
 
     useEffect(() => {
-        // Inisialisasi messaging hanya sekali
-        setMessaging(getMessaging(firebaseApp));
-    }, []);
+        if (isSupported) {
+            setMessaging(getMessaging(firebaseApp));
+        }
+    }, [isSupported]);
 
     const requestPermissionAndGetToken = useCallback(async () => {
-        if (!messaging || !user) return;
+        if (!isSupported || !messaging || !user) return;
 
         try {
             console.log('Requesting permission...');
@@ -25,7 +29,6 @@ const useFirebaseMessaging = () => {
             if (permission === 'granted') {
                 console.log('Notification permission granted.');
 
-                // SECARA EKSPLISIT MENGGUNAKAN SERVICE WORKER DARI VITE PWA
                 const serviceWorkerRegistration = await navigator.serviceWorker.ready;
                 const currentToken = await getToken(messaging, {
                     vapidKey: 'BJfTym6tD9v3Q8-xht-yJwxWtzUmppJoDKem6mH9JasJRR70hXJMwOqbpXEH6SAA0NPHZQvNemQB-3JGyjhii5o',
@@ -45,11 +48,10 @@ const useFirebaseMessaging = () => {
         } catch (err) {
             console.error('An error occurred while retrieving token. ', err);
         }
-    }, [messaging, user]);
+    }, [isSupported, messaging, user]);
 
     useEffect(() => {
-        // Listener untuk notifikasi foreground
-        if (messaging) {
+        if (isSupported && messaging) {
             const unsubscribe = onMessage(messaging, (payload) => {
                 console.log('Message received. ', payload);
                 new Notification(payload.notification.title, {
@@ -57,9 +59,9 @@ const useFirebaseMessaging = () => {
                     icon: payload.notification.icon,
                 });
             });
-            return () => unsubscribe(); // Cleanup listener
+            return () => unsubscribe();
         }
-    }, [messaging]);
+    }, [isSupported, messaging]);
 
     return { notificationStatus, requestPermissionAndGetToken };
 };

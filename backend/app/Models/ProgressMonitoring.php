@@ -10,5 +10,13 @@ class ProgressMonitoring extends Model
     use HasFactory;
 
     protected $table = 'progress_monitoring';
-    protected $guarded = ['id'];
+
+    protected $fillable = [
+        'rencana_aksi_id',
+        'report_date',
+        'progress_percentage',
+        'is_late',
+        'tanggal_monitoring',
+        'catatan',
+    ];
 }

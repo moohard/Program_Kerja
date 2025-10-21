@@ -168,7 +168,6 @@ class TodoItemController extends Controller
                 'progress_percentage' => $progressPercentage,
                 'is_late' => now()->gt($reportDate),
                 'tanggal_monitoring' => now(),
-                'catatan' => $note,
             ]);
 
             // 6. Hitung ulang status keseluruhan Rencana Aksi
@@ -190,17 +189,18 @@ class TodoItemController extends Controller
             $targetMonths = $jadwalService->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config);
             
             if (empty($targetMonths)) {
-                // For non-periodic tasks, completion is based on the latest progress.
                 $isFullyComplete = $allProgress->sortByDesc('report_date')->first()->progress_percentage >= 100;
             } else {
-                // For periodic tasks, all target months must be at 100%.
                 $completedMonths = $allProgress->where('progress_percentage', 100)
                     ->pluck('report_date')
                     ->map(fn($date) => \Carbon\Carbon::parse($date)->month)
-                    ->unique()->toArray();
+                    ->unique()
+                    ->sort()
+                    ->values()
+                    ->all();
                 
-                // Check if the set of completed months is identical to the set of target months.
-                $isFullyComplete = count(array_intersect($targetMonths, $completedMonths)) === count($targetMonths);
+                $sortedTargetMonths = collect($targetMonths)->sort()->values()->all();
+                $isFullyComplete = $sortedTargetMonths === $completedMonths;
             }
 
             if ($isFullyComplete) {
@@ -217,8 +217,6 @@ class TodoItemController extends Controller
             'actual_tanggal' => ($status === 'completed') ? ($rencanaAksi->actual_tanggal ?? now()) : null
         ]);
 
-        // [CRITICAL] Unset the relation to force a reload on the next access.
-        // This prevents stale data from being used after this recalculation.
         $rencanaAksi->unsetRelation('progressMonitorings');
     }
 }

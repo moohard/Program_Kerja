@@ -1,20 +1,20 @@
-# Checkpoint: Perbaikan Bug Progress Bulanan (Inkonsistensi Peran)
+# Checkpoint: Penyelesaian Bug Progress & Implementasi Desain Responsif
 
-**Tujuan:** Memperbaiki bug kritis di mana `monthly_progress` menampilkan data yang salah (seringkali 0%) untuk pengguna "Pelaksana", dan perbaikan sebelumnya kini juga berdampak pada "PIC".
+**Tujuan Tercapai:**
+Berhasil menyelesaikan sesi debugging intensif yang mencakup perbaikan fundamental pada logika kalkulasi progress dan implementasi desain responsif di seluruh aplikasi.
 
-**Analisis Masalah:**
-Akar masalah terletak pada logika filter dan otorisasi di `RencanaAksiController.php`. Logika untuk menyaring `RencanaAksi` berdasarkan bulan yang dipilih tidak konsisten antara peran PIC dan Pelaksana, terutama untuk jadwal periodik (triwulanan, semesteran). `JadwalService` sudah benar dalam menentukan *periode laporan*, tetapi `RencanaAksiController` gagal menampilkan `RencanaAksi` yang relevan kepada Pelaksana karena logika otorisasi yang salah.
+**Perbaikan Utama Backend:**
+- **Logika Progress Akurat:** Logika `recalculateProgressPublic` dan `overallProgressPercentage` telah dirombak total untuk secara akurat menghitung progress bulanan (berdasarkan jumlah bobot) dan progress keseluruhan (rata-rata dari bulan target), menangani semua jenis jadwal (`bulanan`, `periodik`, `insidentil`).
+- **Integritas Data Terjamin:** Bug kritis terkait data basi (*stale data*), data duplikat, dan *race condition* telah diatasi dengan menggunakan query langsung ke database dan memastikan operasi bersifat atomik.
+- **Fitur Reset Saat Edit:** Menambahkan fungsionalitas di mana mengedit `RencanaAksi` akan secara otomatis menghapus semua `todo_items` dan `progress_monitorings` yang terkait, me-reset status ke `planned`.
 
-**File yang Terlibat:**
-*   `backend/app/Http/Controllers/Api/RencanaAksiController.php`: Lokasi utama bug dan target perbaikan.
-*   `backend/app/Services/JadwalService.php`: Referensi logika bisnis untuk jadwal yang baru saja diperbaiki.
-*   `backend/storage/logs/laravel.log`: Digunakan untuk *tracing* dan *debugging* (akan dihapus setelah bug fix dikonfirmasi).
+**Perbaikan Utama Frontend:**
+- **Desain Responsif:** Seluruh *layout* utama, termasuk *sidebar* dan *header*, telah dibuat sepenuhnya responsif.
+- **Tampilan Mobile:** Halaman dengan tabel kompleks (`RencanaAksiPage`, `LaporanMatriksPage`, `AuditLogPage`, dll.) sekarang menggunakan tampilan berbasis kartu (*card-based*) yang ramah pengguna di perangkat mobile.
+- **Kompatibilitas Browser:** Masalah *blank page* di Safari iOS teratasi dengan menambahkan *guard clause* untuk API yang tidak didukung dan mengkonfigurasi `browserslist`.
 
-**Langkah Selanjutnya yang Akan Dikerjakan:**
-1.  **Menyeragamkan Logika Filter:** Mengubah `RencanaAksiController.php` untuk menggunakan satu alur logika penyaringan data yang sama bagi **semua peran pengguna**.
-2.  **Filter di PHP:**
-    *   Ambil semua `RencanaAksi` dari database di mana pengguna terlibat (baik sebagai PIC maupun Pelaksana).
-    *   Jika ada filter bulan, saring *collection* yang didapat di level PHP menggunakan `JadwalService` untuk menentukan relevansi setiap `RencanaAksi` dengan periode laporan bulan tersebut.
-3.  **Lampirkan Progress yang Benar:** Setelah daftar `RencanaAksi` final didapatkan, lampirkan `monthly_progress` yang sesuai.
-4.  **Verifikasi & Cleanup:** Pengguna akan menguji kembali sebagai PIC dan Pelaksana. Setelah dikonfirmasi "tidak ada bug lagi", saya akan menghapus semua `Log::info` yang ada.
-5.  **Push ke Git:** Melakukan `git add`, `commit`, dan `push` untuk menyimpan progres.
+**Status Saat Ini:**
+Aplikasi berada dalam kondisi stabil. Semua bug yang diketahui terkait alur progress dan tampilan telah diperbaiki. Kode telah dibersihkan dari semua log debugging.
+
+**Langkah Selanjutnya:**
+Pengguna akan memulai fase baru untuk mencari bug di modul atau alur kerja berikutnya.

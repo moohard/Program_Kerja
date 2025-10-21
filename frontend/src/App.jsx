@@ -20,31 +20,34 @@ import LaporanPage from './pages/LaporanPage';
 import LaporanMatriksPage from './pages/LaporanMatriksPage';
 import TemplateManagementPage from './pages/TemplateManagementPage';
 import AuditLogPage from './pages/AuditLogPage';
+import ErrorBoundary from './components/ErrorBoundary'; // Import ErrorBoundary
 
 function App() {
     return (
-        <BrowserRouter>
-            <AuthProvider>
-                <Suspense fallback={<div className="flex h-screen w-full items-center justify-center">Loading...</div>}>
-                    <Routes>
-                        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-                        <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-                            <Route path="/dashboard" element={<DashboardPage />} />
-                            <Route path="/rencana-aksi" element={<RencanaAksiPage />} />
-                            <Route path="/laporan" element={<Navigate to="/laporan/bulanan" />} />
-                            <Route path="/laporan/bulanan" element={<LaporanPage />} />
-                            <Route path="/laporan/matriks" element={<LaporanMatriksPage />} />
-                            <Route path="/laporan/tahunan" element={<AnnualReportPage />} />
-                            <Route path="/master/kategori-utama" element={<KategoriUtamaPage />} />
-                            <Route path="/master/kegiatan" element={<KegiatanPage />} />
-                            <Route path="/templates" element={<TemplateManagementPage />} />
-                            <Route path="/audit-logs" element={<AuditLogPage />} />
-                        </Route>
-                        <Route path="*" element={<Navigate to="/dashboard" />} />
-                    </Routes>
-                </Suspense>
-            </AuthProvider>
-        </BrowserRouter>
+        <ErrorBoundary>
+            <BrowserRouter>
+                <AuthProvider>
+                    <Suspense fallback={<div className="flex h-screen w-full items-center justify-center">Loading...</div>}>
+                        <Routes>
+                            <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+                            <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+                                <Route path="/dashboard" element={<DashboardPage />} />
+                                <Route path="/rencana-aksi" element={<RencanaAksiPage />} />
+                                <Route path="/laporan" element={<Navigate to="/laporan/bulanan" />} />
+                                <Route path="/laporan/bulanan" element={<LaporanPage />} />
+                                <Route path="/laporan/matriks" element={<LaporanMatriksPage />} />
+                                <Route path="/laporan/tahunan" element={<AnnualReportPage />} />
+                                <Route path="/master/kategori-utama" element={<KategoriUtamaPage />} />
+                                <Route path="/master/kegiatan" element={<KegiatanPage />} />
+                                <Route path="/templates" element={<TemplateManagementPage />} />
+                                <Route path="/audit-logs" element={<AuditLogPage />} />
+                            </Route>
+                            <Route path="*" element={<Navigate to="/dashboard" />} />
+                        </Routes>
+                    </Suspense>
+                </AuthProvider>
+            </BrowserRouter>
+        </ErrorBoundary>
     );
 }
 
