@@ -7,10 +7,13 @@ use App\Models\RencanaAksi;
 use App\Http\Requests\StoreRencanaAksiRequest;
 use App\Http\Requests\UpdateRencanaAksiRequest;
 use App\Http\Resources\RencanaAksiResource;
+use App\Models\ProgressMonitoring;
+use App\Models\TodoItem;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Notifications\RencanaAksiAssigned;
 use App\Services\JadwalService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class RencanaAksiController extends Controller
@@ -84,9 +87,7 @@ class RencanaAksiController extends Controller
                     return $ra;
                 });
             } else {
-                // For the "All Months" view, we don't need to attach any specific monthly progress.
-                // The frontend will automatically use the 'overall_progress_percentage' accessor,
-                // which is calculated correctly in the RencanaAksiResource.
+                // For the "All Months" view, the frontend will use 'overall_progress_percentage'.
             }
     
             return RencanaAksiResource::collection($rencanaAksi);
@@ -148,7 +149,17 @@ class RencanaAksiController extends Controller
             $this->jadwalService->validateConfig($validated['jadwal_config'], $validated['jadwal_tipe']);
         }
 
-        $rencanaAksi->update($validated);
+        // [NEW LOGIC] Wrap in transaction to ensure data integrity
+        DB::transaction(function () use ($rencanaAksi, $validated) {
+            $rencanaAksi->update($validated);
+
+            // [FIX] Use the model directly to ensure deletion regardless of loaded relationships.
+            TodoItem::where('rencana_aksi_id', $rencanaAksi->id)->delete();
+            ProgressMonitoring::where('rencana_aksi_id', $rencanaAksi->id)->delete();
+
+            // Reset status to 'planned'
+            $rencanaAksi->fresh()->update(['status' => 'planned', 'actual_tanggal' => null]);
+        });
 
         try {
             $assignedUserId = $validated['assigned_to'] ?? null;
