@@ -12,9 +12,9 @@ class TodoItem extends Model
 
     protected $table    = 'todo_items';
 
-    protected $fillable = [ 'rencana_aksi_id', 'pelaksana_id', 'deskripsi', 'deadline', 'bobot', 'progress_percentage', 'status_approval' ];
+    protected $fillable = [ 'rencana_aksi_id', 'pelaksana_id', 'deskripsi', 'deadline', 'progress_percentage', 'status_approval' ];
 
-    protected $casts    = [ 'deadline' => 'datetime', 'bobot' => 'integer', 'progress_percentage' => 'integer' ];
+    protected $casts    = [ 'deadline' => 'datetime', 'progress_percentage' => 'integer' ];
 
     public function rencanaAksi()
     {

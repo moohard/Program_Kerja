@@ -16,7 +16,6 @@ class TodoItemResource extends JsonResource
             'rencana_aksi_id'     => $this->rencana_aksi_id,
             'pelaksana_id'        => $this->pelaksana_id,
             'deskripsi'           => $this->deskripsi,
-            'bobot'               => $this->bobot,
             'progress_percentage' => $this->progress_percentage,
             'status_approval'     => $this->status_approval,
             'deadline'            => $this->deadline?->toDateTimeString(),

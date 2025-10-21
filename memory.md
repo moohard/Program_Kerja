@@ -1,3 +1,24 @@
+# Checkpoint: Finalisasi Alur Perhitungan Progres Rencana Aksi
+
+**Tanggal:** 21 Oktober 2025
+
+**Tujuan Tercapai:**
+Menyelesaikan perbaikan dan refactoring pada alur kalkulasi progres `RencanaAksi`. Logika perhitungan `bobot` telah sepenuhnya dihapus dan digantikan dengan perhitungan berdasarkan jumlah `TodoItem` yang statusnya `approved`.
+
+**Perbaikan Utama:**
+- **Penghapusan Logika Bobot:** Semua kalkulasi, validasi, dan elemen UI yang berkaitan dengan `bobot` telah dihilangkan dari backend dan frontend, menyederhanakan logika bisnis.
+- **Kriteria Penyelesaian Diperketat:** Sebuah `TodoItem` kini hanya dianggap selesai jika statusnya `approved`, bukan lagi hanya berdasarkan `progress_percentage === 100`. Ini memastikan progres hanya naik setelah ada validasi dari PIC.
+- **Stabilitas Kalkulasi:** Bug yang menyebabkan progres salah hitung (misalnya, 6% yang tidak terduga) telah diidentifikasi dan diperbaiki dengan memastikan semua data yang relevan (`status_approval`) disertakan dalam query dan data lama (`stale data`) berhasil diperbarui.
+- **Pembersihan Kode:** Semua log debugging telah dibersihkan dan kode di `TodoModal.jsx`, `TodoItemController`, dan file terkait lainnya telah dirapikan.
+
+**Status Saat Ini:**
+Alur kerja Rencana Aksi, dari pembuatan `TodoItem` hingga persetujuan dan kalkulasi progres bulanan serta keseluruhan, kini stabil dan berfungsi sesuai dengan aturan bisnis yang baru.
+
+**Langkah Selanjutnya:**
+Melakukan `git commit` untuk menyimpan semua perubahan sebagai checkpoint stabil dalam riwayat versi.
+
+---
+
 # Checkpoint: Penyelesaian Bug Progress & Implementasi Desain Responsif
 
 **Tujuan Tercapai:**

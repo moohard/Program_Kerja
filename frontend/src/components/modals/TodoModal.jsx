@@ -108,7 +108,6 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
     const [todos, setTodos] = useState([]);
     const [newTodoDesc, setNewTodoDesc] = useState('');
     const [newTodoPelaksanaId, setNewTodoPelaksanaId] = useState('');
-    const [newTodoBobot, setNewTodoBobot] = useState(100);
     const [loading, setLoading] = useState(true);
     const [hasMadeChanges, setHasMadeChanges] = useState(false);
 
@@ -116,17 +115,9 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
     const isPIC = useMemo(() => user && rencanaAksi && user.id === rencanaAksi.assigned_to?.id, [user, rencanaAksi]);
     const progress = useMemo(() => {
         if (!todos || todos.length === 0) return 0;
-        const totalBobot = todos.reduce((sum, todo) => sum + todo.bobot, 0);
-        if (totalBobot === 0) return 0;
-        const weightedProgressSum = todos.reduce((sum, todo) => sum + (todo.progress_percentage / 100) * todo.bobot, 0);
-        return Math.round((weightedProgressSum / totalBobot) * 100);
+        const approvedCount = todos.filter(t => t.status_approval === 'approved').length;
+        return Math.round((approvedCount / todos.length) * 100);
     }, [todos]);
-
-    const totalBobotTerpakai = useMemo(() => {
-        return todos.reduce((sum, todo) => sum + todo.bobot, 0);
-    }, [todos]);
-
-    const sisaBobot = useMemo(() => Math.max(0, 100 - totalBobotTerpakai), [totalBobotTerpakai]);
 
     // --- EFFECTS (setelah MEMOS) ---
     useEffect(() => {
@@ -164,11 +155,6 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
         }
     }, [rencanaAksi, fetchTodos]);
 
-    // Secara otomatis set default bobot baru ke sisa bobot yang tersedia
-    useEffect(() => {
-        setNewTodoBobot(sisaBobot);
-    }, [sisaBobot]);
-
     // --- HANDLERS ---
     const debouncedUpdate = useCallback(debounce(async (todoId, payload) => {
         try {
@@ -198,12 +184,10 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
             await apiClient.post(`/rencana-aksi/${rencanaAksiId}/todo-items`, {
                 deskripsi: newTodoDesc,
                 pelaksana_id: newTodoPelaksanaId || null,
-                bobot: newTodoBobot,
                 month: selectedMonth || null
             });
             setNewTodoDesc('');
             setNewTodoPelaksanaId('');
-            setNewTodoBobot(100);
             setHasMadeChanges(true);
 
             fetchTodos();
@@ -211,14 +195,7 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
             const errorMessage = error.response?.data?.message || 'Gagal menambahkan to-do.';
             alert(errorMessage);
         }
-    }, [newTodoDesc, newTodoPelaksanaId, newTodoBobot, rencanaAksiId, selectedMonth, fetchTodos]);
-
-    const handleUpdateBobot = useCallback((todoId, value) => {
-        const bobot = Math.max(0, Math.min(100, parseInt(value, 10) || 0));
-        setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, bobot } : t));
-        setHasMadeChanges(true); // Mark changes immediately
-        debouncedUpdate(todoId, { bobot, month: selectedMonth });
-    }, [debouncedUpdate, selectedMonth]);
+    }, [newTodoDesc, newTodoPelaksanaId, rencanaAksiId, selectedMonth, fetchTodos]);
 
     const handleUpdatePelaksana = useCallback((todoId, newPelaksanaId) => {
         setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, pelaksana_id: newPelaksanaId, pelaksana: userList.find(u => u.id === newPelaksanaId) } : t));
@@ -264,7 +241,7 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
                 <p className="text-sm text-gray-600 mb-4">{rencanaAksi.deskripsi_aksi}</p>
 
                 <div className="mb-4">
-                    <div className="flex justify-between mb-1"><span className="text-sm font-medium text-gray-700">Progress Otomatis (Tertimbang)</span><span className="text-sm font-medium text-gray-700">{progress}%</span></div>
+                    <div className="flex justify-between mb-1"><span className="text-sm font-medium text-gray-700">Progress</span><span className="text-sm font-medium text-gray-700">{progress}%</span></div>
                     <div className="w-full bg-gray-200 rounded-full h-2.5"><div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div></div>
                 </div>
 
@@ -272,17 +249,13 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
                     <div className="mb-4 p-3 bg-gray-100 rounded-md">
                         <div className="flex justify-between items-center mb-2">
                             <h3 className="text-sm font-bold text-gray-800">Tambah Tugas Baru</h3>
-                            <span className={`text-sm font-semibold ${totalBobotTerpakai > 100 ? 'text-red-600' : 'text-gray-600'}`}>
-                                Total Bobot: {totalBobotTerpakai}% / 100%
-                            </span>
                         </div>
                         <form onSubmit={handleAddTodo} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center">
                             <input type="text" value={newTodoDesc} onChange={e => setNewTodoDesc(e.target.value)} placeholder="Deskripsi tugas..." className="md:col-span-3 border-gray-300 rounded-md shadow-sm" />
-                            <select value={newTodoPelaksanaId} onChange={e => setNewTodoPelaksanaId(e.target.value)} className="border-gray-300 rounded-md shadow-sm">
+                            <select value={newTodoPelaksanaId} onChange={e => setNewTodoPelaksanaId(e.target.value)} className="md:col-span-2 border-gray-300 rounded-md shadow-sm">
                                 <option value="">-- Pilih Pelaksana --</option>
                                 {userList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                             </select>
-                            <input type="number" value={newTodoBobot} onChange={e => setNewTodoBobot(parseInt(e.target.value, 10))} min="0" max={sisaBobot} placeholder="Bobot" className="border-gray-300 rounded-md shadow-sm" />
                             <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Tambah</button>
                         </form>
                     </div>
@@ -356,16 +329,8 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
                                         
                                     </div>
                                     <div className="ml-4 flex flex-col items-end space-y-2 w-32 flex-shrink-0">
-                                        {isPIC ? (
-                                            <div className="relative flex items-center">
-                                                <FiGitCommit className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" size={12} />
-                                                <input type="number" value={todo.bobot} onChange={(e) => handleUpdateBobot(todo.id, e.target.value)} min="0" max="100" className="w-20 pl-6 pr-1 py-1 text-xs border-gray-300 rounded-md" />
-                                            </div>
-                                        ) : (
-                                            <div className="text-xs text-gray-500">Bobot: {todo.bobot}</div>
-                                        )}
                                         {isPelaksana && <FileUploader todo={todo} onUploadComplete={fetchTodos} selectedMonth={selectedMonth} />}
-                                        {isPIC && <button onClick={() => handleDeleteTodo(todo.id)} className="text-red-500 hover:text-red-700 text-xs self-end"><FiTrash2 /></button>}
+                                        {isPIC && <button onClick={() => handleDeleteTodo(todo.id)} className="text-red-500 hover:text-red-700 text-xs self-end mt-auto"><FiTrash2 /></button>}
                                     </div>
                                 </div>
                             </div>
