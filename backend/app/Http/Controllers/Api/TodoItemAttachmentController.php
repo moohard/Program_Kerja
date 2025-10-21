@@ -52,6 +52,11 @@ class TodoItemAttachmentController extends Controller
                 'file_size' => $file->getSize(),
             ]);
 
+            // [NEW] Cek keterlambatan upload berdasarkan deadline
+            if ($todoItem->deadline && now()->gt($todoItem->deadline)) {
+                $todoItem->is_late_upload = true;
+            }
+
             // 4. Update status to-do item
             $todoItem->update([
                 'status_approval' => 'pending_approval',

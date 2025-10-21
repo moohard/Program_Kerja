@@ -49,7 +49,8 @@ class JadwalService
     public function getApplicableReportDate(RencanaAksi $rencanaAksi, Carbon $currentDate = null, ?int $contextMonth = null): Carbon
     {
         $currentDate = $currentDate ?? Carbon::now();
-        $year = $currentDate->year;
+        // [FIX] Ambil tahun dari target_tanggal RencanaAksi jika ada, jika tidak baru gunakan tahun saat ini.
+        $year = $rencanaAksi->target_tanggal ? Carbon::parse($rencanaAksi->target_tanggal)->year : $currentDate->year;
         $targetMonths = $this->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config);
 
         if (empty($targetMonths)) {

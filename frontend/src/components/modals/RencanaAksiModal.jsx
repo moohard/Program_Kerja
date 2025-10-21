@@ -5,6 +5,7 @@ import JabatanSelector from '../form/JabatanSelector';
 const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, jabatanTree }) => {
     const [formData, setFormData] = useState({
         deskripsi_aksi: '',
+        target_tanggal: '',
         assigned_to: '',
         priority: 'medium',
         catatan: '',
@@ -44,6 +45,7 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
 
                 setFormData({
                     deskripsi_aksi: currentData.deskripsi_aksi || '',
+                    target_tanggal: currentData.target_tanggal ? currentData.target_tanggal.split('T')[0] : '',
                     assigned_to: assignedToId || '',
                     priority: currentData.priority || 'medium',
                     catatan: currentData.catatan || '',
@@ -57,6 +59,7 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
             } else {
                 setFormData({
                     deskripsi_aksi: '',
+                    target_tanggal: '',
                     assigned_to: '',
                     priority: 'medium',
                     catatan: '',
@@ -227,6 +230,20 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
                         onChange={handleChange}
                         data-cy="jabatan-selector"
                     />
+
+                    {/* Target Tanggal */}
+                    <div>
+                        <label htmlFor="target_tanggal" className="block text-sm font-medium text-gray-700">Target Tanggal</label>
+                        <input
+                            type="date"
+                            id="target_tanggal"
+                            name="target_tanggal"
+                            value={formData.target_tanggal}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                        />
+                        {errors.target_tanggal && <p className="text-red-500 text-xs mt-1">{errors.target_tanggal[0]}</p>}
+                    </div>
 
                     {/* Prioritas */}
                     <div>

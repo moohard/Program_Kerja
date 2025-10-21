@@ -18,6 +18,7 @@ class TodoItemResource extends JsonResource
             'deskripsi'           => $this->deskripsi,
             'progress_percentage' => $this->progress_percentage,
             'status_approval'     => $this->status_approval,
+            'is_late_upload'      => $this->is_late_upload,
             'deadline'            => $this->deadline?->toDateTimeString(),
             'created_at'          => $this->created_at->toDateTimeString(),
             'attachments'         => TodoItemAttachmentResource::collection($this->whenLoaded('attachments')),

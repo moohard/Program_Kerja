@@ -108,6 +108,7 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
     const [todos, setTodos] = useState([]);
     const [newTodoDesc, setNewTodoDesc] = useState('');
     const [newTodoPelaksanaId, setNewTodoPelaksanaId] = useState('');
+    const [newTodoDeadline, setNewTodoDeadline] = useState('');
     const [loading, setLoading] = useState(true);
     const [hasMadeChanges, setHasMadeChanges] = useState(false);
 
@@ -184,10 +185,12 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
             await apiClient.post(`/rencana-aksi/${rencanaAksiId}/todo-items`, {
                 deskripsi: newTodoDesc,
                 pelaksana_id: newTodoPelaksanaId || null,
+                deadline: newTodoDeadline || null,
                 month: selectedMonth || null
             });
             setNewTodoDesc('');
             setNewTodoPelaksanaId('');
+            setNewTodoDeadline('');
             setHasMadeChanges(true);
 
             fetchTodos();
@@ -195,7 +198,7 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
             const errorMessage = error.response?.data?.message || 'Gagal menambahkan to-do.';
             alert(errorMessage);
         }
-    }, [newTodoDesc, newTodoPelaksanaId, rencanaAksiId, selectedMonth, fetchTodos]);
+    }, [newTodoDesc, newTodoPelaksanaId, newTodoDeadline, rencanaAksiId, selectedMonth, fetchTodos]);
 
     const handleUpdatePelaksana = useCallback((todoId, newPelaksanaId) => {
         setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, pelaksana_id: newPelaksanaId, pelaksana: userList.find(u => u.id === newPelaksanaId) } : t));
@@ -250,13 +253,20 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
                         <div className="flex justify-between items-center mb-2">
                             <h3 className="text-sm font-bold text-gray-800">Tambah Tugas Baru</h3>
                         </div>
-                        <form onSubmit={handleAddTodo} className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center">
-                            <input type="text" value={newTodoDesc} onChange={e => setNewTodoDesc(e.target.value)} placeholder="Deskripsi tugas..." className="md:col-span-3 border-gray-300 rounded-md shadow-sm" />
+                        <form onSubmit={handleAddTodo} className="grid grid-cols-1 md:grid-cols-10 gap-2 items-center">
+                            <input type="text" value={newTodoDesc} onChange={e => setNewTodoDesc(e.target.value)} placeholder="Deskripsi tugas..." className="md:col-span-4 border-gray-300 rounded-md shadow-sm" />
                             <select value={newTodoPelaksanaId} onChange={e => setNewTodoPelaksanaId(e.target.value)} className="md:col-span-2 border-gray-300 rounded-md shadow-sm">
                                 <option value="">-- Pilih Pelaksana --</option>
                                 {userList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                             </select>
-                            <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Tambah</button>
+                            <input 
+                                type="date" 
+                                value={newTodoDeadline} 
+                                onChange={e => setNewTodoDeadline(e.target.value)} 
+                                max={rencanaAksi.target_tanggal ? rencanaAksi.target_tanggal.split('T')[0] : ''} 
+                                className="md:col-span-2 border-gray-300 rounded-md shadow-sm" 
+                            />
+                            <button type="submit" className="md:col-span-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Tambah</button>
                         </form>
                     </div>
                 )}
@@ -276,6 +286,11 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
                                             {todo.deadline && (
                                                 <span className="ml-2 text-xs font-medium bg-gray-200 text-gray-800 px-2 py-0.5 rounded-full">
                                                     {new Date(todo.deadline).toLocaleString('id-ID', { month: 'long' })}
+                                                </span>
+                                            )}
+                                            {todo.is_late_upload && (
+                                                <span className="ml-2 text-xs font-medium bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+                                                    Telat Upload
                                                 </span>
                                             )}
                                         </div>

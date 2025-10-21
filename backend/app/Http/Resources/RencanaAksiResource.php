@@ -27,6 +27,7 @@ class RencanaAksiResource extends JsonResource
             'overall_progress_percentage' => $this->overall_progress_percentage, // <-- FIELD BARU
             'assigned_to'      => new UserResource($this->whenLoaded('assignedTo')),
             'progress_history' => ProgressMonitoringResource::collection($this->whenLoaded('progressMonitorings')),
+            'todo_items'       => TodoItemResource::collection($this->whenLoaded('todoItems')),
             
             'monthly_progress' => $this->when(isset($this->monthly_progress), function () {
                 // If it's a real Eloquent model, use the resource.

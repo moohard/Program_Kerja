@@ -39,15 +39,25 @@ class TodoItemController extends Controller
         $validated = $request->validated();
         $month = $request->input('month');
 
-        $todoItem = DB::transaction(function () use ($rencanaAksi, $validated, $month) {
-            // Jika bulan diberikan tapi deadline tidak, set deadline ke akhir bulan tersebut.
-            if ($month && empty($validated['deadline'])) {
-                $validated['deadline'] = \Carbon\Carbon::create(date('Y'), $month)->endOfMonth();
-            }
+                $todoItem = DB::transaction(function () use ($rencanaAksi, &$validated, $month) {
 
-            $todoItem = $rencanaAksi->todoItems()->create($validated);
+                    // [FIX] Jika deadline tidak disediakan, atur ke akhir bulan agar tidak hilang dari filter.
 
-            $this->recalculateProgressPublic($rencanaAksi, "To-do item '{$todoItem->deskripsi}' ditambahkan.", $month);
+                    if ($month && empty($validated['deadline'])) {
+
+                        $year = $rencanaAksi->target_tanggal ? \Carbon\Carbon::parse($rencanaAksi->target_tanggal)->year : date('Y');
+
+                        $validated['deadline'] = \Carbon\Carbon::create($year, $month)->endOfMonth();
+
+                    }
+
+        
+
+                    $todoItem = $rencanaAksi->todoItems()->create($validated);
+
+        
+
+                    $this->recalculateProgressPublic($rencanaAksi, "To-do item '{$todoItem->deskripsi}' ditambahkan.", $month);
             
             return $todoItem;
         });
@@ -166,7 +176,7 @@ class TodoItemController extends Controller
         $jadwalService = app(\App\Services\JadwalService::class);
         
         // 1. Dapatkan bulan-bulan yang direncanakan
-        $targetMonths = $jadwalService->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config);
+        $targetMonths = $jadwalService->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config ?? []);
         
         // Jika tidak ada bulan target (misal: jadwal 'rutin' tanpa bulan spesifik), hitung progres dari semua todo.
         if (empty($targetMonths)) {

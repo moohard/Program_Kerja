@@ -83,26 +83,63 @@ class ReportController extends Controller
             return response()->json(['data' => []]);
         }
 
-        // Ambil semua kategori dan relasi rencana aksi-nya
-        $reportData = KategoriUtama::where('program_kerja_id', $programKerja->id)
-            ->where('is_active', TRUE)
+        // 1. Ambil semua RencanaAksi untuk bulan tersebut secara langsung
+        $rencanaAksis = RencanaAksi::whereHas('kegiatan.kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerja->id))
+            ->whereYear('target_tanggal', $year) // [FIX] Filter berdasarkan tahun target
+            ->where(function ($q) use ($month) {
+                $q->whereIn('jadwal_tipe', ['periodik', 'bulanan', 'insidentil'])
+                ->whereJsonContains('jadwal_config->months', $month);
+            })
             ->with([
-                'kegiatan.rencanaAksi' => function ($query) use ($month, $year) {
-                    $query->where(function ($q) use ($month) {
-                        $q->whereIn('jadwal_tipe', ['periodik', 'bulanan', 'insidentil'])
-                         ->whereJsonContains('jadwal_config->months', (int)$month);
-                    })->with(['assignedTo:id,name', 'latestProgress']);
+                'kegiatan.kategoriUtama:id,nomor,nama_kategori', // Hanya pilih yang dibutuhkan
+                'assignedTo:id,name',
+                // 2. Muat progres spesifik untuk bulan laporan
+                'progressMonitorings' => function ($query) use ($year, $month) {
+                    $query->whereYear('report_date', $year)
+                        ->whereMonth('report_date', $month)
+                        ->latest('tanggal_monitoring'); // Ambil record terbaru di bulan itu
                 }
             ])
-            ->orderBy('nomor', 'asc')
             ->get();
 
-        // Filter kategori yang tidak memiliki rencana aksi sama sekali di bulan tsb agar tidak ditampilkan
-        $filteredReportData = $reportData->filter(function ($kategori) {
-            return $kategori->kegiatan->some(fn($kg) => $kg->rencanaAksi->isNotEmpty());
-        })->values();
+        // 3. Kelompokkan berdasarkan Kategori Utama
+        $groupedByKategori = $rencanaAksis->groupBy('kegiatan.kategoriUtama.nama_kategori');
 
-        return response()->json(['data' => $filteredReportData]);
+        // 4. Ubah data untuk frontend
+        $reportData = $groupedByKategori->map(function ($items, $kategoriName) {
+            if ($items->isEmpty()) {
+                return null;
+            }
+            $firstItem = $items->first();
+            $kategori = $firstItem->kegiatan->kategoriUtama;
+
+            return [
+                'id' => $kategori->id,
+                'nomor' => $kategori->nomor,
+                'nama_kategori' => $kategoriName,
+                'kegiatan' => $items->groupBy('kegiatan.nama_kegiatan')->map(function ($kegiatanItems) {
+                    return [
+                        'nama_kegiatan' => $kegiatanItems->first()->kegiatan->nama_kegiatan,
+                        'rencana_aksi' => $kegiatanItems->map(function ($ra) {
+                            $monthlyProgress = $ra->progressMonitorings->first();
+                            return [
+                                'id' => $ra->id,
+                                'deskripsi_aksi' => $ra->deskripsi_aksi,
+                                'status' => $ra->status,
+                                // 5. Format tanggal untuk frontend
+                                'target_tanggal_formatted' => $ra->target_tanggal ? \Carbon\Carbon::parse($ra->target_tanggal)->isoFormat('D MMMM YYYY') : 'N/A',
+                                // 6. Perbaiki kunci assigned_to
+                                'assigned_to' => $ra->assignedTo,
+                                // 7. Ambil progres dari record spesifik yang kita muat
+                                'progress' => $monthlyProgress->progress_percentage ?? 0,
+                            ];
+                        })->values()
+                    ];
+                })->values()
+            ];
+        })->filter()->sortBy('nomor')->values();
+
+        return response()->json(['data' => $reportData]);
     }
 
     private function getMatrixReportData(Request $request)

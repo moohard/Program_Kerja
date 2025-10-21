@@ -72,8 +72,8 @@ function LaporanPage() {
                                             <div className="flex flex-wrap text-sm text-gray-600 mt-2 gap-x-6 gap-y-1">
                                                 <span><strong>Status:</strong> {ra.status}</span>
                                                 <span><strong>Target:</strong> {ra.target_tanggal_formatted}</span>
-                                                <span><strong>PIC:</strong> {ra.assigned_user?.name || 'N/A'}</span>
-                                                <span><strong>Progress:</strong> {ra.latest_progress?.progress_percentage ?? 0}%</span>
+                                                <span><strong>PIC:</strong> {ra.assigned_to?.name || 'N/A'}</span>
+                                                <span><strong>Progress:</strong> {ra.progress}%</span>
                                             </div>
                                         </div>
                                     )))}
