@@ -49,28 +49,11 @@ class JadwalService
     public function getApplicableReportDate(RencanaAksi $rencanaAksi, Carbon $currentDate = null, ?int $contextMonth = null): Carbon
     {
         $currentDate = $currentDate ?? Carbon::now();
-        // [FIX] Ambil tahun dari target_tanggal RencanaAksi jika ada, jika tidak baru gunakan tahun saat ini.
         $year = $rencanaAksi->target_tanggal ? Carbon::parse($rencanaAksi->target_tanggal)->year : $currentDate->year;
-        $targetMonths = $this->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config);
 
-        if (empty($targetMonths)) {
-            // Untuk jadwal 'rutin', gunakan akhir bulan dari konteks jika ada, jika tidak gunakan bulan saat ini.
-            return Carbon::create($year, $contextMonth ?? $currentDate->month)->endOfMonth();
-        }
+        // [FIX] If a context month is provided, always use that month for the report date.
+        $reportMonth = $contextMonth ?? $currentDate->month;
 
-        sort($targetMonths);
-
-        // Prioritaskan bulan dari konteks (filter UI) untuk perbandingan
-        $monthToCompare = $contextMonth ?? $currentDate->month;
-
-        // Cari bulan target berikutnya atau yang sedang berjalan dari konteks
-        foreach ($targetMonths as $month) {
-            if ($month >= $monthToCompare) {
-                return Carbon::create($year, $month)->endOfMonth();
-            }
-        }
-        
-        // Jika semua target bulan di tahun ini sudah lewat, atribusikan ke target terakhir.
-        return Carbon::create($year, end($targetMonths))->endOfMonth();
+        return Carbon::create($year, $reportMonth)->endOfMonth();
     }
 }

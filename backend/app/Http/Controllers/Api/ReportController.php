@@ -91,54 +91,53 @@ class ReportController extends Controller
                 ->whereJsonContains('jadwal_config->months', $month);
             })
             ->with([
-                'kegiatan.kategoriUtama:id,nomor,nama_kategori', // Hanya pilih yang dibutuhkan
-                'assignedTo:id,name',
-                // 2. Muat progres spesifik untuk bulan laporan
-                'progressMonitorings' => function ($query) use ($year, $month) {
-                    $query->whereYear('report_date', $year)
-                        ->whereMonth('report_date', $month)
-                        ->latest('tanggal_monitoring'); // Ambil record terbaru di bulan itu
-                }
-            ])
-            ->get();
-
-        // 3. Kelompokkan berdasarkan Kategori Utama
-        $groupedByKategori = $rencanaAksis->groupBy('kegiatan.kategoriUtama.nama_kategori');
-
-        // 4. Ubah data untuk frontend
-        $reportData = $groupedByKategori->map(function ($items, $kategoriName) {
-            if ($items->isEmpty()) {
-                return null;
-            }
-            $firstItem = $items->first();
-            $kategori = $firstItem->kegiatan->kategoriUtama;
-
-            return [
-                'id' => $kategori->id,
-                'nomor' => $kategori->nomor,
-                'nama_kategori' => $kategoriName,
-                'kegiatan' => $items->groupBy('kegiatan.nama_kegiatan')->map(function ($kegiatanItems) {
-                    return [
-                        'nama_kegiatan' => $kegiatanItems->first()->kegiatan->nama_kegiatan,
-                        'rencana_aksi' => $kegiatanItems->map(function ($ra) {
-                            $monthlyProgress = $ra->progressMonitorings->first();
-                            return [
-                                'id' => $ra->id,
-                                'deskripsi_aksi' => $ra->deskripsi_aksi,
-                                'status' => $ra->status,
-                                // 5. Format tanggal untuk frontend
-                                'target_tanggal_formatted' => $ra->target_tanggal ? \Carbon\Carbon::parse($ra->target_tanggal)->isoFormat('D MMMM YYYY') : 'N/A',
-                                // 6. Perbaiki kunci assigned_to
-                                'assigned_to' => $ra->assignedTo,
-                                // 7. Ambil progres dari record spesifik yang kita muat
-                                'progress' => $monthlyProgress->progress_percentage ?? 0,
-                            ];
-                        })->values()
-                    ];
-                })->values()
-            ];
-        })->filter()->sortBy('nomor')->values();
-
+                            'kegiatan.kategoriUtama:id,nomor,nama_kategori',
+                            'assignedTo:id,name',
+                            // 'progressMonitorings' // [DEBUG] Temporarily disable eager loading
+                        ])
+                        ->get();
+                
+                    // 3. Kelompokkan berdasarkan Kategori Utama
+                    $groupedByKategori = $rencanaAksis->groupBy('kegiatan.kategoriUtama.nama_kategori');
+                
+                    // 4. Ubah data untuk frontend
+                    $reportData = $groupedByKategori->map(function ($items, $kategoriName) use ($year, $month) { // Pass year and month
+                        if ($items->isEmpty()) {
+                            return null;
+                        }
+                        $firstItem = $items->first();
+                        $kategori = $firstItem->kegiatan->kategoriUtama;
+                
+                        return [
+                            'id' => $kategori->id,
+                            'nomor' => $kategori->nomor,
+                            'nama_kategori' => $kategoriName,
+                            'kegiatan' => $items->groupBy('kegiatan.nama_kegiatan')->map(function ($kegiatanItems) use ($year, $month) { // Pass year and month
+                                return [
+                                    'nama_kegiatan' => $kegiatanItems->first()->kegiatan->nama_kegiatan,
+                                    'rencana_aksi' => $kegiatanItems->map(function ($ra) use ($year, $month) { // Pass year and month
+                                        // [REVISED] Query directly instead of relying on eager-loading
+                                        $monthlyProgress = \App\Models\ProgressMonitoring::where('rencana_aksi_id', $ra->id)
+                                            ->whereYear('report_date', $year)
+                                            ->whereMonth('report_date', $month)
+                                            ->latest('tanggal_monitoring')
+                                            ->first();
+                
+                                                                return [                                            'id' => $ra->id,
+                                            'deskripsi_aksi' => $ra->deskripsi_aksi,
+                                            'status' => $ra->status,
+                                            // 5. Format tanggal untuk frontend
+                                            'target_tanggal_formatted' => $ra->target_tanggal ? \Carbon\Carbon::parse($ra->target_tanggal)->isoFormat('D MMMM YYYY') : 'N/A',
+                                            // 6. Perbaiki kunci assigned_to
+                                            'assigned_to' => $ra->assignedTo,
+                                            // 7. Ambil progres dari record spesifik yang kita muat
+                                            'progress' => $monthlyProgress->progress_percentage ?? 0,
+                                        ];
+                                    })->values()
+                                ];
+                            })->values()
+                        ];
+                    })->filter()->sortBy('nomor')->values();
         return response()->json(['data' => $reportData]);
     }
 
