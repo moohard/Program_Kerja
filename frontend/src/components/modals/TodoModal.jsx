@@ -15,8 +15,9 @@ const ApprovalControls = ({ todo, onApprovalDone, onStateChange, selectedMonth }
                 status_approval: newStatus,
                 month: selectedMonth
             });
-            if (onStateChange) onStateChange(); // <-- Memberi tahu modal ada perubahan
-            if (onApprovalDone) onApprovalDone();
+            // Panggil onStateChange untuk update UI instan
+            if (onStateChange) onStateChange(todo.id, { status_approval: newStatus, progress_percentage: newStatus === 'approved' ? 100 : 0 });
+            if (onApprovalDone) onApprovalDone(); // Tetap fetch di background
         } catch (error) {
             console.error(`Gagal mengubah status approval ke ${newStatus}:`, error);
             alert('Gagal menyimpan perubahan status.');
@@ -171,16 +172,14 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
     // --- HANDLERS ---
     const debouncedUpdate = useCallback(debounce(async (todoId, payload) => {
         try {
-            // Pastikan 'month' selalu dikirim saat ada update
             const payloadWithMonth = { ...payload, month: selectedMonth };
             await apiClient.put(`/todo-items/${todoId}`, payloadWithMonth);
-            setHasMadeChanges(true);
+            // setHasMadeChanges is now called instantly, not here.
         } catch (error) {
             console.error("Gagal update to-do (response dari server):", error.response?.data);
             
-            let errorMessage = 'Gagal menyimpan perubahan. Data akan dimuat ulang.'; // Default
+            let errorMessage = 'Gagal menyimpan perubahan. Data akan dimuat ulang.';
             if (error.response?.data?.errors) {
-                // Ambil pesan error pertama dari list error
                 const firstErrorKey = Object.keys(error.response.data.errors)[0];
                 errorMessage = error.response.data.errors[firstErrorKey][0];
             } else if (error.response?.data?.message) {
@@ -188,7 +187,7 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
             }
 
             alert(errorMessage);
-            fetchTodos(); // Muat ulang data untuk mengembalikan perubahan di UI
+            fetchTodos();
         }
     }, 1000), [fetchTodos, selectedMonth]);
 
@@ -206,6 +205,7 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
             setNewTodoPelaksanaId('');
             setNewTodoBobot(100);
             setHasMadeChanges(true);
+
             fetchTodos();
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'Gagal menambahkan to-do.';
@@ -216,12 +216,13 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
     const handleUpdateBobot = useCallback((todoId, value) => {
         const bobot = Math.max(0, Math.min(100, parseInt(value, 10) || 0));
         setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, bobot } : t));
-        // Kirim 'month' bersama dengan 'bobot' untuk memenuhi validasi
+        setHasMadeChanges(true); // Mark changes immediately
         debouncedUpdate(todoId, { bobot, month: selectedMonth });
     }, [debouncedUpdate, selectedMonth]);
 
     const handleUpdatePelaksana = useCallback((todoId, newPelaksanaId) => {
         setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, pelaksana_id: newPelaksanaId, pelaksana: userList.find(u => u.id === newPelaksanaId) } : t));
+        setHasMadeChanges(true); // Mark changes immediately
         debouncedUpdate(todoId, { pelaksana_id: newPelaksanaId || null });
     }, [debouncedUpdate, userList]);
 
@@ -236,6 +237,15 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
             }
         }
     }, [fetchTodos, selectedMonth]);
+
+    const handleTodoStateChange = (todoId, updatedValues) => {
+        setTodos(prevTodos =>
+            prevTodos.map(todo =>
+                todo.id === todoId ? { ...todo, ...updatedValues } : todo
+            )
+        );
+        setHasMadeChanges(true);
+    };
 
     // --- KONDISIONAL RETURN (SETELAH SEMUA HOOKS) ---
     if (loading || !rencanaAksi) {
@@ -335,7 +345,7 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
                                             </div>
                                         )}
                                         {isPIC && todo.status_approval === 'pending_approval' && (
-                                            <ApprovalControls todo={todo} onApprovalDone={fetchTodos} onStateChange={() => setHasMadeChanges(true)} selectedMonth={selectedMonth} />
+                                            <ApprovalControls todo={todo} onApprovalDone={fetchTodos} onStateChange={handleTodoStateChange} selectedMonth={selectedMonth} />
                                         )}
                                         {todo.status_approval === 'approved' && (
                                             <div className="mt-2 text-xs font-semibold text-green-600">
@@ -345,7 +355,7 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
                                         {/* --- AKHIR LOGIKA APPROVAL --- */}
                                         
                                     </div>
-                                    <div className="ml-4 flex flex-col items-end space-y-2" style={{ minWidth: '150px' }}>
+                                    <div className="ml-4 flex flex-col items-end space-y-2 w-32 flex-shrink-0">
                                         {isPIC ? (
                                             <div className="relative flex items-center">
                                                 <FiGitCommit className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" size={12} />

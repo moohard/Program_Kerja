@@ -29,7 +29,12 @@ class RencanaAksiResource extends JsonResource
             'progress_history' => ProgressMonitoringResource::collection($this->whenLoaded('progressMonitorings')),
             
             'monthly_progress' => $this->when(isset($this->monthly_progress), function () {
-                return new ProgressMonitoringResource($this->monthly_progress);
+                // If it's a real Eloquent model, use the resource.
+                // Otherwise (it's our stdClass placeholder), return it as-is.
+                if ($this->monthly_progress instanceof \App\Models\ProgressMonitoring) {
+                    return new ProgressMonitoringResource($this->monthly_progress);
+                }
+                return $this->monthly_progress;
             }),
 
             'latest_progress'  => new ProgressMonitoringResource($this->whenLoaded('latestProgress')),

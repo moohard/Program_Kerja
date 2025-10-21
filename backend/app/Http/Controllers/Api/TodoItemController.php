@@ -39,12 +39,21 @@ class TodoItemController extends Controller
         $month = $request->input('month');
 
         $todoItem = DB::transaction(function () use ($rencanaAksi, $validated, $month) {
+            // Validasi total bobot tidak melebihi 100%
+            $totalBobotSaatIni = $rencanaAksi->todoItems()->whereMonth('deadline', $month)->sum('bobot');
+            if (($totalBobotSaatIni + $validated['bobot']) > 100) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'bobot' => 'Total bobot untuk semua to-do di bulan ini tidak boleh melebihi 100%. Sisa bobot: ' . (100 - $totalBobotSaatIni) . '%',
+                ]);
+            }
+
             // Jika bulan diberikan tapi deadline tidak, set deadline ke akhir bulan tersebut.
             if ($month && empty($validated['deadline'])) {
                 $validated['deadline'] = \Carbon\Carbon::create(date('Y'), $month)->endOfMonth();
             }
 
             $todoItem = $rencanaAksi->todoItems()->create($validated);
+
             $this->recalculateProgressPublic($rencanaAksi, "To-do item '{$todoItem->deskripsi}' ditambahkan.", $month);
             
             return $todoItem;
@@ -57,6 +66,23 @@ class TodoItemController extends Controller
     {
         $validated = $request->validated();
         $note = "Status to-do '{$todoItem->deskripsi}' diubah.";
+
+        // Validasi bobot saat update
+        if (isset($validated['bobot'])) {
+            $month = $request->input('month');
+            if ($month) {
+                $totalBobotLain = $todoItem->rencanaAksi->todoItems()
+                    ->where('id', '!=', $todoItem->id)
+                    ->whereMonth('deadline', $month)
+                    ->sum('bobot');
+
+                if (($totalBobotLain + $validated['bobot']) > 100) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'bobot' => 'Total bobot untuk semua to-do di bulan ini tidak boleh melebihi 100%. Sisa bobot yang bisa dialokasikan: ' . (100 - $totalBobotLain) . '%',
+                    ]);
+                }
+            }
+        }
 
         // Logika khusus untuk approval oleh PIC
         if (isset($validated['status_approval'])) {
@@ -84,9 +110,14 @@ class TodoItemController extends Controller
 
     public function destroy(Request $request, TodoItem $todoItem)
     {
-        $rencanaAksi = $todoItem->rencanaAksi; // Simpan referensi sebelum dihapus
+        $rencanaAksi = $todoItem->rencanaAksi;
+        // Get the month directly from the item's deadline for accuracy.
+        $monthToRecalculate = $todoItem->deadline ? \Carbon\Carbon::parse($todoItem->deadline)->month : null;
+
         $todoItem->delete();
-        $this->recalculateProgressPublic($rencanaAksi, "To-do item '{$todoItem->deskripsi}' dihapus.", $request->input('month'));
+
+        $this->recalculateProgressPublic($rencanaAksi, "To-do item '{$todoItem->deskripsi}' dihapus.", $monthToRecalculate);
+        
         return response()->noContent();
     }
 
@@ -96,73 +127,98 @@ class TodoItemController extends Controller
      */
     public function recalculateProgressPublic(RencanaAksi $rencanaAksi, string $note, ?int $month = null)
     {
+        // [CRITICAL FIX] For periodic tasks, never recalculate without a specific month context.
+        // This prevents creating erroneous "Overall" progress records in the wrong month slot (e.g., December).
+        if ($rencanaAksi->jadwal_tipe === 'periodik' && is_null($month)) {
+            return;
+        }
+
         DB::transaction(function () use ($rencanaAksi, $note, $month) {
             $jadwalService = app(\App\Services\JadwalService::class);
+
+            // 1. Tentukan query to-do berdasarkan bulan yang relevan
+            $todoQuery = $rencanaAksi->todoItems();
+            if ($month) {
+                $todoQuery->whereMonth('deadline', $month);
+            }
+            $todos = $todoQuery->get(['progress_percentage', 'bobot']);
+
+            // 2. Hitung progress untuk bulan tersebut berdasarkan logika baru (jumlah bobot dari to-do yang selesai)
+            $progressPercentage = $todos->where('progress_percentage', 100)->sum('bobot');
+
+            // 3. Dapatkan tanggal laporan yang benar untuk bulan ini
+            $reportDate = $jadwalService->getApplicableReportDate($rencanaAksi, null, $month);
+
+            // 4. Siapkan data untuk disimpan
+            $progressData = [
+                'progress_percentage' => $progressPercentage,
+                'is_late' => now()->gt($reportDate),
+                'tanggal_monitoring' => now(),
+                'catatan' => DB::raw("CONCAT(IFNULL(catatan, ''), '\n', " . DB::connection()->getPdo()->quote($note) . ")")
+            ];
+
+            // 5. Delete old progress for this date and create the new one to ensure atomicity.
+            ProgressMonitoring::where('rencana_aksi_id', $rencanaAksi->id)
+                ->where('report_date', $reportDate)
+                ->delete();
+            
+            ProgressMonitoring::create([
+                'rencana_aksi_id' => $rencanaAksi->id,
+                'report_date' => $reportDate,
+                'progress_percentage' => $progressPercentage,
+                'is_late' => now()->gt($reportDate),
+                'tanggal_monitoring' => now(),
+                'catatan' => $note,
+            ]);
+
+            // 6. Hitung ulang status keseluruhan Rencana Aksi
+            $this->updateRencanaAksiOverallStatus($rencanaAksi);
+        });
+    }
+
+    /**
+     * [NEW] Helper function to calculate and update the overall status of a RencanaAksi.
+     */
+    private function updateRencanaAksiOverallStatus(RencanaAksi $rencanaAksi)
+    {
+        $jadwalService = app(\App\Services\JadwalService::class);
+        $allProgress = ProgressMonitoring::where('rencana_aksi_id', $rencanaAksi->id)->get();
+
+        if ($allProgress->isEmpty()) {
+            $status = 'planned';
+        } else {
             $targetMonths = $jadwalService->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config);
-
+            
             if (empty($targetMonths)) {
-                $targetMonths = [null]; 
-            }
-
-            foreach ($targetMonths as $currentMonth) {
-                $todoQuery = $rencanaAksi->todoItems();
-                if ($currentMonth) {
-                    $todoQuery->whereMonth('deadline', $currentMonth);
-                }
-                $todos = $todoQuery->get(['progress_percentage', 'bobot']);
-
-                $totalBobot = $todos->sum('bobot');
-                $weightedProgressSum = $todos->sum(fn($todo) => ($todo->progress_percentage / 100) * $todo->bobot);
-                $progressPercentage = ($totalBobot > 0) ? round(($weightedProgressSum / $totalBobot) * 100) : 0;
-
-                $reportDate = $jadwalService->getApplicableReportDate($rencanaAksi, null, $currentMonth);
-                
-                $progressData = [
-                    'progress_percentage' => $progressPercentage,
-                    'is_late' => now()->gt($reportDate),
-                    'tanggal_monitoring' => now(), // Selalu sertakan timestamp
-                ];
-
-                // Hanya tambahkan catatan untuk bulan yang relevan dengan aksi
-                if ($currentMonth == $month || is_null($currentMonth)) {
-                    $progressData['catatan'] = DB::raw("CONCAT(IFNULL(catatan, ''), '\n', " . DB::connection()->getPdo()->quote($note) . ")");
-                }
-
-                $existingProgress = ProgressMonitoring::where('rencana_aksi_id', $rencanaAksi->id)->where('report_date', $reportDate)->exists();
-                if ($todos->isNotEmpty() || $existingProgress) {
-                     ProgressMonitoring::updateOrCreate(
-                        ['rencana_aksi_id' => $rencanaAksi->id, 'report_date' => $reportDate],
-                        $progressData
-                    );
-                }
-            }
-
-            // Logika penentuan status keseluruhan (tidak berubah)
-            $allProgress = ProgressMonitoring::where('rencana_aksi_id', $rencanaAksi->id)->get();
-            if ($allProgress->isEmpty()) {
-                 $status = 'planned';
+                // For non-periodic tasks, completion is based on the latest progress.
+                $isFullyComplete = $allProgress->sortByDesc('report_date')->first()->progress_percentage >= 100;
             } else {
-                $targetMonthsForStatus = $jadwalService->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config);
+                // For periodic tasks, all target months must be at 100%.
                 $completedMonths = $allProgress->where('progress_percentage', 100)
                     ->pluck('report_date')
                     ->map(fn($date) => \Carbon\Carbon::parse($date)->month)
                     ->unique()->toArray();
-
-                if (empty($targetMonthsForStatus)) {
-                     $isFullyComplete = $allProgress->first()->progress_percentage >= 100;
-                } else {
-                     $isFullyComplete = empty(array_diff($targetMonthsForStatus, $completedMonths));
-                }
-
-                if ($isFullyComplete) $status = 'completed';
-                elseif ($allProgress->where('progress_percentage', '>', 0)->isNotEmpty()) $status = 'in_progress';
-                else $status = 'planned';
+                
+                // Check if the set of completed months is identical to the set of target months.
+                $isFullyComplete = count(array_intersect($targetMonths, $completedMonths)) === count($targetMonths);
             }
 
-            $rencanaAksi->update([
-                'status' => $status,
-                'actual_tanggal' => ($status === 'completed') ? ($rencanaAksi->actual_tanggal ?? now()) : null
-            ]);
-        });
+            if ($isFullyComplete) {
+                $status = 'completed';
+            } elseif ($allProgress->where('progress_percentage', '>', 0)->isNotEmpty()) {
+                $status = 'in_progress';
+            } else {
+                $status = 'planned';
+            }
+        }
+
+        $rencanaAksi->update([
+            'status' => $status,
+            'actual_tanggal' => ($status === 'completed') ? ($rencanaAksi->actual_tanggal ?? now()) : null
+        ]);
+
+        // [CRITICAL] Unset the relation to force a reload on the next access.
+        // This prevents stale data from being used after this recalculation.
+        $rencanaAksi->unsetRelation('progressMonitorings');
     }
 }

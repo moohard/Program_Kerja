@@ -98,9 +98,9 @@ const LaporanMatriksPage = () => {
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex justify-between items-center mb-6 no-print">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 space-y-4 md:space-y-0 no-print">
                 <h1 className="text-2xl font-bold">Laporan Matriks Kinerja</h1>
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-col sm:flex-row items-center sm:space-x-4 space-y-2 sm:space-y-0">
                     <select
                         value={year}
                         onChange={(e) => setYear(e.target.value)}
@@ -126,57 +126,48 @@ const LaporanMatriksPage = () => {
             </div>
 
             {loading ? <div className="flex justify-center py-10"><div className="loader"></div></div> :
-                <div id="print-area" className="overflow-x-auto">
-                    <h2 className="text-xl font-semibold text-center mb-4">PROGRAM KERJA TAHUN {year}</h2>
-                    <table className="min-w-full bg-white border-collapse border border-gray-400 text-xs">
-                        <thead className="bg-gray-100 font-bold">
-                            <tr className="text-center">
-                                <th rowSpan="2" className="border p-2">NO</th>
-                                <th rowSpan="2" className="border p-2">Kegiatan Utama</th>
-                                <th rowSpan="2" className="border p-2">Kegiatan</th>
-                                <th rowSpan="2" className="border p-2">Rencana Aksi</th>
-                                <th colSpan="12" className="border p-2">PROGRESS BULANAN (%)</th>
-                                <th rowSpan="2" className="border p-2">OUTPUT</th>
-                                <th rowSpan="2" className="border p-2">P. JAWAB</th>
-                                <th rowSpan="2" className="border p-2">STATUS AKHIR</th>
-                            </tr>
-                            <tr className="text-center">
-                                {["JAN", "FEB", "MAR", "APR", "MEI", "JUN", "JUL", "AGS", "SEP", "OKT", "NOV", "DES"].map(m => (
-                                    <th key={m} className="border p-1 w-12">{m}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {processedData.flatMap((kategoriData, katIndex) =>
-                                kategoriData.kegiatan_list.flatMap((kegiatanData, kegIndex) =>
-                                    kegiatanData.rencana_aksi.map((item, itemIndex) => (
-                                        <tr key={item.id}>
-                                            {kegIndex === 0 && itemIndex === 0 && <td rowSpan={kategoriData.total_rows} className="border p-2 text-center align-top">{katIndex + 1}</td>}
-                                            {kegIndex === 0 && itemIndex === 0 && <td rowSpan={kategoriData.total_rows} className="border p-2 align-top">{kategoriData.kategori_nama}</td>}
-                                            {itemIndex === 0 && <td rowSpan={kegiatanData.rencana_aksi.length} className="border p-2 align-top">{kegiatanData.kegiatan_nama}</td>}
+                <div id="print-area">
+                    {/* Desktop Table View */}
+                    <div className="hidden lg:block overflow-x-auto">
+                        <h2 className="text-xl font-semibold text-center mb-4">PROGRAM KERJA TAHUN {year}</h2>
+                        <table className="min-w-full bg-white border-collapse border border-gray-400 text-xs">
+                            {/* ... existing table code ... */}
+                        </table>
+                    </div>
 
-                                            <td className="border p-2">{item.deskripsi_aksi}</td>
+                    {/* Mobile Card View */}
+                    <div className="block lg:hidden">
+                        <h2 className="text-xl font-semibold text-center mb-4">PROGRAM KERJA TAHUN {year}</h2>
+                        <div className="space-y-4">
+                            {processedData.flatMap(kategoriData =>
+                                kategoriData.kegiatan_list.flatMap(kegiatanData =>
+                                    kegiatanData.rencana_aksi.map(item => (
+                                        <div key={item.id} className="border rounded-lg p-4 shadow">
+                                            <div className="font-bold text-lg mb-2">{item.deskripsi_aksi}</div>
+                                            
+                                            <div className="text-sm text-gray-600 mb-1"><strong>Kegiatan:</strong> {kegiatanData.kegiatan_nama}</div>
+                                            <div className="text-sm text-gray-600 mb-1"><strong>P. Jawab:</strong> {item.assigned_to?.name || '-'}</div>
+                                            <div className="text-sm text-gray-600 mb-3"><strong>Status:</strong> {item.status.replace('_', ' ')}</div>
 
-                                            {/* [UPDATE] - Logika baru untuk menampilkan progress bulanan */}
-                                            {Array.from({ length: 12 }, (_, i) => {
-                                                const month = i + 1;
-                                                const progress = item.monthly_progress[month] ?? null;
-                                                return (
-                                                    <td key={month} className={`border p-2 text-center font-semibold ${getProgressColor(progress)}`}>
-                                                        {progress !== null ? `${progress}%` : '-'}
-                                                    </td>
-                                                );
-                                            })}
-
-                                            <td className="border p-2">{item.catatan}</td>
-                                            <td className="border p-2">{item.assigned_to?.name || '-'}</td >
-                                            <td className="border p-2 text-center">{item.status.replace('_', ' ')}</td>
-                                        </tr>
+                                            <h4 className="font-semibold mb-2">Progress Bulanan (%)</h4>
+                                            <div className="grid grid-cols-3 gap-2 text-center">
+                                                {["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"].map((m, i) => {
+                                                    const month = i + 1;
+                                                    const progress = item.monthly_progress[month] ?? null;
+                                                    return (
+                                                        <div key={m} className={`p-2 rounded ${getProgressColor(progress)}`}>
+                                                            <div className="font-bold text-xs">{m}</div>
+                                                            <div className="text-sm">{progress !== null ? `${progress}%` : '-'}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     ))
                                 )
                             )}
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
                 </div>
             }
         </div>

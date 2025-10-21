@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../services/apiClient';
 import KegiatanModal from '../../components/modals/KegiatanModal';
+import { FiEdit, FiTrash2 } from 'react-icons/fi';
 
 function KegiatanPage() {
     const [kategoriList, setKategoriList] = useState([]);
@@ -51,9 +52,9 @@ function KegiatanPage() {
 
     return (
         <div className="bg-white p-8 rounded-lg shadow">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 space-y-4 md:space-y-0">
                 <h1 className="text-2xl font-semibold text-gray-900">Master: Kegiatan</h1>
-                <button onClick={() => handleOpenModal()} disabled={!selectedKategori} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300" data-cy="add-kegiatan-button">Tambah Kegiatan</button>
+                <button onClick={() => handleOpenModal()} disabled={!selectedKategori} className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 self-start md:self-auto" data-cy="add-kegiatan-button">Tambah Kegiatan</button>
             </div>
 
             <div className="mb-4">
@@ -78,8 +79,14 @@ function KegiatanPage() {
                                 <tr key={item.id} data-cy={`kegiatan-row-${item.id}`}>
                                     <td className="px-6 py-4 whitespace-pre-wrap">{item.nama_kegiatan}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium">
-                                        <button onClick={() => handleOpenModal(item)} className="text-indigo-600 hover:text-indigo-900" data-cy={`edit-kegiatan-button-${item.id}`}>Edit</button>
-                                        <button onClick={() => handleDelete(item.id)} className="text-red-600 hover:text-red-900 ml-4" data-cy={`delete-kegiatan-button-${item.id}`}>Hapus</button>
+                                        <div className="flex items-center justify-end space-x-2">
+                                            <button onClick={() => handleOpenModal(item)} className="flex items-center text-indigo-600 hover:text-indigo-900" data-cy={`edit-kegiatan-button-${item.id}`}>
+                                                <FiEdit size={16} /><span className="hidden md:inline ml-1">Edit</span>
+                                            </button>
+                                            <button onClick={() => handleDelete(item.id)} className="flex items-center text-red-600 hover:text-red-900" data-cy={`delete-kegiatan-button-${item.id}`}>
+                                                <FiTrash2 size={16} /><span className="hidden md:inline ml-1">Hapus</span>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}

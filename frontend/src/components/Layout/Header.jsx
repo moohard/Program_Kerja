@@ -1,16 +1,19 @@
 import React from 'react';
 import useAuth from '../../hooks/useAuth';
 import useFirebaseMessaging from '../../hooks/useFirebaseMessaging'; // Import hook
-import { FiLogOut, FiBell } from 'react-icons/fi';
+import { FiLogOut, FiBell, FiMenu } from 'react-icons/fi';
 
-const Header = () => {
+const Header = ({ toggleSidebar }) => {
     const { user, logout } = useAuth();
     const { notificationStatus, requestPermissionAndGetToken } = useFirebaseMessaging();
 
     return (
         <header className="bg-white shadow-sm">
             <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-                <div>
+                <div className="flex items-center">
+                    <button onClick={toggleSidebar} className="md:hidden p-2 rounded-full text-gray-500 hover:bg-gray-100 mr-4">
+                        <FiMenu size={24} />
+                    </button>
                     {/* Bisa ditambahkan breadcrumbs atau judul halaman di sini */}
                 </div>
                 <div className="flex items-center">

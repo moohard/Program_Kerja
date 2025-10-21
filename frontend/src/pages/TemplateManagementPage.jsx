@@ -166,9 +166,9 @@ const TemplateManagementPage = () => {
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 space-y-4 md:space-y-0">
                 <h1 className="text-2xl font-bold">Manajemen Template</h1>
-                <button onClick={() => setCreateModalOpen(true)} className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                <button onClick={() => setCreateModalOpen(true)} className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 self-start md:self-auto">
                     <FiPlus className="mr-2" /> Buat Template Baru
                 </button>
             </div>
@@ -176,12 +176,12 @@ const TemplateManagementPage = () => {
             {loading ? <div className="flex justify-center py-10"><div className="loader"></div></div> :
                 <div className="space-y-4">
                     {templates.map(template => (
-                        <div key={template.id} className="p-4 border rounded-lg flex justify-between items-center">
+                        <div key={template.id} className="p-4 border rounded-lg flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
                             <div>
                                 <h3 className="font-semibold">{template.nama_template}</h3>
                                 <p className="text-sm text-gray-500">Sumber dari Program Kerja Tahun {template.tahun_referensi}</p>
                             </div>
-                            <div className="space-x-2">
+                            <div className="flex items-center space-x-2 self-end md:self-auto">
                                 <button onClick={() => handleOpenApplyModal(template)} className="flex items-center bg-green-500 text-white px-3 py-1.5 rounded-md text-sm hover:bg-green-600">
                                     <FiCopy className="mr-1.5" /> Terapkan
                                 </button>

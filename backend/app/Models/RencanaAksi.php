@@ -91,8 +91,7 @@ class RencanaAksi extends Model
 
     public function latestProgress()
     {
-        // Menambahkan 'id' sebagai tie-breaker jika tanggal_monitoring identik
-        return $this->hasOne(ProgressMonitoring::class, 'rencana_aksi_id')->latestOfMany(['tanggal_monitoring', 'id']);
+        return $this->hasOne(ProgressMonitoring::class, 'rencana_aksi_id')->latest('tanggal_monitoring');
     }
 
     /**
@@ -104,21 +103,26 @@ class RencanaAksi extends Model
             get: function () {
                 $targetMonths = $this->target_months;
 
-                // Jika tidak ada bulan target (misal: tahunan), gunakan progress terakhir.
                 if (empty($targetMonths)) {
-                    return $this->latestProgress?->progress_percentage ?? 0;
+                    $latestProgress = \App\Models\ProgressMonitoring::where('rencana_aksi_id', $this->id)->latest('tanggal_monitoring')->first();
+                    return $latestProgress->progress_percentage ?? 0;
                 }
-
-                // Ambil semua progress yang relevan sekaligus untuk efisiensi
-                $progresses = $this->progressMonitorings->keyBy(function ($item) {
-                    return \Carbon\Carbon::parse($item->report_date)->month;
-                });
 
                 $totalPercentage = 0;
-                foreach ($targetMonths as $month) {
-                    $totalPercentage += $progresses[$month]->progress_percentage ?? 0;
-                }
+                $jadwalService = app(JadwalService::class);
 
+                foreach ($targetMonths as $month) {
+                    $reportDate = $jadwalService->getApplicableReportDate($this, null, $month);
+                    
+                    $progress = \App\Models\ProgressMonitoring::where('rencana_aksi_id', $this->id)
+                        ->where('report_date', $reportDate->format('Y-m-d'))
+                        ->latest('tanggal_monitoring')
+                        ->first();
+                    
+                    $progressForMonth = $progress->progress_percentage ?? 0;
+                    $totalPercentage += $progressForMonth;
+                }
+                
                 return round($totalPercentage / count($targetMonths));
             }
         );

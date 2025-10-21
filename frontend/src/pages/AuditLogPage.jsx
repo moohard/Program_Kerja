@@ -98,32 +98,60 @@ const AuditLogPage = () => {
             </div>
 
             {loading ? <div className="flex justify-center py-10"><div className="loader"></div></div> :
-                <div className="overflow-x-auto">
-                    <table className="min-w-full bg-white text-sm">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="p-3 text-left">Tanggal</th>
-                                <th className="p-3 text-left">Pengguna</th>
-                                <th className="p-3 text-left">Aksi</th>
-                                <th className="p-3 text-left">Tabel</th>
-                                <th className="p-3 text-left">Data Lama</th>
-                                <th className="p-3 text-left">Data Baru</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200">
-                            {logs.map(log => (
-                                <tr key={log.id}>
-                                    <td className="p-3 whitespace-nowrap">{new Date(log.created_at).toLocaleString('id-ID')}</td>
-                                    <td className="p-3">{log.user?.name || 'Sistem'}</td>
-                                    <td className="p-3">{log.action}</td>
-                                    <td className="p-3">{log.table_name} (ID: {log.record_id})</td>
-                                    <td className="p-3 w-1/4">{renderJson(log.old_values)}</td>
-                                    <td className="p-3 w-1/4">{renderJson(log.new_values)}</td>
+                <>
+                    {/* Desktop Table View */}
+                    <div className="overflow-x-auto hidden lg:block">
+                        <table className="min-w-full bg-white text-sm">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="p-3 text-left">Tanggal</th>
+                                    <th className="p-3 text-left">Pengguna</th>
+                                    <th className="p-3 text-left">Aksi</th>
+                                    <th className="p-3 text-left">Tabel</th>
+                                    <th className="p-3 text-left">Data Lama</th>
+                                    <th className="p-3 text-left">Data Baru</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {logs.map(log => (
+                                    <tr key={log.id}>
+                                        <td className="p-3 whitespace-nowrap">{new Date(log.created_at).toLocaleString('id-ID')}</td>
+                                        <td className="p-3">{log.user?.name || 'Sistem'}</td>
+                                        <td className="p-3">{log.action}</td>
+                                        <td className="p-3">{log.table_name} (ID: {log.record_id})</td>
+                                        <td className="p-3 w-1/4">{renderJson(log.old_values)}</td>
+                                        <td className="p-3 w-1/4">{renderJson(log.new_values)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="space-y-4 lg:hidden">
+                        {logs.map(log => (
+                            <div key={log.id} className="border rounded-lg p-4 shadow-sm">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 pb-3 border-b">
+                                    <div className="font-bold">{log.user?.name || 'Sistem'} - <span className="font-mono text-indigo-600">{log.action}</span></div>
+                                    <div className="text-sm text-gray-500 mt-1 sm:mt-0">{new Date(log.created_at).toLocaleString('id-ID')}</div>
+                                </div>
+                                <div className="mb-3">
+                                    <span className="font-semibold">Tabel:</span> {log.table_name} (ID: {log.record_id})
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <h4 className="font-semibold mb-1 text-gray-700">Data Lama</h4>
+                                        {renderJson(log.old_values)}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold mb-1 text-gray-700">Data Baru</h4>
+                                        {renderJson(log.new_values)}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
             }
 
             {/* Pagination */}
