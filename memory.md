@@ -1,3 +1,29 @@
+# Checkpoint: Stabilisasi Laporan Bulanan
+
+**Tanggal:** 21 Oktober 2025
+
+**Tujuan Tercapai:**
+Menyelesaikan serangkaian perbaikan bug yang kompleks pada modul "Laporan Bulanan", memastikan data progres ditampilkan secara akurat dan konsisten.
+
+**Perbaikan Utama:**
+- **Akurasi Query Laporan**: Memperbaiki query utama di `ReportController` untuk memfilter Rencana Aksi berdasarkan tahun `target_tanggal`, mencegah data dari tahun yang salah muncul di laporan.
+- **Stabilitas Pengambilan Data**: Mengganti metode *eager loading* yang bermasalah dengan *query langsung* (N+1) untuk mengambil data progres. Ini menjamin data yang paling mutakhir yang dibaca demi keakuratan 100%.
+- **Konsistensi Data**: Memperbaiki beberapa bug terkait pembuatan data:
+    - `JadwalService` dipastikan menggunakan tahun yang benar saat menentukan `report_date`.
+    - `TodoItemController` dipastikan memberi `deadline` yang benar saat `TodoItem` dibuat.
+    - Validasi ditambahkan untuk memastikan `deadline` `TodoItem` tidak bisa melebihi `target_tanggal` Rencana Aksinya.
+- **Fitur Tambahan**:
+    - Menambahkan input `deadline` pada form `TodoItem`.
+    - Menambahkan label "Telat Upload" untuk evaluasi.
+
+**Status Saat Ini:**
+Modul Laporan Bulanan sekarang stabil. Semua bug yang dilaporkan terkait progres 0% dan data yang tidak akurat telah diperbaiki.
+
+**Langkah Selanjutnya:**
+Pengguna akan melanjutkan pekerjaan dari rumah, kemungkinan besar akan beralih ke modul Laporan Matriks atau Laporan Tahunan.
+
+---
+
 # Checkpoint: Finalisasi Alur Perhitungan Progres Rencana Aksi
 
 **Tanggal:** 21 Oktober 2025
