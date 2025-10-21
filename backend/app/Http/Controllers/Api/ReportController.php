@@ -16,10 +16,10 @@ use Illuminate\Support\Str;
 
 
 class ReportController extends Controller
-{
+    {
 
     public function annualSummary(Request $request)
-    {
+        {
         $validated = $request->validate([
             'program_kerja_id' => 'required|integer|exists:program_kerja,id',
         ]);
@@ -34,21 +34,21 @@ class ReportController extends Controller
 
         // 2. Progress by Category
         $progressByCategory = KategoriUtama::where('program_kerja_id', $programKerjaId)
-            ->where('is_active', true)
+            ->where('is_active', TRUE)
             ->with(['kegiatan.rencanaAksi.latestProgress'])
             ->orderBy('nomor')
             ->get()
             ->map(function ($kategori) {
                 $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
                 if ($allAksi->isEmpty()) {
-                    return null;
-                }
+                    return NULL;
+                    }
                 $totalProgress = $allAksi->sum(fn($aksi) => $aksi->latestProgress->progress_percentage ?? 0);
                 return [
-                    'category_name' => "{$kategori->nomor}. {$kategori->nama_kategori}",
+                    'category_name'    => "{$kategori->nomor}. {$kategori->nama_kategori}",
                     'average_progress' => round($totalProgress / $allAksi->count(), 2),
                 ];
-            })
+                })
             ->filter()->values();
 
         // 3. Achievement Highlights (contoh: 5 prioritas tinggi yang sudah selesai)
@@ -60,86 +60,82 @@ class ReportController extends Controller
             ->get(['id', 'deskripsi_aksi', 'kegiatan_id']);
 
         return response()->json([
-            'summary' => $summary,
+            'summary'              => $summary,
             'progress_by_category' => $progressByCategory,
-            'highlights' => $highlights,
+            'highlights'           => $highlights,
         ]);
-    }
+        }
 
 
     public function monthly(Request $request)
-    {
+        {
         $request->validate([
             'year'  => 'required|integer|digits:4',
             'month' => 'required|integer|min:1|max:12',
         ]);
 
         $year  = $request->year;
-        $month = (int)$request->month;
+        $month = (int) $request->month;
 
         $programKerja = ProgramKerja::where('tahun', $year)->first();
 
         if (!$programKerja) {
             return response()->json(['data' => []]);
-        }
+            }
 
         // 1. Ambil semua RencanaAksi untuk bulan tersebut secara langsung
         $rencanaAksis = RencanaAksi::whereHas('kegiatan.kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerja->id))
             ->whereYear('target_tanggal', $year) // [FIX] Filter berdasarkan tahun target
             ->where(function ($q) use ($month) {
                 $q->whereIn('jadwal_tipe', ['periodik', 'bulanan', 'insidentil'])
-                ->whereJsonContains('jadwal_config->months', $month);
-            })
+                    ->whereJsonContains('jadwal_config->months', $month);
+                })
             ->with([
-                            'kegiatan.kategoriUtama:id,nomor,nama_kategori',
-                            'assignedTo:id,name',
-                            // 'progressMonitorings' // [DEBUG] Temporarily disable eager loading
-                        ])
-                        ->get();
-                
-                    // 3. Kelompokkan berdasarkan Kategori Utama
-                    $groupedByKategori = $rencanaAksis->groupBy('kegiatan.kategoriUtama.nama_kategori');
-                
-                    // 4. Ubah data untuk frontend
-                    $reportData = $groupedByKategori->map(function ($items, $kategoriName) use ($year, $month) { // Pass year and month
-                        if ($items->isEmpty()) {
-                            return null;
-                        }
-                        $firstItem = $items->first();
-                        $kategori = $firstItem->kegiatan->kategoriUtama;
-                
-                        return [
-                            'id' => $kategori->id,
-                            'nomor' => $kategori->nomor,
-                            'nama_kategori' => $kategoriName,
-                            'kegiatan' => $items->groupBy('kegiatan.nama_kegiatan')->map(function ($kegiatanItems) use ($year, $month) { // Pass year and month
-                                return [
-                                    'nama_kegiatan' => $kegiatanItems->first()->kegiatan->nama_kegiatan,
-                                    'rencana_aksi' => $kegiatanItems->map(function ($ra) use ($year, $month) { // Pass year and month
-                                        // [REVISED] Query directly instead of relying on eager-loading
-                                        $monthlyProgress = \App\Models\ProgressMonitoring::where('rencana_aksi_id', $ra->id)
-                                            ->whereYear('report_date', $year)
-                                            ->whereMonth('report_date', $month)
-                                            ->latest('tanggal_monitoring')
-                                            ->first();
-                
-                                                                return [                                            'id' => $ra->id,
-                                            'deskripsi_aksi' => $ra->deskripsi_aksi,
-                                            'status' => $ra->status,
-                                            // 5. Format tanggal untuk frontend
-                                            'target_tanggal_formatted' => $ra->target_tanggal ? \Carbon\Carbon::parse($ra->target_tanggal)->isoFormat('D MMMM YYYY') : 'N/A',
-                                            // 6. Perbaiki kunci assigned_to
-                                            'assigned_to' => $ra->assignedTo,
-                                            // 7. Ambil progres dari record spesifik yang kita muat
-                                            'progress' => $monthlyProgress->progress_percentage ?? 0,
-                                        ];
-                                    })->values()
-                                ];
-                            })->values()
-                        ];
-                    })->filter()->sortBy('nomor')->values();
+                'kegiatan.kategoriUtama:id,nomor,nama_kategori',
+                'assignedTo:id,name',
+            ])
+            ->get();
+
+        // 3. Kelompokkan berdasarkan Kategori Utama
+        $groupedByKategori = $rencanaAksis->groupBy('kegiatan.kategoriUtama.nama_kategori');
+
+        // 4. Ubah data untuk frontend
+        $reportData = $groupedByKategori->map(function ($items, $kategoriName) use ($year, $month) {
+            if ($items->isEmpty()) {
+                return null;
+            }
+            $firstItem = $items->first();
+            $kategori = $firstItem->kegiatan->kategoriUtama;
+
+            return [
+                'id' => $kategori->id,
+                'nomor' => $kategori->nomor,
+                'nama_kategori' => $kategoriName,
+                'kegiatan' => $items->groupBy('kegiatan.nama_kegiatan')->map(function ($kegiatanItems) use ($year, $month) {
+                    return [
+                        'nama_kegiatan' => $kegiatanItems->first()->kegiatan->nama_kegiatan,
+                        'rencana_aksi' => $kegiatanItems->map(function ($ra) use ($year, $month) {
+                            $monthlyProgress = \App\Models\ProgressMonitoring::where('rencana_aksi_id', $ra->id)
+                                ->whereYear('report_date', $year)
+                                ->whereMonth('report_date', $month)
+                                ->latest('tanggal_monitoring')
+                                ->first();
+
+                            return [
+                                'id' => $ra->id,
+                                'deskripsi_aksi' => $ra->deskripsi_aksi,
+                                'status' => $ra->status,
+                                'target_tanggal_formatted' => $ra->target_tanggal ? \Carbon\Carbon::parse($ra->target_tanggal)->isoFormat('D MMMM YYYY') : 'N/A',
+                                'assigned_to' => $ra->assignedTo,
+                                'progress' => $monthlyProgress->progress_percentage ?? 0,
+                            ];
+                        })->values()
+                    ];
+                })->values()
+            ];
+        })->filter()->sortBy('nomor')->values();
         return response()->json(['data' => $reportData]);
-    }
+        }
 
     private function getMatrixReportData(Request $request)
         {
@@ -219,9 +215,9 @@ class ReportController extends Controller
             $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
                 ->with(['kegiatan.kategoriUtama', 'assignedTo:id,name', 'progressMonitorings' => fn($q) => $q->whereYear('report_date', $year)])
                 ->get();
-            $fileName = "Laporan_Matriks_{$year}.xlsx";
+            $fileName     = "Laporan_Matriks_{$year}.xlsx";
             return Excel::download(new LaporanMatriksExport($rencanaAksis), $fileName);
-        }
+            }
 
         if ($request->format === 'pdf') {
             // 1. Ambil data mentah
@@ -231,27 +227,27 @@ class ReportController extends Controller
                 ->get();
 
             // 2. Proses dan kelompokkan data untuk view PDF
-            $groupedData = $rencanaAksis->groupBy(function($item) {
+            $groupedData = $rencanaAksis->groupBy(function ($item) {
                 return optional($item->kegiatan->kategoriUtama)->nama_kategori ?? 'Uncategorized';
-            })->map(function($kategoriGroup) {
-                return $kategoriGroup->groupBy('kegiatan.nama_kegiatan')
-                    ->map(function($kegiatanGroup) {
-                        return [
-                            'nama_kegiatan' => $kegiatanGroup->first()->kegiatan->nama_kegiatan,
-                            'rencana_aksi' => $kegiatanGroup->map(function($aksi) {
-                                $monthlyProgress = $aksi->progressMonitorings->mapWithKeys(function ($progress) {
-                                    return [(int)date('m', strtotime($progress->report_date)) => $progress->progress_percentage];
-                                });
-                                return [
-                                    'deskripsi_aksi' => $aksi->deskripsi_aksi,
-                                    'assigned_to' => $aksi->assignedTo,
-                                    'target_tanggal' => $aksi->target_tanggal,
-                                    'monthly_progress' => $monthlyProgress,
-                                ];
-                            })->values()->all(),
-                        ];
-                    })->values()->all();
-            });
+                })->map(function ($kategoriGroup) {
+                    return $kategoriGroup->groupBy('kegiatan.nama_kegiatan')
+                        ->map(function ($kegiatanGroup) {
+                            return [
+                                'nama_kegiatan' => $kegiatanGroup->first()->kegiatan->nama_kegiatan,
+                                'rencana_aksi'  => $kegiatanGroup->map(function ($aksi) {
+                                    $monthlyProgress = $aksi->progressMonitorings->mapWithKeys(function ($progress) {
+                                        return [(int) date('m', strtotime($progress->report_date)) => $progress->progress_percentage];
+                                        });
+                                    return [
+                                        'deskripsi_aksi'   => $aksi->deskripsi_aksi,
+                                        'assigned_to'      => $aksi->assignedTo,
+                                        'target_tanggal'   => $aksi->target_tanggal,
+                                        'monthly_progress' => $monthlyProgress,
+                                    ];
+                                    })->values()->all(),
+                            ];
+                            })->values()->all();
+                    });
 
             // 3. Buat PDF
             $pdf = Pdf::loadView('reports.matriks_pdf', ['data' => $groupedData, 'year' => $year])
@@ -267,18 +263,18 @@ class ReportController extends Controller
             );
 
             return response()->json(['download_url' => $url]);
+            }
         }
-    }
 
     public function exportAnnualSummary(Request $request)
-    {
+        {
         $validated = $request->validate([
             'program_kerja_id' => 'required|integer|exists:program_kerja,id',
             'format'           => 'required|in:pdf',
         ]);
 
         $programKerjaId = $validated['program_kerja_id'];
-        $programKerja = ProgramKerja::findOrFail($programKerjaId);
+        $programKerja   = ProgramKerja::findOrFail($programKerjaId);
 
         // 1. Summary Stats
         $summary = RencanaAksi::whereHas('kegiatan.kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerjaId))
@@ -288,21 +284,21 @@ class ReportController extends Controller
 
         // 2. Progress by Category
         $progressByCategory = KategoriUtama::where('program_kerja_id', $programKerjaId)
-            ->where('is_active', true)
+            ->where('is_active', TRUE)
             ->with(['kegiatan.rencanaAksi.latestProgress'])
             ->orderBy('nomor')
             ->get()
             ->map(function ($kategori) {
                 $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
                 if ($allAksi->isEmpty()) {
-                    return null;
-                }
+                    return NULL;
+                    }
                 $totalProgress = $allAksi->sum(fn($aksi) => $aksi->latestProgress->progress_percentage ?? 0);
                 return [
-                    'category_name' => "{$kategori->nomor}. {$kategori->nama_kategori}",
+                    'category_name'    => "{$kategori->nomor}. {$kategori->nama_kategori}",
                     'average_progress' => round($totalProgress / $allAksi->count(), 2),
                 ];
-            })
+                })
             ->filter()->values();
 
         // 3. Achievement Highlights
@@ -312,12 +308,12 @@ class ReportController extends Controller
             ->with('kegiatan:id,nama_kegiatan')
             ->limit(5)
             ->get(['id', 'deskripsi_aksi', 'kegiatan_id']);
-        
+
         $data = [
-            'programKerja' => $programKerja,
-            'summary' => $summary,
+            'programKerja'       => $programKerja,
+            'summary'            => $summary,
             'progressByCategory' => $progressByCategory,
-            'highlights' => $highlights,
+            'highlights'         => $highlights,
         ];
 
         $pdf = Pdf::loadView('reports.annual_summary_pdf', $data)
@@ -328,9 +324,9 @@ class ReportController extends Controller
 
         $url = Storage::disk('s3')->temporaryUrl(
             $fileName,
-            now()->addMinutes(15)
+            now()->addMinutes(15),
         );
 
         return response()->json(['download_url' => $url]);
+        }
     }
-}
