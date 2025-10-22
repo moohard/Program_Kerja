@@ -40,28 +40,19 @@ class ReportController extends Controller
             ->orderBy('nomor')
             ->get()
             ->map(function ($kategori) {
-                Log::info("Processing category for Annual Report: {$kategori->nomor}. {$kategori->nama_kategori}");
                 $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
 
                 if ($allAksi->isEmpty()) {
-                    Log::info('No Rencana Aksi found for this category, skipping.');
                     return NULL;
                 }
 
-                $aksiIds = $allAksi->pluck('id')->toArray();
-                Log::info('Rencana Aksi IDs being processed:', $aksiIds);
-
                 // [FIX] Use the accurate 'overall_progress' accessor instead of 'latestProgress'
                 $totalProgress = $allAksi->sum(function($aksi) {
-                    $progress = $aksi->overall_progress_percentage; // Use the correct accessor name
-                    Log::info("  - Rencana Aksi ID: {$aksi->id}, Overall Progress: {$progress}%");
-                    return $progress;
+                    return $aksi->overall_progress_percentage; // Use the correct accessor name
                 });
 
                 $aksiCount = $allAksi->count();
                 $averageProgress = $aksiCount > 0 ? round($totalProgress / $aksiCount, 2) : 0;
-
-                Log::info("Calculation for category '{$kategori->nama_kategori}': Total Overall Progress = {$totalProgress}, Aksi Count = {$aksiCount}, Average = {$averageProgress}");
 
                 return [
                     'category_name'    => "{$kategori->nomor}. {$kategori->nama_kategori}",
