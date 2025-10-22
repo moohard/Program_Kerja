@@ -127,7 +127,7 @@ function RencanaAksiPage() {
 
     // --- Handlers for TodoModal ---
     const handleOpenTodoModal = (item) => {
-        setSelectedRencanaAksi(item.id); // Hanya simpan ID
+        setSelectedRencanaAksi(item); // Simpan seluruh objek
         setIsTodoModalOpen(true);
     };
     const handleCloseTodoModal = (shouldRefetch = false) => {
@@ -309,7 +309,7 @@ function RencanaAksiPage() {
                 onSave={fetchRencanaAksi}
             />}
             {isTodoModalOpen && <TodoModal 
-                rencanaAksiId={selectedRencanaAksi} 
+                rencanaAksi={selectedRencanaAksi} 
                 selectedMonth={selectedMonth}
                 userList={userList}
                 onClose={handleCloseTodoModal} 

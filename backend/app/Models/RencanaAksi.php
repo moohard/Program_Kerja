@@ -101,9 +101,6 @@ class RencanaAksi extends Model
     {
         return Attribute::make(
             get: function () {
-                // [FIX] Force-reload the relationship to ensure it's not stale
-                $this->load('progressMonitorings');
-                
                 $targetMonths = $this->target_months;
 
                 if (empty($targetMonths)) {

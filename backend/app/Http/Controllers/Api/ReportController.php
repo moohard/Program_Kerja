@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use App\Exports\LaporanMatriksExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -35,20 +36,38 @@ class ReportController extends Controller
         // 2. Progress by Category
         $progressByCategory = KategoriUtama::where('program_kerja_id', $programKerjaId)
             ->where('is_active', TRUE)
-            ->with(['kegiatan.rencanaAksi.latestProgress'])
+            ->with(['kegiatan.rencanaAksi.progressMonitorings']) // [FIX] Eager load the relationship needed by the accessor
             ->orderBy('nomor')
             ->get()
             ->map(function ($kategori) {
+                Log::info("Processing category for Annual Report: {$kategori->nomor}. {$kategori->nama_kategori}");
                 $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
+
                 if ($allAksi->isEmpty()) {
+                    Log::info('No Rencana Aksi found for this category, skipping.');
                     return NULL;
-                    }
-                $totalProgress = $allAksi->sum(fn($aksi) => $aksi->latestProgress->progress_percentage ?? 0);
+                }
+
+                $aksiIds = $allAksi->pluck('id')->toArray();
+                Log::info('Rencana Aksi IDs being processed:', $aksiIds);
+
+                // [FIX] Use the accurate 'overall_progress' accessor instead of 'latestProgress'
+                $totalProgress = $allAksi->sum(function($aksi) {
+                    $progress = $aksi->overall_progress_percentage; // Use the correct accessor name
+                    Log::info("  - Rencana Aksi ID: {$aksi->id}, Overall Progress: {$progress}%");
+                    return $progress;
+                });
+
+                $aksiCount = $allAksi->count();
+                $averageProgress = $aksiCount > 0 ? round($totalProgress / $aksiCount, 2) : 0;
+
+                Log::info("Calculation for category '{$kategori->nama_kategori}': Total Overall Progress = {$totalProgress}, Aksi Count = {$aksiCount}, Average = {$averageProgress}");
+
                 return [
                     'category_name'    => "{$kategori->nomor}. {$kategori->nama_kategori}",
-                    'average_progress' => round($totalProgress / $allAksi->count(), 2),
+                    'average_progress' => $averageProgress,
                 ];
-                })
+            })
             ->filter()->values();
 
         // 3. Achievement Highlights (contoh: 5 prioritas tinggi yang sudah selesai)
@@ -143,47 +162,34 @@ class ReportController extends Controller
         ]);
         $year = $request->year;
 
-        // [FIX] - Gunakan eager loading dengan relasi yang benar
         $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
             ->with([
-                'kegiatan.kategoriUtama', // Pastikan relasi ini bekerja
+                'kegiatan.kategoriUtama',
                 'assignedTo:id,name',
                 'progressMonitorings' => function ($query) use ($year) {
                     $query->whereYear('report_date', $year);
-                    }
+                }
             ])
             ->get();
 
-        // [DEBUG] - Cek data yang diambil
-        
-        logger()->info('Matrix Report - Fetched RencanaAksi count: ' . $rencanaAksis->count());
-
         if ($rencanaAksis->isEmpty()) {
-            logger()->warning('No RencanaAksi found for year: ' . $year);
             return collect();
         }
 
-        return $rencanaAksis->map(function ($aksi) {
-            $monthlyProgress = $aksi->progressMonitorings->mapWithKeys(function ($progress) use ($aksi) {
-
-            // [FIX] - Pastikan kategori ada
-            $kategoriNama = optional($aksi->kegiatan->kategoriUtama)->nama_kategori
-                ?? 'Uncategorized';
+        $processedData = $rencanaAksis->map(function ($aksi) {
+            $kategoriNama = optional($aksi->kegiatan->kategoriUtama)->nama_kategori ?? 'Uncategorized';
 
             $monthlyProgress = collect(range(1, 12))->mapWithKeys(function ($month) use ($aksi) {
-                if (!in_array($month, $aksi->target_months)) {
-                    return [$month => null]; // Not scheduled for this month
+                if (empty($aksi->target_months) || !in_array($month, $aksi->target_months)) {
+                    return [$month => null]; // Not scheduled
                 }
 
                 $latestProgressForMonth = $aksi->progressMonitorings
-                    ->filter(function ($pm) use ($month) {
-                        return \Carbon\Carbon::parse($pm->report_date)->month == $month;
-                    })
+                    ->filter(fn($pm) => \Carbon\Carbon::parse($pm->report_date)->month == $month)
                     ->sortByDesc('tanggal_monitoring')
                     ->first();
 
-                // Scheduled, but no progress record found yet, so it's 0%
-                return [$month => $latestProgressForMonth->progress_percentage ?? 0]; 
+                return [$month => $latestProgressForMonth->progress_percentage ?? 0]; // Scheduled but no progress
             });
 
             return [
@@ -191,7 +197,7 @@ class ReportController extends Controller
                 'deskripsi_aksi'   => $aksi->deskripsi_aksi,
                 'catatan'          => $aksi->catatan,
                 'status'           => $aksi->status,
-                'is_late'          => !$aksi->status === 'completed' && $aksi->target_tanggal?->isPast(),
+                'is_late'          => $aksi->status !== 'completed' && $aksi->target_tanggal?->isPast(),
                 'kegiatan'         => [
                     'nama_kegiatan' => $aksi->kegiatan->nama_kegiatan,
                     'kategori'      => [
@@ -204,9 +210,10 @@ class ReportController extends Controller
                 'target_tanggal'   => $aksi->target_tanggal,
                 'monthly_progress' => $monthlyProgress,
             ];
-            })
-            ->groupBy('kegiatan.kategori.nama_kategori');
-        }
+        });
+
+        return $processedData->groupBy('kegiatan.kategori.nama_kategori');
+    }
 
     // --- FUNGSI LAMA ANDA UNTUK MENAMPILKAN LAPORAN MATRIKS (SEKARANG LEBIH RINGKAS) ---
     public function matrix(Request $request)

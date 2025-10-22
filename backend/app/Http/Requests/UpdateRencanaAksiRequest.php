@@ -24,6 +24,7 @@ class UpdateRencanaAksiRequest extends FormRequest
             'jadwal_config.periode' => ['sometimes', 'required_if:jadwal_tipe,periodik', 'string', Rule::in(['triwulanan', 'semesteran'])],
             'jadwal_config.months' => ['sometimes', 'nullable', 'array'],
             'jadwal_config.months.*' => 'sometimes|integer|min:1|max:12',
+            'target_tanggal' => 'sometimes|required|date',
         ];
     }
 }

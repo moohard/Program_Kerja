@@ -101,10 +101,10 @@ const FileUploader = ({ todo, onUploadComplete, selectedMonth }) => {
 };
 
 
-function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
+function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedMonth, userList = [] }) {
     // --- HOOKS (SEMUA DI ATAS) ---
     const { user } = useContext(AuthContext);
-    const [rencanaAksi, setRencanaAksi] = useState(null);
+    const [rencanaAksi, setRencanaAksi] = useState(initialRencanaAksi);
     const [todos, setTodos] = useState([]);
     const [newTodoDesc, setNewTodoDesc] = useState('');
     const [newTodoPelaksanaId, setNewTodoPelaksanaId] = useState('');
@@ -120,35 +120,55 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
         return Math.round((approvedCount / todos.length) * 100);
     }, [todos]);
 
+    const { minDate, maxDate } = useMemo(() => {
+        if (!selectedMonth) {
+            // If no month is selected, the max date is the target date.
+            return { 
+                min: undefined,
+                max: rencanaAksi?.target_tanggal ? rencanaAksi.target_tanggal.split('T')[0] : undefined
+            };
+        }
+
+        const year = new Date().getFullYear(); // Assuming current year
+        const monthIndex = selectedMonth - 1;
+
+        // Min date is the first day of the selected month
+        const minDate = new Date(year, monthIndex, 1).toISOString().split('T')[0];
+
+        // Max date logic
+        let maxDate;
+        const targetDate = rencanaAksi?.target_tanggal ? new Date(rencanaAksi.target_tanggal) : null;
+
+        if (targetDate && targetDate.getFullYear() === year && targetDate.getMonth() === monthIndex) {
+            // If target date is in the selected month, max is the target date
+            maxDate = targetDate.toISOString().split('T')[0];
+        } else {
+            // Otherwise, max is the last day of the selected month
+            maxDate = new Date(year, monthIndex + 1, 0).toISOString().split('T')[0];
+        }
+
+        return { min: minDate, max: maxDate };
+    }, [selectedMonth, rencanaAksi?.target_tanggal]);
+
     // --- EFFECTS (setelah MEMOS) ---
     useEffect(() => {
-        const fetchRencanaAksiDetails = async () => {
-            if (!rencanaAksiId) return;
-            try {
-                setLoading(true);
-                const response = await apiClient.get(`/rencana-aksi/${rencanaAksiId}`);
-                setRencanaAksi(response.data.data);
-            } catch (error) {
-                console.error("Gagal memuat detail Rencana Aksi:", error);
-                onClose();
-            }
-        };
-        fetchRencanaAksiDetails();
-    }, [rencanaAksiId, onClose]);
+        setLoading(false);
+    }, []);
 
     const fetchTodos = useCallback(async () => {
-        if (!rencanaAksiId) return;
+        if (!rencanaAksi?.id) return;
         try {
-            let url = `/rencana-aksi/${rencanaAksiId}/todo-items`;
+            let url = `/rencana-aksi/${rencanaAksi.id}/todo-items`;
             if (selectedMonth) url += `?month=${selectedMonth}`;
             const response = await apiClient.get(url);
             setTodos(response.data.data);
         } catch (error) {
             console.error("Gagal memuat to-do list:", error);
         } finally {
-            setLoading(false);
+            // If the main loading was on, turn it off.
+            if(loading) setLoading(false);
         }
-    }, [rencanaAksiId, selectedMonth]);
+    }, [rencanaAksi?.id, selectedMonth, loading]);
 
     useEffect(() => {
         if (rencanaAksi) {
@@ -180,9 +200,9 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
 
     const handleAddTodo = useCallback(async (e) => {
         e.preventDefault();
-        if (!newTodoDesc.trim() || !rencanaAksiId) return;
+        if (!newTodoDesc.trim() || !rencanaAksi?.id) return;
         try {
-            await apiClient.post(`/rencana-aksi/${rencanaAksiId}/todo-items`, {
+            await apiClient.post(`/rencana-aksi/${rencanaAksi.id}/todo-items`, {
                 deskripsi: newTodoDesc,
                 pelaksana_id: newTodoPelaksanaId || null,
                 deadline: newTodoDeadline || null,
@@ -198,7 +218,7 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
             const errorMessage = error.response?.data?.message || 'Gagal menambahkan to-do.';
             alert(errorMessage);
         }
-    }, [newTodoDesc, newTodoPelaksanaId, newTodoDeadline, rencanaAksiId, selectedMonth, fetchTodos]);
+    }, [newTodoDesc, newTodoPelaksanaId, newTodoDeadline, rencanaAksi?.id, selectedMonth, fetchTodos]);
 
     const handleUpdatePelaksana = useCallback((todoId, newPelaksanaId) => {
         setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, pelaksana_id: newPelaksanaId, pelaksana: userList.find(u => u.id === newPelaksanaId) } : t));
@@ -263,7 +283,8 @@ function TodoModal({ rencanaAksiId, onClose, selectedMonth, userList = [] }) {
                                 type="date" 
                                 value={newTodoDeadline} 
                                 onChange={e => setNewTodoDeadline(e.target.value)} 
-                                max={rencanaAksi.target_tanggal ? rencanaAksi.target_tanggal.split('T')[0] : ''} 
+                                min={minDate}
+                                max={maxDate}
                                 className="md:col-span-2 border-gray-300 rounded-md shadow-sm" 
                             />
                             <button type="submit" className="md:col-span-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Tambah</button>
