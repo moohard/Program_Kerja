@@ -49,6 +49,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
 
     // Routes for Jabatan and User Management
-    Route::apiResource('jabatan', JabatanController::class);
+    // Route::apiResource('jabatan', JabatanController::class); // Replaced for debugging
+    Route::get('jabatan', [JabatanController::class, 'index']);
+    Route::post('jabatan', [JabatanController::class, 'store']);
+    Route::get('jabatan/{jabatan}', [JabatanController::class, 'show']);
+    Route::put('jabatan/{jabatanItem}', [JabatanController::class, 'update']);
+    Route::delete('jabatan/{jabatanItem}', [JabatanController::class, 'destroy']);
+
     Route::apiResource('users', UserController::class);
 });

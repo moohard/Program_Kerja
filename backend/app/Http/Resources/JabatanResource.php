@@ -21,6 +21,7 @@ class JabatanResource extends JsonResource
             'parent_id' => $this->parent_id,
             'parent' => new JabatanResource($this->whenLoaded('parent')),
             'children' => JabatanResource::collection($this->whenLoaded('children')),
+            'users' => UserResource::collection($this->whenLoaded('users')),
             'created_at' => $this->created_at->toIso8601String(),
             'updated_at' => $this->updated_at->toIso8601String(),
         ];

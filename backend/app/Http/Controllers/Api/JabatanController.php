@@ -16,8 +16,8 @@ class JabatanController extends Controller
      */
     public function index()
     {
-        // Eager load parent and children for hierarchical data
-        $jabatan = Jabatan::with(['parent', 'children'])->latest()->paginate(100);
+        // Revert to fetching a flat list for the table view, eager load parent for display
+        $jabatan = Jabatan::with(['parent', 'users'])->latest()->paginate(100);
         return JabatanResource::collection($jabatan);
     }
 
@@ -41,24 +41,24 @@ class JabatanController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateJabatanRequest $request, Jabatan $jabatan)
+    public function update(UpdateJabatanRequest $request, Jabatan $jabatanItem)
     {
-        $jabatan->update($request->validated());
-        return new JabatanResource($jabatan);
+        $jabatanItem->update($request->validated());
+        return new JabatanResource($jabatanItem);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Jabatan $jabatan)
+    public function destroy(Jabatan $jabatanItem)
     {
         // Add logic to handle children if necessary, e.g., re-assign them.
         // For now, we'll just delete. Add a check if it has users assigned.
-        if ($jabatan->users()->count() > 0) {
+        if ($jabatanItem->users()->count() > 0) {
             return response()->json(['message' => 'Tidak dapat menghapus jabatan yang masih memiliki user.'], 422);
         }
 
-        $jabatan->delete();
+        $jabatanItem->delete();
         return response()->noContent();
     }
 }

@@ -23,7 +23,7 @@ class StoreJabatanRequest extends FormRequest
     {
         return [
             'nama_jabatan' => 'required|string|max:255|unique:jabatan,nama_jabatan',
-            'bidang' => 'nullable|string|max:255',
+            'bidang' => 'nullable|in:pimpinan,kesekretariatan,kepaniteraan,teknis,hakim',
             'parent_id' => 'nullable|integer|exists:jabatan,id',
         ];
     }

@@ -55,15 +55,21 @@ const JabatanForm = ({ onSave, onCancel, jabatan, jabatanList }) => {
                 {errors.nama_jabatan && <p className="text-red-500 text-xs mt-1">{errors.nama_jabatan}</p>}
             </div>
             <div className="mb-4">
-                <label htmlFor="bidang" className="block text-sm font-medium text-gray-700">Bidang (Opsional)</label>
-                <input
-                    type="text"
+                <label htmlFor="bidang" className="block text-sm font-medium text-gray-700">Bidang</label>
+                <select
                     name="bidang"
                     id="bidang"
                     value={formData.bidang}
                     onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                />
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                >
+                    <option value="">Pilih Bidang</option>
+                    <option value="pimpinan">Pimpinan</option>
+                    <option value="kesekretariatan">Kesekretariatan</option>
+                    <option value="kepaniteraan">Kepaniteraan</option>
+                    <option value="teknis">Teknis</option>
+                    <option value="hakim">Hakim</option>
+                </select>
             </div>
             <div className="mb-4">
                 <label htmlFor="parent_id" className="block text-sm font-medium text-gray-700">Atasan Langsung (Opsional)</label>

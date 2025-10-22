@@ -22,7 +22,7 @@ class UpdateJabatanRequest extends FormRequest
      */
     public function rules(): array
     {
-        $jabatanId = $this->route('jabatan')->id;
+        $jabatanId = $this->route('jabatanItem')->id;
 
         return [
             'nama_jabatan' => [
@@ -31,7 +31,7 @@ class UpdateJabatanRequest extends FormRequest
                 'max:255',
                 Rule::unique('jabatan')->ignore($jabatanId),
             ],
-            'bidang' => 'nullable|string|max:255',
+            'bidang' => 'nullable|in:pimpinan,kesekretariatan,kepaniteraan,teknis,hakim',
             'parent_id' => 'nullable|integer|exists:jabatan,id',
         ];
     }

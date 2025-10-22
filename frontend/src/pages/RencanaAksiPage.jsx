@@ -10,7 +10,8 @@ function RencanaAksiPage() {
     const [kegiatanList, setKegiatanList] = useState([]);
     const [rencanaAksiList, setRencanaAksiList] = useState([]);
     const [jabatanTree, setJabatanTree] = useState([]);
-    const [userList, setUserList] = useState([]); // <-- State baru
+    const [userList, setUserList] = useState([]);
+    const [processedJabatanTree, setProcessedJabatanTree] = useState([]); // State for merged data
 
     const [selectedKategori, setSelectedKategori] = useState('');
     const [selectedKegiatan, setSelectedKegiatan] = useState('');
@@ -25,47 +26,55 @@ function RencanaAksiPage() {
     const [selectedRencanaAksi, setSelectedRencanaAksi] = useState(null);
     const { user: currentUser } = useContext(AuthContext);
 
-    // Fetch Kategori Utama
+    // Fetch Kategori Utama, Jabatan Tree & Users
     useEffect(() => {
-        const fetchKategori = async () => {
+        const fetchInitialData = async () => {
             setLoading(prev => ({ ...prev, kategori: true }));
             try {
-                const response = await apiClient.get('/kategori-utama');
-                setKategoriList(response.data.data);
+                const [kategoriRes, jabatanRes, usersRes] = await Promise.all([
+                    apiClient.get('/kategori-utama'),
+                    apiClient.get('/jabatan'),
+                    apiClient.get('/users')
+                ]);
+                console.log("Raw Jabatan Tree:", jabatanRes.data.data);
+                console.log("Raw User List:", usersRes.data.data);
+                setKategoriList(kategoriRes.data.data);
+                setJabatanTree(jabatanRes.data.data);
+                setUserList(usersRes.data.data);
             } catch (error) {
-                console.error("Error fetching kategori utama:", error);
+                console.error("Error fetching initial data:", error);
             } finally {
                 setLoading(prev => ({ ...prev, kategori: false }));
             }
         };
-        fetchKategori();
+        fetchInitialData();
     }, []);
 
-    // Fetch Jabatan Tree
+    // Effect to merge users into the jabatan tree
     useEffect(() => {
-        const fetchJabatanTree = async () => {
-            try {
-                const response = await apiClient.get('/jabatan');
-                setJabatanTree(response.data.data);
-            } catch (error) {
-                console.error("Error fetching jabatan tree:", error);
-            }
-        };
-        fetchJabatanTree();
-    }, []);
+        if (jabatanTree.length > 0 && userList.length > 0) {
+            const usersByJabatan = userList.reduce((acc, user) => {
+                const jabatanId = user.jabatan_id;
+                if (!acc[jabatanId]) {
+                    acc[jabatanId] = [];
+                }
+                acc[jabatanId].push(user);
+                return acc;
+            }, {});
 
-    // Fetch User List
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const response = await apiClient.get('/users');
-                setUserList(response.data.data);
-            } catch (error) {
-                console.error("Error fetching users:", error);
-            }
-        };
-        fetchUsers();
-    }, []);
+            const mapUsersToTree = (nodes) => {
+                return nodes.map(node => ({
+                    ...node,
+                    users: usersByJabatan[node.id] || [],
+                    children: node.children ? mapUsersToTree(node.children) : [],
+                }));
+            };
+
+            const newProcessedTree = mapUsersToTree(jabatanTree);
+            console.log("Processed Jabatan Tree:", newProcessedTree);
+            setProcessedJabatanTree(newProcessedTree);
+        }
+    }, [jabatanTree, userList]);
 
     // Fetch Kegiatan based on selected Kategori
     const fetchKegiatan = useCallback(async (kategoriId) => {
@@ -312,7 +321,7 @@ function RencanaAksiPage() {
                 isOpen={isModalOpen}
                 currentData={currentItem}
                 kegiatanId={selectedKegiatan}
-                jabatanTree={jabatanTree}
+                jabatanTree={processedJabatanTree} // Use the processed tree
                 onClose={handleCloseModal}
                 onSave={fetchRencanaAksi}
             />}
