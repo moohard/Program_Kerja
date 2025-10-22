@@ -35,28 +35,23 @@ class ReportController extends Controller
 
         // 2. Progress by Category
         $progressByCategory = KategoriUtama::where('program_kerja_id', $programKerjaId)
-            ->where('is_active', TRUE)
-            ->with(['kegiatan.rencanaAksi.progressMonitorings']) // [FIX] Eager load the relationship needed by the accessor
+            ->where('is_active', true)
+            ->with([
+                'kegiatan.rencanaAksi' => function ($raQuery) {
+                    $raQuery->where('jadwal_tipe', '!=', 'rutin')->with('progressMonitorings');
+                },
+            ])
             ->orderBy('nomor')
             ->get()
             ->map(function ($kategori) {
                 $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
-
                 if ($allAksi->isEmpty()) {
-                    return NULL;
+                    return null;
                 }
-
-                // [FIX] Use the accurate 'overall_progress' accessor instead of 'latestProgress'
-                $totalProgress = $allAksi->sum(function($aksi) {
-                    return $aksi->overall_progress_percentage; // Use the correct accessor name
-                });
-
-                $aksiCount = $allAksi->count();
-                $averageProgress = $aksiCount > 0 ? round($totalProgress / $aksiCount, 2) : 0;
-
+                $averageProgress = $allAksi->avg('overall_progress_percentage');
                 return [
-                    'category_name'    => "{$kategori->nomor}. {$kategori->nama_kategori}",
-                    'average_progress' => $averageProgress,
+                    'name'    => "{$kategori->nomor}. {$kategori->nama_kategori}",
+                    'progress' => round($averageProgress, 2),
                 ];
             })
             ->filter()->values();
@@ -165,13 +160,14 @@ class ReportController extends Controller
         }
 
     private function getMatrixReportData(Request $request)
-        {
+    {
         $request->validate([
             'year' => 'required|integer',
         ]);
         $year = $request->year;
 
         $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
+            ->where('jadwal_tipe', '!=', 'rutin')
             ->with([
                 'kegiatan.kategoriUtama',
                 'assignedTo:id,name',
@@ -245,6 +241,7 @@ class ReportController extends Controller
 
         if ($request->format === 'excel') {
             $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
+                ->where('jadwal_tipe', '!=', 'rutin')
                 ->with(['kegiatan.kategoriUtama', 'assignedTo:id,name', 'progressMonitorings' => fn($q) => $q->whereYear('report_date', $year)])
                 ->get();
             $fileName     = "Laporan_Matriks_{$year}.xlsx";
@@ -254,6 +251,7 @@ class ReportController extends Controller
         if ($request->format === 'pdf') {
             // 1. Ambil data mentah
             $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
+                ->where('jadwal_tipe', '!=', 'rutin')
                 ->with(['kegiatan.kategoriUtama', 'assignedTo:id,name', 'progressMonitorings' => fn($q) => $q->whereYear('report_date', $year)])
                 ->orderBy('kegiatan_id') // Urutkan untuk grouping
                 ->get();
@@ -316,21 +314,28 @@ class ReportController extends Controller
 
         // 2. Progress by Category
         $progressByCategory = KategoriUtama::where('program_kerja_id', $programKerjaId)
-            ->where('is_active', TRUE)
-            ->with(['kegiatan.rencanaAksi.latestProgress'])
+            ->where('is_active', true)
+            ->with([
+                'kegiatan' => function ($q) {
+                    $q->with(['rencanaAksi' => function ($raQuery) {
+                        $raQuery->where('jadwal_tipe', '!=', 'rutin')
+                                ->with('progressMonitorings');
+                    }]);
+                },
+            ])
             ->orderBy('nomor')
             ->get()
             ->map(function ($kategori) {
-                $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
-                if ($allAksi->isEmpty()) {
-                    return NULL;
-                    }
-                $totalProgress = $allAksi->sum(fn($aksi) => $aksi->latestProgress->progress_percentage ?? 0);
+                $kegiatan = $kategori->getRelation('kegiatan');
+                if ($kegiatan->isEmpty()) {
+                    return null;
+                }
+                $averageProgress = $kegiatan->avg('overall_progress_percentage');
                 return [
                     'category_name'    => "{$kategori->nomor}. {$kategori->nama_kategori}",
-                    'average_progress' => round($totalProgress / $allAksi->count(), 2),
+                    'average_progress' => round($averageProgress, 2),
                 ];
-                })
+            })
             ->filter()->values();
 
         // 3. Achievement Highlights

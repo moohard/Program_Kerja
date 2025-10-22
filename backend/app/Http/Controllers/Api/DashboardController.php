@@ -99,33 +99,34 @@ class DashboardController extends Controller
     private function getProgressByCategory($programKerjaId, array $filters = [])
     {
         $query = KategoriUtama::where('program_kerja_id', $programKerjaId)->where('is_active', true);
+        
+        // Filter Kategori jika ada
         $query->when($filters['kategori_id'] ?? null, fn($q, $id) => $q->where('id', $id));
 
         $categories = $query->with([
+            // Eager load kegiatan, dan filter jika ada
             'kegiatan' => function ($q) use ($filters) {
                 $q->when($filters['kegiatan_id'] ?? null, fn($sq, $id) => $sq->where('id', $id));
-                // Eager load relasi yang dibutuhkan oleh accessor di Kegiatan
-                $q->with('rencanaAksi.progressMonitorings');
             },
+            // Eager load rencanaAksi DENGAN SEMUA FILTER TERAPAN
             'kegiatan.rencanaAksi' => function ($q) use ($filters) {
-                // We only need to apply user/status filters here as others are contextually applied
-                $q->where('jadwal_tipe', '!=', 'rutin'); // <-- FIX: Exclude routine tasks
+                $q->where('jadwal_tipe', '!=', 'rutin');
                 $q->when($filters['user_id'] ?? null, fn($sq, $id) => $sq->where('assigned_to', $id));
                 $q->when($filters['status'] ?? null, fn($sq, $status) => $sq->where('status', $status));
-            },
+                $q->with('progressMonitorings'); // Pastikan ini tetap di-load untuk accessor
+            }
         ])->orderBy('nomor')->get();
 
         return $categories->map(function ($kategori) {
-            // Ambil semua kegiatan yang sudah di-load dengan relasinya
-            $kegiatan = $kategori->getRelation('kegiatan');
+            // Karena relasi sudah difilter saat eager loading, kita bisa langsung agregasi
+            $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
             
-            if ($kegiatan->isEmpty()) {
+            if ($allAksi->isEmpty()) {
                 return null;
             }
-
-            // Hitung rata-rata dari accessor 'overall_progress_percentage' di setiap kegiatan
-            $average = $kegiatan->avg('overall_progress_percentage');
-
+            
+            $average = $allAksi->avg('overall_progress_percentage');
+            
             return ['name' => "{$kategori->nomor}. {$kategori->nama_kategori}", 'progress' => round($average, 2)];
         })->filter()->values();
     }
