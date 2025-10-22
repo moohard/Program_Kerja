@@ -21,11 +21,11 @@ ChartJS.register(
 
 function CategoryProgressChart({ data }) {
     const chartData = {
-        labels: data.map(item => item.category_name),
+        labels: data.map(item => item.name),
         datasets: [
             {
                 label: 'Rata-rata Progress (%)',
-                data: data.map(item => item.average_progress),
+                data: data.map(item => item.progress),
                 backgroundColor: 'rgba(75, 192, 192, 0.6)',
                 borderColor: 'rgba(75, 192, 192, 1)',
                 borderWidth: 1,
@@ -41,7 +41,7 @@ function CategoryProgressChart({ data }) {
             },
             title: {
                 display: true,
-                text: 'Progress Rata-Rata per Kategori Utama',
+                text: 'Progress Rata-Rata',
                 font: { size: 16 }
             },
         },

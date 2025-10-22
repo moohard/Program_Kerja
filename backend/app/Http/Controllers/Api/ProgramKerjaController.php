@@ -87,5 +87,18 @@ class ProgramKerjaController extends Controller
         $programKerja->delete();
         Cache::forget('program_kerja_list');
         return response()->noContent();
+        return response()->json(['message' => 'Program kerja berhasil diaktifkan.']);
+    }
+
+    public function getFilterOptions(ProgramKerja $programKerja)
+    {
+        return $programKerja->load([
+            'kategoriUtama' => function ($query) {
+                $query->select('id', 'program_kerja_id', 'nama_kategori', 'nomor')->orderBy('nomor');
+            },
+            'kategoriUtama.kegiatan' => function ($query) {
+                $query->select('id', 'kategori_id', 'nama_kegiatan');
+            }
+        ]);
     }
 }

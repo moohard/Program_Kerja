@@ -1,84 +1,138 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../../services/apiClient';
 
-const DashboardFilter = ({ filters, onFilterChange }) => {
-    const [programKerjaList, setProgramKerjaList] = useState([]);
-    const [kategoriList, setKategoriList] = useState([]);
-    const [userList, setUserList] = useState([]);
+function DashboardFilter({ filters, onFilterChange }) {
+    const [programKerjaOptions, setProgramKerjaOptions] = useState([]);
+    const [kategoriOptions, setKategoriOptions] = useState([]);
+    const [kegiatanOptions, setKegiatanOptions] = useState([]);
+    const [userOptions, setUserOptions] = useState([]);
+    const [statusOptions] = useState([
+        { id: 'planned', name: 'planned' },
+        { id: 'in_progress', name: 'in_progress' },
+        { id: 'completed', name: 'completed' },
+        { id: 'delayed', name: 'delayed' },
+    ]);
+    const [displayTypeOptions] = useState([
+        { id: 'kategori', name: 'Per Kategori Utama' },
+        { id: 'kegiatan', name: 'Per Kegiatan' },
+        { id: 'rencana_aksi', name: 'Per Rencana Aksi' },
+    ]);
 
-    // Fetch data for filter dropdowns
+    const handleFilterChange = useCallback((name, value) => {
+        const newFilters = { ...filters, [name]: value };
+
+        if (name === 'program_kerja_id') {
+            newFilters.kategori_id = '';
+            newFilters.kegiatan_id = '';
+        }
+        if (name === 'kategori_id') {
+            newFilters.kegiatan_id = '';
+        }
+        if (name === 'display_type') {
+            // Reset contextual filters when display type changes
+            if (value === 'kategori') {
+                newFilters.kategori_id = '';
+                newFilters.kegiatan_id = '';
+            }
+            if (value === 'kegiatan') {
+                newFilters.kegiatan_id = '';
+            }
+        }
+        onFilterChange(newFilters);
+    }, [filters, onFilterChange]);
+
     useEffect(() => {
-        const fetchFilterData = async () => {
+        const fetchInitialOptions = async () => {
             try {
-                const [programKerjaRes, usersRes] = await Promise.all([
+                const [programRes, userRes] = await Promise.all([
                     apiClient.get('/program-kerja'),
-                    apiClient.get('/users') // Assuming this endpoint exists
+                    apiClient.get('/users')
                 ]);
-                setProgramKerjaList(programKerjaRes.data.data);
-                setUserList(usersRes.data.data); // Adjust based on actual user API response structure
+                const programData = programRes.data.data || [];
+                setProgramKerjaOptions(programData);
+                setUserOptions(userRes.data.data || []);
+                
+                if (!filters.program_kerja_id && programData.length > 0) {
+                    const activeProgram = programData.find(p => p.is_aktif) || programData[0];
+                    handleFilterChange('program_kerja_id', activeProgram.id);
+                }
             } catch (error) {
-                console.error("Failed to fetch filter data:", error);
+                console.error("Failed to fetch initial filter options:", error);
             }
         };
-        fetchFilterData();
+        fetchInitialOptions();
     }, []);
 
-    // Fetch categories when program_kerja_id changes
     useEffect(() => {
-        if (filters.program_kerja_id) {
-            apiClient.get(`/kategori-utama?program_kerja_id=${filters.program_kerja_id}`)
-                .then(res => setKategoriList(res.data.data))
-                .catch(err => console.error("Failed to fetch categories:", err));
-        } else {
-            setKategoriList([]);
-        }
+        const fetchDependentOptions = async () => {
+            if (filters.program_kerja_id) {
+                try {
+                    const response = await apiClient.get(`/program-kerja/${filters.program_kerja_id}/filter-options`);
+                    setKategoriOptions(response.data.kategori_utama || []);
+                } catch (error) {
+                    console.error("Failed to fetch kategori/kegiatan options:", error);
+                    setKategoriOptions([]);
+                }
+            } else {
+                setKategoriOptions([]);
+            }
+        };
+        fetchDependentOptions();
     }, [filters.program_kerja_id]);
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        // When year changes, reset category
-        const newFilters = name === 'program_kerja_id' ? { ...filters, [name]: value, kategori_id: '' } : { ...filters, [name]: value };
-        onFilterChange(newFilters);
-    };
+    useEffect(() => {
+        if (filters.kategori_id) {
+            const selectedKategori = kategoriOptions.find(k => k.id === parseInt(filters.kategori_id));
+            setKegiatanOptions(selectedKategori ? selectedKategori.kegiatan : []);
+        } else {
+            setKegiatanOptions([]);
+        }
+    }, [filters.kategori_id, kategoriOptions]);
 
     return (
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Filter by Year (Program Kerja) */}
-                <select name="program_kerja_id" value={filters.program_kerja_id} onChange={handleInputChange} className="block w-full border-gray-300 rounded-md shadow-sm">
-                    <option value="">Semua Tahun Program</option>
-                    {programKerjaList.map(pk => (
-                        <option key={pk.id} value={pk.id}>{pk.tahun}</option>
-                    ))}
+        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {/* Program Kerja */}
+                <select name="program_kerja_id" value={filters.program_kerja_id} onChange={(e) => handleFilterChange(e.target.name, e.target.value)} className="form-select">
+                    <option value="">Pilih Program Kerja</option>
+                    {programKerjaOptions.map(pk => <option key={pk.id} value={pk.id}>{pk.tahun}</option>)}
                 </select>
 
-                {/* Filter by Category */}
-                <select name="kategori_id" value={filters.kategori_id} onChange={handleInputChange} className="block w-full border-gray-300 rounded-md shadow-sm" disabled={!filters.program_kerja_id}>
-                    <option value="">Semua Kategori</option>
-                    {kategoriList.map(k => (
-                        <option key={k.id} value={k.id}>{k.nama_kategori}</option>
-                    ))}
+                {/* Tipe Tampilan */}
+                <select name="display_type" value={filters.display_type} onChange={(e) => handleFilterChange(e.target.name, e.target.value)} className="form-select">
+                    {displayTypeOptions.map(opt => <option key={opt.id} value={opt.id}>{opt.name}</option>)}
                 </select>
 
-                {/* Filter by User */}
-                <select name="user_id" value={filters.user_id} onChange={handleInputChange} className="block w-full border-gray-300 rounded-md shadow-sm">
-                    <option value="">Semua Penanggung Jawab</option>
-                    {userList.map(u => (
-                        <option key={u.id} value={u.id}>{u.name}</option>
-                    ))}
+                {/* Kategori Utama (Contextual) */}
+                {['kegiatan', 'rencana_aksi'].includes(filters.display_type) && (
+                    <select name="kategori_id" value={filters.kategori_id} onChange={(e) => handleFilterChange(e.target.name, e.target.value)} className="form-select" disabled={!filters.program_kerja_id}>
+                        <option value="">Semua Kategori</option>
+                        {kategoriOptions.map(kat => <option key={kat.id} value={kat.id}>{kat.nomor}. {kat.nama_kategori}</option>)}
+                    </select>
+                )}
+
+                {/* Kegiatan (Contextual) */}
+                {filters.display_type === 'rencana_aksi' && (
+                    <select name="kegiatan_id" value={filters.kegiatan_id} onChange={(e) => handleFilterChange(e.target.name, e.target.value)} className="form-select" disabled={!filters.kategori_id}>
+                        <option value="">Semua Kegiatan</option>
+                        {kegiatanOptions.map(keg => <option key={keg.id} value={keg.id}>{keg.nama_kegiatan}</option>)}
+                    </select>
+                )}
+
+                {/* User */}
+                <select name="user_id" value={filters.user_id} onChange={(e) => handleFilterChange(e.target.name, e.target.value)} className="form-select">
+                    <option value="">Semua P. Jawab</option>
+                    {userOptions.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                 </select>
 
-                {/* Filter by Status */}
-                <select name="status" value={filters.status} onChange={handleInputChange} className="block w-full border-gray-300 rounded-md shadow-sm">
+                {/* Status */}
+                <select name="status" value={filters.status} onChange={(e) => handleFilterChange(e.target.name, e.target.value)} className="form-select">
                     <option value="">Semua Status</option>
-                    <option value="planned">Planned</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                    <option value="delayed">Delayed</option>
+                    {statusOptions.map(status => <option key={status.id} value={status.id}>{status.name}</option>)}
                 </select>
             </div>
         </div>
     );
-};
+}
 
 export default DashboardFilter;

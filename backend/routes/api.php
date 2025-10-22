@@ -47,7 +47,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('templates', TemplateController::class);
     Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
     Route::apiResource('jabatan', JabatanController::class)->only(['index']);
+
+    // Routes for Program Kerja
     Route::apiResource('program-kerja', ProgramKerjaController::class);
+    Route::post('/program-kerja/{programKerja}/activate', [ProgramKerjaController::class, 'activate']);
+    Route::get('/program-kerja/{programKerja}/filter-options', [ProgramKerjaController::class, 'getFilterOptions']);
+
+    // Route for Rencana Aksi
+    Route::apiResource('rencana-aksi', RencanaAksiController::class);
 
     // Route untuk mengambil progress berdasarkan Rencana Aksi
     Route::get('/rencana-aksi/{rencanaAksi}/progress', [ProgressMonitoringController::class, 'indexByRencanaAksi']);

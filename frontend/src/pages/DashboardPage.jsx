@@ -5,7 +5,7 @@ import StatCard from '../components/dashboard/StatCard';
 import CategoryProgressChart from '../components/dashboard/CategoryProgressChart';
 import UpcomingDeadlines from '../components/dashboard/UpcomingDeadlines';
 import RecentActivity from '../components/dashboard/RecentActivity';
-import DashboardFilter from '../components/dashboard/DashboardFilter'; // Import filter component
+import DashboardFilter from '../components/dashboard/DashboardFilter';
 
 
 function DashboardPage() {
@@ -13,7 +13,9 @@ function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({
         program_kerja_id: '',
+        display_type: 'kategori', // Default display type
         kategori_id: '',
+        kegiatan_id: '',
         user_id: '',
         status: '',
     });
@@ -21,7 +23,6 @@ function DashboardPage() {
     const fetchDashboardData = useCallback(async () => {
         try {
             setLoading(true);
-            // Clean up filters by removing empty values
             const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
                 if (value) acc[key] = value;
                 return acc;
@@ -45,13 +46,12 @@ function DashboardPage() {
         setFilters(newFilters);
     };
 
-    // Destructure data only when it's available
-    const { summary, progress_by_category, upcoming_deadlines, recent_activity } = dashboardData || {};
-    const total = summary ? Object.values(summary).reduce((acc, val) => acc + val, 0) : 0;
+    // [UPDATE] Use the new standardized key from the API response
+    const { summary, progress_chart_data, upcoming_deadlines, recent_activities } = dashboardData || {};
+    const total = summary ? (summary.completed || 0) + (summary.in_progress || 0) + (summary.delayed || 0) + (summary.planned || 0) : 0;
 
     return (
         <div className="space-y-6">
-            {/* Filter Section */}
             <DashboardFilter filters={filters} onFilterChange={handleFilterChange} />
 
             {loading ? (
@@ -60,26 +60,23 @@ function DashboardPage() {
                 <div className="text-center text-gray-500">Gagal memuat data dashboard.</div>
             ) : (
                 <>
-                    {/* Bagian Statistik Utama */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <StatCard title="Total Rencana Aksi" value={total} icon={<FiClipboard size={24}/>} color="blue" />
                         <StatCard title="Selesai" value={summary.completed || 0} icon={<FiCheckSquare size={24}/>} color="green" />
                         <StatCard title="Dalam Pengerjaan" value={summary.in_progress || 0} icon={<FiLoader size={24}/>} color="yellow" />
-                        <StatCard title="Terlambat" value={summary.delayed || 0} icon={<FiAlertTriangle size={24}/>} color="red" />
+                        <StatCard title="Terlambat" value={dashboardData.overdue_tasks_count || 0} icon={<FiAlertTriangle size={24}/>} color="red" />
                     </div>
                     
-                    {/* Bagian Utama: Grafik, Tenggat Waktu, dan Aktivitas */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2">
-                            <CategoryProgressChart data={progress_by_category} />
+                            {/* [UPDATE] Pass the correct prop to the chart */}
+                            <CategoryProgressChart data={progress_chart_data} />
                         </div>
                         <div className="space-y-6">
                             <UpcomingDeadlines data={upcoming_deadlines} />
-                            <RecentActivity data={recent_activity} />
+                            <RecentActivity data={recent_activities} />
                         </div>
                     </div>
-
-
                 </>
             )}
         </div>
