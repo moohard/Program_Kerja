@@ -67,12 +67,11 @@ function DashboardPage() {
                         <StatCard title="Terlambat" value={dashboardData.overdue_tasks_count || 0} icon={<FiAlertTriangle size={24}/>} color="red" />
                     </div>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2">
-                            {/* [UPDATE] Pass the correct prop to the chart */}
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                        <div className="lg:col-span-3">
                             <CategoryProgressChart data={progress_chart_data} />
                         </div>
-                        <div className="space-y-6">
+                        <div className="lg:col-span-2 space-y-6">
                             <UpcomingDeadlines data={upcoming_deadlines} />
                             <RecentActivity data={recent_activities} />
                         </div>

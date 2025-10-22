@@ -202,18 +202,71 @@ class DashboardController extends Controller
 
     private function getRecentActivity()
     {
-        return AuditLog::with('user:id,name')->latest()->limit(10)->get()->map(function ($log) {
+        $logs = AuditLog::with('user:id,name')->latest()->limit(10)->get();
+
+        // Definisikan kolom deskripsi untuk setiap tabel yang relevan
+        $descriptionColumns = [
+            'rencana_aksi' => 'deskripsi_aksi',
+            'todo_items'   => 'deskripsi',
+            'kegiatan'     => 'nama_kegiatan',
+            'program_kerja' => 'nama_program',
+        ];
+
+        // Kelompokkan log berdasarkan tabel dan kumpulkan ID barisnya
+        $logsByTable = $logs->groupBy('table_name');
+        $relatedData = [];
+
+        foreach ($logsByTable as $tableName => $tableLogs) {
+            if (!isset($descriptionColumns[$tableName])) continue;
+
+            $ids = $tableLogs->pluck('record_id')->filter()->unique()->toArray();
+            if (empty($ids)) continue;
+            
+            $column = $descriptionColumns[$tableName];
+            $data = DB::table($tableName)->whereIn('id', $ids)->pluck($column, 'id');
+            $relatedData[$tableName] = $data;
+        }
+
+        // Bangun deskripsi yang detail untuk setiap log
+        return $logs->map(function ($log) use ($relatedData, $descriptionColumns) {
             $userName = $log->user->name ?? 'Sistem';
             $action = strtolower($log->action);
-            $verbMap = ['create' => 'membuat', 'update' => 'memperbarui', 'delete' => 'menghapus'];
+            $verbMap = [
+                'create' => 'membuat', 
+                'update' => 'memperbarui', 
+                'delete' => 'menghapus',
+                'approve' => 'menyetujui',
+                'reject' => 'menolak',
+                'submit' => 'menyelesaikan',
+            ];
             $verb = $verbMap[$action] ?? $action;
             $objectType = str_replace('_', ' ', \Illuminate\Support\Str::singular($log->table_name));
-            $objectName = $log->new_values['deskripsi_aksi'] ?? $log->new_values['nama_kegiatan'] ?? $log->new_values['name'] ?? '';
+            
+            $objectName = '';
+            $tableName = $log->table_name;
+            $recordId = $log->record_id;
+
+            // Coba dapatkan nama dari data yang kita ambil
+            if (isset($relatedData[$tableName]) && isset($relatedData[$tableName][$recordId])) {
+                $objectName = $relatedData[$tableName][$recordId];
+            } 
+            // Fallback untuk aksi create/update jika item tidak ditemukan (misal, sudah dihapus lagi)
+            elseif ($log->action !== 'delete' && isset($descriptionColumns[$tableName])) {
+                $column = $descriptionColumns[$tableName];
+                $objectName = $log->new_values[$column] ?? '';
+            }
+
             $description = "<b>{$userName}</b> {$verb} {$objectType}";
             if ($objectName) {
                 $description .= " <i>'" . \Illuminate\Support\Str::limit($objectName, 50) . "'</i>";
             }
-            return ['id' => $log->id, 'description' => $description, 'created_at' => $log->created_at, 'user' => $log->user];
+
+            return [
+                'id' => $log->id, 
+                'description' => $description, 
+                'created_at' => $log->created_at, 
+                'user' => $log->user
+            ];
         });
     }
 }

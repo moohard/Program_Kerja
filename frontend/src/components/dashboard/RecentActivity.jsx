@@ -14,7 +14,7 @@ const RecentActivity = ({ data }) => {
     }
 
     return (
-        <div className="bg-white shadow rounded-lg p-4">
+        <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Aktivitas Terbaru</h3>
             <div className="max-h-96 overflow-y-auto pr-2">
                 <ul className="space-y-4">

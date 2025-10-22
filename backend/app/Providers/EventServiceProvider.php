@@ -6,10 +6,10 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
-use App\Models\RencanaAksi;   // <-- Tambahkan ini
+use App\Models\RencanaAksi;
 use App\Observers\RencanaAksiObserver;
-
-// <-- Tambahkan ini
+use App\Models\TodoItem;
+use App\Observers\TodoItemObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -31,7 +31,8 @@ class EventServiceProvider extends ServiceProvider
      * @var array
      */
     protected $observers = [
-        RencanaAksi::class => [ RencanaAksiObserver::class], // <-- Daftarkan di sini
+        RencanaAksi::class => [RencanaAksiObserver::class],
+        TodoItem::class    => [TodoItemObserver::class],
     ];
 
     /**
