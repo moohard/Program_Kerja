@@ -24,21 +24,21 @@ class RencanaAksiResource extends JsonResource
             'jadwal_tipe'      => $this->jadwal_tipe,
             'jadwal_config'    => $this->jadwal_config,
             'target_months'    => $this->target_months,
-            'overall_progress_percentage' => $this->overall_progress_percentage, // <-- FIELD BARU
+
+            // Progress keseluruhan - SELALU dihitung dari semua data melalui accessor
+            'overall_progress' => $this->overall_progress_percentage,
+
+            // Progress untuk bulan yang difilter (jika ada)
+            'monthly_progress' => $this->when(isset($this->filtered_monthly_progress), function () {
+                if ($this->filtered_monthly_progress instanceof \App\Models\ProgressMonitoring) {
+                    return new ProgressMonitoringResource($this->filtered_monthly_progress);
+                }
+                return $this->filtered_monthly_progress;
+            }),
+
             'assigned_to'      => new UserResource($this->whenLoaded('assignedTo')),
             'progress_history' => ProgressMonitoringResource::collection($this->whenLoaded('progressMonitorings')),
             'todo_items'       => TodoItemResource::collection($this->whenLoaded('todoItems')),
-            
-            'monthly_progress' => $this->when(isset($this->monthly_progress), function () {
-                // If it's a real Eloquent model, use the resource.
-                // Otherwise (it's our stdClass placeholder), return it as-is.
-                if ($this->monthly_progress instanceof \App\Models\ProgressMonitoring) {
-                    return new ProgressMonitoringResource($this->monthly_progress);
-                }
-                return $this->monthly_progress;
-            }),
-
-            'latest_progress'  => new ProgressMonitoringResource($this->whenLoaded('latestProgress')),
         ];
     }
 

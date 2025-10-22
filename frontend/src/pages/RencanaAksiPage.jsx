@@ -219,11 +219,11 @@ function RencanaAksiPage() {
                                                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                                                     <div
                                                         className="bg-green-500 h-2.5 rounded-full"
-                                                        style={{ width: `${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress_percentage) || 0}%` }}>
+                                                        style={{ width: `${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%` }}>
                                                     </div>
                                                 </div>
                                                 <span className="text-xs text-gray-500 ml-2">
-                                                    {`${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress_percentage) || 0}%`}
+                                                    {`${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%`}
                                                 </span>
                                                 {(selectedMonth ? item.monthly_progress?.is_late : item.latest_progress?.is_late) ? (
                                                     <FiAlertTriangle className="ml-2 text-yellow-500" title="Progress dilaporkan terlambat" />
@@ -271,11 +271,11 @@ function RencanaAksiPage() {
                                         <div className="w-full bg-gray-200 rounded-full h-2.5">
                                             <div
                                                 className="bg-green-500 h-2.5 rounded-full"
-                                                style={{ width: `${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress_percentage) || 0}%` }}>
+                                                style={{ width: `${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%` }}>
                                             </div>
                                         </div>
                                         <span className="text-xs text-gray-500 ml-2">
-                                            {`${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress_percentage) || 0}%`}
+                                            {`${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%`}
                                         </span>
                                         {(selectedMonth ? item.monthly_progress?.is_late : item.latest_progress?.is_late) ? (
                                             <FiAlertTriangle className="ml-2 text-yellow-500" title="Progress dilaporkan terlambat" />

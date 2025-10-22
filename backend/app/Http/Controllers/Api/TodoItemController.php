@@ -175,22 +175,18 @@ class TodoItemController extends Controller
     {
         $jadwalService = app(\App\Services\JadwalService::class);
         
-        // 1. Dapatkan bulan-bulan yang direncanakan
         $targetMonths = $jadwalService->getTargetMonths($rencanaAksi->jadwal_tipe, $rencanaAksi->jadwal_config ?? []);
         
-        // Jika tidak ada bulan target (misal: jadwal 'rutin' tanpa bulan spesifik), hitung progres dari semua todo.
         if (empty($targetMonths)) {
             $allTodos = $rencanaAksi->todoItems()->count();
             $completedTodos = $rencanaAksi->todoItems()->where('status_approval', 'approved')->count();
             $overallProgress = ($allTodos > 0) ? round(($completedTodos / $allTodos) * 100) : 0;
         } else {
-            // 2. Ambil semua data progres yang relevan untuk bulan target
             $progressRecords = ProgressMonitoring::where('rencana_aksi_id', $rencanaAksi->id)
                 ->whereIn(DB::raw('MONTH(report_date)'), $targetMonths)
                 ->get()
                 ->keyBy(fn($item) => \Carbon\Carbon::parse($item->report_date)->month);
 
-            // 3. Hitung rata-rata progres
             $totalProgress = 0;
             foreach ($targetMonths as $month) {
                 $totalProgress += $progressRecords[$month]->progress_percentage ?? 0;
@@ -200,9 +196,7 @@ class TodoItemController extends Controller
             $overallProgress = ($divisor > 0) ? round($totalProgress / $divisor) : 0;
         }
 
-        Log::info("Overall Progress Calculation for RencanaAksi ID {$rencanaAksi->id}: {$overallProgress}%. ");
-
-        // 4. Tentukan status berdasarkan progres keseluruhan
+        // [FIX] Redefine status logic locally
         $status = 'planned';
         if ($overallProgress >= 100) {
             $status = 'completed';
@@ -210,13 +204,10 @@ class TodoItemController extends Controller
             $status = 'in_progress';
         }
 
-        // 5. Update Rencana Aksi
         $rencanaAksi->update([
             'status' => $status,
             'progress_keseluruhan' => $overallProgress,
             'actual_tanggal' => ($status === 'completed') ? ($rencanaAksi->actual_tanggal ?? now()) : null
         ]);
-
-        $rencanaAksi->unsetRelation('progressMonitorings');
     }
 }

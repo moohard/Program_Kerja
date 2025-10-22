@@ -25,74 +25,87 @@ class RencanaAksiController extends Controller
         $this->jadwalService = $jadwalService;
     }
 
-        public function index(Request $request)
-        {
-            $request->validate([
-                'kegiatan_id' => 'required|exists:kegiatan,id',
-                'month'       => 'nullable|integer|min:1|max:12',
-            ]);
-    
-            $kegiatanId = $request->kegiatan_id;
-            $month = $request->month;
-            $user = $request->user()->load('jabatan');
-            $userJabatan = $user->jabatan->nama_jabatan ?? null;
-    
-            // 1. Base query to get all relevant Rencana Aksi
-            $rencanaAksiQuery = RencanaAksi::where('kegiatan_id', $kegiatanId)
-                ->with('assignedTo:id,name', 'progressMonitorings', 'todoItems') // Removed 'latestProgress'
-                ->where('jadwal_tipe', '!=', 'rutin');
-    
-            // 2. Apply authorization filter for non-privileged users
-            if (!in_array($userJabatan, ['Administrator', 'Ketua'])) {
-                $rencanaAksiQuery->where(function ($query) use ($user) {
-                    $query->where('assigned_to', $user->id)
-                          ->orWhereHas('todoItems', function ($todoQuery) use ($user) {
-                              $todoQuery->where('pelaksana_id', $user->id);
-                          });
-                });
-            }
-    
-            // 3. Fetch the collection from the database
-            $rencanaAksi = $rencanaAksiQuery->latest()->get();
+                    public function index(Request $request)
 
-            // [CRITICAL FIX] Force-reload the relationship to prevent stale data issues.
-            $rencanaAksi->load('progressMonitorings');
-    
-            // 4. Attach progress object consistently for ALL roles
-            if ($month) {
-                // --- Logic for when a specific month is filtered ---
-                $jadwalService = $this->jadwalService;
-    
-                $rencanaAksi = $rencanaAksi->filter(function ($ra) use ($month, $jadwalService) {
-                    $targetMonths = $jadwalService->getTargetMonths($ra->jadwal_tipe, $ra->jadwal_config);
-                    return in_array($month, $targetMonths);
-                });
-    
-                $rencanaAksi->map(function ($ra) use ($month, $jadwalService) {
-                    $applicableReportDate = $jadwalService->getApplicableReportDate($ra, null, $month);
-                    
-                    // [DEFINITIVE FIX] Query the database directly and order by the latest monitoring date to get the true latest progress for the month.
-                    $progressForMonth = \App\Models\ProgressMonitoring::where('rencana_aksi_id', $ra->id)
-                        ->where('report_date', $applicableReportDate->format('Y-m-d'))
-                        ->latest('tanggal_monitoring')
-                        ->first();
-
-                    if (!$progressForMonth) {
-                        $ra->monthly_progress = (object) [
-                            'progress_percentage' => 0, 'is_late' => false, 'catatan' => 'Belum ada laporan untuk bulan ini.', 'report_date' => $applicableReportDate->format('Y-m-d'),
+                    {
+                            $request->validate([
+                    'kegiatan_id' => 'required|exists:kegiatan,id',
+                    'month'       => 'nullable|integer|min:1|max:12',
+                ]);
+        
+                $kegiatanId = $request->kegiatan_id;
+                $month = $request->month;
+                $user = $request->user()->load('jabatan');
+                $userJabatan = $user->jabatan->nama_jabatan ?? null;
+        
+                // 1. Base query - LOAD SEMUA PROGRESS untuk perhitungan keseluruhan
+                $rencanaAksiQuery = RencanaAksi::where('kegiatan_id', $kegiatanId)
+                    ->with([
+                        'assignedTo:id,name', 
+                        'progressMonitorings', // SEMUA progress untuk overall calculation
+                        'todoItems'
+                    ])
+                    ->where('jadwal_tipe', '!=', 'rutin');
+        
+                // 2. Apply authorization filter
+                if (!in_array($userJabatan, ['Administrator', 'Ketua'])) {
+                    $rencanaAksiQuery->where(function ($query) use ($user) {
+                        $query->where('assigned_to', $user->id)
+                              ->orWhereHas('todoItems', function ($todoQuery) use ($user) {
+                                  $todoQuery->where('pelaksana_id', $user->id);
+                              });
+                    });
+                }
+        
+                // 3. Fetch data
+                $rencanaAksi = $rencanaAksiQuery->latest()->get();
+        
+                // 4. Handle monthly filter - BUAT DATA TERPISAH untuk tampilan bulanan
+                if ($month) {
+                    $jadwalService = $this->jadwalService;
+        
+                    // Filter RencanaAksi yang memiliki target di bulan tersebut
+                    $rencanaAksi = $rencanaAksi->filter(function ($ra) use ($month, $jadwalService) {
+                        $targetMonths = $jadwalService->getTargetMonths($ra->jadwal_tipe, $ra->jadwal_config);
+                        return in_array($month, $targetMonths);
+                    });
+        
+                    // Tambahkan progress khusus untuk bulan yang difilter
+                    $rencanaAksi->map(function ($ra) use ($month, $jadwalService) {
+                        $applicableReportDate = $jadwalService->getApplicableReportDate($ra, null, $month);
+                        
+                        $progressForMonth = $ra->progressMonitorings
+                            ->where('report_date', $applicableReportDate->format('Y-m-d'))
+                            ->sortByDesc('tanggal_monitoring')
+                            ->first();
+        
+                        // Simpan sebagai atribut terpisah, jangan ganggu relationship utama
+                        $ra->filtered_monthly_progress = $progressForMonth ?: (object) [
+                            'progress_percentage' => 0, 
+                            'is_late' => false, 
+                            'catatan' => 'Belum ada laporan untuk bulan ini.', 
+                            'report_date' => $applicableReportDate->format('Y-m-d'),
                         ];
-                    } else {
-                        $ra->monthly_progress = $progressForMonth;
-                    }
-                    return $ra;
-                });
-            } else {
-                // For the "All Months" view, the frontend will use 'overall_progress_percentage'.
+        
+                        return $ra;
+                    });
+                } else {
+                    // Untuk view "All Months", gunakan progress terbaru sebagai filtered progress
+                    $rencanaAksi->map(function ($ra) {
+                        $latestProgress = $ra->progressMonitorings->sortByDesc('tanggal_monitoring')->first();
+                        
+                        $ra->filtered_monthly_progress = $latestProgress ?: (object) [
+                            'progress_percentage' => 0, 
+                            'is_late' => false, 
+                            'catatan' => 'Belum ada laporan.', 
+                            'report_date' => null,
+                        ];
+                        return $ra;
+                    });
+                }
+        
+                return RencanaAksiResource::collection($rencanaAksi);
             }
-    
-            return RencanaAksiResource::collection($rencanaAksi);
-        }
-
     public function store(StoreRencanaAksiRequest $request)
     {
         $user = $request->user()->load('jabatan');

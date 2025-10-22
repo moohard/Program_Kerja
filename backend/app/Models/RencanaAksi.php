@@ -101,29 +101,37 @@ class RencanaAksi extends Model
     {
         return Attribute::make(
             get: function () {
+                // [FIX] Force-reload the relationship to ensure it's not stale
+                $this->load('progressMonitorings');
+                
                 $targetMonths = $this->target_months;
 
                 if (empty($targetMonths)) {
-                    $latestProgress = \App\Models\ProgressMonitoring::where('rencana_aksi_id', $this->id)->latest('tanggal_monitoring')->first();
-                    return $latestProgress->progress_percentage ?? 0;
+                    return $this->latestProgress?->progress_percentage ?? 0;
                 }
-
+    
+                // Ambil progress TERBARU untuk setiap bulan target
+                $progresses = $this->getRelationValue('progressMonitorings')
+                    ->groupBy(function ($item) {
+                        return \Carbon\Carbon::parse($item->report_date)->month;
+                    })
+                    ->map(function ($monthGroup) {
+                        return $monthGroup->sortByDesc('tanggal_monitoring')->first();
+                    });
+    
                 $totalPercentage = 0;
-                $jadwalService = app(JadwalService::class);
-
+                
                 foreach ($targetMonths as $month) {
-                    $reportDate = $jadwalService->getApplicableReportDate($this, null, $month);
-                    
-                    $progress = \App\Models\ProgressMonitoring::where('rencana_aksi_id', $this->id)
-                        ->where('report_date', $reportDate->format('Y-m-d'))
-                        ->latest('tanggal_monitoring')
-                        ->first();
-                    
-                    $progressForMonth = $progress->progress_percentage ?? 0;
+                    // Beri 0% untuk bulan yang belum ada progress-nya
+                    $progressForMonth = $progresses[$month]->progress_percentage ?? 0;
                     $totalPercentage += $progressForMonth;
                 }
+    
+                // Selalu bagi dengan jumlah total bulan target
+                if (count($targetMonths) === 0) return 0; // Hindari division by zero
+                $finalAverage = round($totalPercentage / count($targetMonths));
                 
-                return round($totalPercentage / count($targetMonths));
+                return $finalAverage;
             }
         );
     }
