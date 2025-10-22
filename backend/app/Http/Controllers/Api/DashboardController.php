@@ -105,12 +105,13 @@ class DashboardController extends Controller
 
         $categories = $kategoriQuery->with([
             'kegiatan.rencanaAksi' => function ($rencanaAksiQuery) use ($filters) {
-                // Filter rencanaAksi by user and status, and eager load the nested relationship
+                // Filter rencanaAksi by user and status
                 $rencanaAksiQuery
                     ->when($filters['user_id'] ?? null, fn($q, $userId) => $q->where('assigned_to', $userId))
-                    ->when($filters['status'] ?? null, fn($q, $status) => $q->where('status', $status))
-                    ->with('latestProgress');
+                    ->when($filters['status'] ?? null, fn($q, $status) => $q->where('status', $status));
             },
+            // Eager load the relationship needed by the 'overall_progress_percentage' accessor
+            'kegiatan.rencanaAksi.progressMonitorings'
         ])->orderBy('nomor')->get();
 
         return $categories->map(function ($kategori) {
@@ -120,7 +121,8 @@ class DashboardController extends Controller
                 return null; // Will be filtered out later
             }
 
-            $totalProgress = $allAksi->sum(fn($aksi) => $aksi->latestProgress->progress_percentage ?? 0);
+            // [UPDATE] Use the accurate 'overall_progress_percentage' accessor
+            $totalProgress = $allAksi->sum(fn($aksi) => $aksi->overall_progress_percentage);
             $averageProgress = $allAksi->count() > 0 ? round($totalProgress / $allAksi->count(), 2) : 0;
 
             return [

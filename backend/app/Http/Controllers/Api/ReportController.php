@@ -95,10 +95,28 @@ class ReportController extends Controller
 
         // 1. Ambil semua RencanaAksi untuk bulan tersebut secara langsung
         $rencanaAksis = RencanaAksi::whereHas('kegiatan.kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerja->id))
-            ->whereYear('target_tanggal', $year) // [FIX] Filter berdasarkan tahun target
-            ->where(function ($q) use ($month) {
-                $q->whereIn('jadwal_tipe', ['periodik', 'bulanan', 'insidentil'])
-                    ->whereJsonContains('jadwal_config->months', $month);
+            ->whereYear('target_tanggal', $year) // Filter berdasarkan tahun target
+            ->where(function ($query) use ($month) {
+                // Case 1: Untuk jadwal yang mencantumkan bulan secara eksplisit (insidentil, bulanan)
+                $query->where(function ($q) use ($month) {
+                    $q->whereIn('jadwal_tipe', ['insidentil', 'bulanan'])
+                      ->whereJsonContains('jadwal_config->months', $month);
+                })
+                // Case 2: Untuk jadwal periodik
+                ->orWhere(function ($q) use ($month) {
+                    $q->where('jadwal_tipe', 'periodik')
+                      ->where(function ($sq) use ($month) {
+                          // Triwulanan
+                          $sq->where('jadwal_config->periode', 'triwulanan')
+                             ->whereRaw('? IN (3, 6, 9, 12)', [$month])
+                          // Semesteran
+                          ->orWhere(function ($ssq) use ($month) {
+                              $ssq->where('jadwal_config->periode', 'semesteran')
+                                  ->whereRaw('? IN (6, 12)', [$month]);
+                          });
+                          // Tambahkan tipe periodik lain jika ada
+                      });
+                });
             })
             ->with([
                             'kegiatan.kategoriUtama:id,nomor,nama_kategori',
