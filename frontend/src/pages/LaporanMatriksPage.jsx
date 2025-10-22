@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import apiClient from '../services/apiClient';
 import { FiDownload, FiPrinter } from 'react-icons/fi';
+import useFocus from '../hooks/useFocus'; // Import the hook
 
 const LaporanMatriksPage = () => {
     const currentYear = new Date().getFullYear();
@@ -24,6 +25,9 @@ const LaporanMatriksPage = () => {
             setLoading(false);
         }
     };
+
+    // Automatically refetch data when the window/tab comes back into focus
+    useFocus(fetchReport);
 
     useEffect(() => {
         fetchReport();
@@ -89,11 +93,24 @@ const LaporanMatriksPage = () => {
         }
     };
 
-    const getProgressColor = (progress) => {
+    const getMonthlyProgressColor = (progress) => {
         if (progress === null || progress === undefined) return 'bg-gray-50';
         if (progress == 100) return 'bg-green-200 text-green-800';
         if (progress > 0) return 'bg-yellow-200 text-yellow-800';
         return 'bg-blue-200 text-blue-800';
+    };
+
+    const getStatusColor = (status, isLate) => {
+        if (isLate) {
+            if (status === 'completed') return 'bg-pink-200 text-pink-800'; // Pink pastel
+            if (status === 'planned' || status === 'in_progress') return 'bg-yellow-200 text-yellow-800'; // Kuning pastel
+        }
+        switch (status) {
+            case 'completed': return 'bg-green-200 text-green-800'; // Hijau pastel
+            case 'in_progress': return 'bg-blue-200 text-blue-800'; // Biru pastel
+            case 'planned': return 'bg-gray-200 text-gray-800'; // Abu-abu pastel
+            default: return 'bg-white';
+        }
     };
 
     return (
@@ -131,7 +148,59 @@ const LaporanMatriksPage = () => {
                     <div className="hidden lg:block overflow-x-auto">
                         <h2 className="text-xl font-semibold text-center mb-4">PROGRAM KERJA TAHUN {year}</h2>
                         <table className="min-w-full bg-white border-collapse border border-gray-400 text-xs">
-                            {/* ... existing table code ... */}
+                            <thead className="bg-gray-100">
+                                <tr>
+                                    <th rowSpan="2" className="border border-gray-300 p-2">No</th>
+                                    <th rowSpan="2" className="border border-gray-300 p-2">Kegiatan</th>
+                                    <th rowSpan="2" className="border border-gray-300 p-2">Rencana Aksi</th>
+                                    <th rowSpan="2" className="border border-gray-300 p-2">PIC</th>
+                                    <th rowSpan="2" className="border border-gray-300 p-2">Status</th>
+                                    <th colSpan="12" className="border border-gray-300 p-2">Progress Pelaksanaan</th>
+                                </tr>
+                                <tr>
+                                    {["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"].map(m => (
+                                        <th key={m} className="border border-gray-300 p-2 font-normal">{m}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {processedData.map((kategoriData, kategoriIndex) => {
+                                    let counter = 1;
+                                    return (
+                                        <React.Fragment key={kategoriData.kategori_nama}>
+                                            <tr>
+                                                <td colSpan="17" className="bg-gray-200 font-bold p-2 border border-gray-300">{kategoriData.kategori_nama}</td>
+                                            </tr>
+                                            {kategoriData.kegiatan_list.map(kegiatanData => (
+                                                kegiatanData.rencana_aksi.map((item, itemIndex) => (
+                                                    <tr key={item.id}>
+                                                        {itemIndex === 0 && (
+                                                            <>
+                                                                <td rowSpan={kegiatanData.rencana_aksi.length} className="border border-gray-300 p-2 align-top text-center">{counter++}</td>
+                                                                <td rowSpan={kegiatanData.rencana_aksi.length} className="border border-gray-300 p-2 align-top">{kegiatanData.kegiatan_nama}</td>
+                                                            </>
+                                                        )}
+                                                        <td className="border border-gray-300 p-2">{item.deskripsi_aksi}</td>
+                                                        <td className="border border-gray-300 p-2">{item.assigned_to?.name || '-'}</td>
+                                                        <td className={`border border-gray-300 p-2 text-center ${getStatusColor(item.status, item.is_late)}`}>
+                                                            {item.status.replace('_', ' ')}
+                                                        </td>
+                                                        {Array.from({ length: 12 }).map((_, i) => {
+                                                            const month = i + 1;
+                                                            const progress = item.monthly_progress[month];
+                                                            return (
+                                                                <td key={month} className={`border border-gray-300 p-2 text-center ${getMonthlyProgressColor(progress)}`}>
+                                                                    {progress !== null && progress !== undefined ? `${progress}%` : '-'}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                ))
+                                            ))}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </tbody>
                         </table>
                     </div>
 
@@ -147,7 +216,9 @@ const LaporanMatriksPage = () => {
                                             
                                             <div className="text-sm text-gray-600 mb-1"><strong>Kegiatan:</strong> {kegiatanData.kegiatan_nama}</div>
                                             <div className="text-sm text-gray-600 mb-1"><strong>P. Jawab:</strong> {item.assigned_to?.name || '-'}</div>
-                                            <div className="text-sm text-gray-600 mb-3"><strong>Status:</strong> {item.status.replace('_', ' ')}</div>
+                                            <div className={`text-sm text-gray-600 mb-3 p-1 rounded inline-block ${getStatusColor(item.status, item.is_late)}`}>
+                                                <strong>Status:</strong> {item.status.replace('_', ' ')}
+                                            </div>
 
                                             <h4 className="font-semibold mb-2">Progress Bulanan (%)</h4>
                                             <div className="grid grid-cols-3 gap-2 text-center">
@@ -155,9 +226,9 @@ const LaporanMatriksPage = () => {
                                                     const month = i + 1;
                                                     const progress = item.monthly_progress[month] ?? null;
                                                     return (
-                                                        <div key={m} className={`p-2 rounded ${getProgressColor(progress)}`}>
+                                                        <div key={m} className={`p-2 rounded ${getMonthlyProgressColor(progress)}`}>
                                                             <div className="font-bold text-xs">{m}</div>
-                                                            <div className="text-sm">{progress !== null ? `${progress}%` : '-'}</div>
+                                                            <div className="text-sm">{progress !== null && progress !== undefined ? `${progress}%` : '-'}</div>
                                                         </div>
                                                     );
                                                 })}

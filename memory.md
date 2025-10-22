@@ -1,3 +1,45 @@
+# Checkpoint: Stabilisasi Laporan Matriks
+
+**Tanggal:** 22 Oktober 2025
+
+**Tujuan Tercapai:**
+Menyelesaikan implementasi dan perbaikan bug pada modul "Laporan Matriks", memastikan data progres bulanan dan status ditampilkan secara akurat, *real-time*, dan dengan visualisasi yang benar.
+
+**Perbaikan Utama:**
+- **Render Tabel**: Membangun struktur tabel matriks di frontend yang sebelumnya kosong, sehingga laporan dapat ditampilkan.
+- **Akurasi Data Matriks**: Memperbaiki logika di `ReportController` untuk memastikan nilai progres yang ditampilkan di matriks adalah nilai persentase yang sebenarnya dari `progress_monitorings`, bukan nilai biner (0/100).
+- **Konsistensi Visual**: Mengimplementasikan aturan pewarnaan yang kompleks untuk sel status, membedakan antara kondisi normal dan "telat" (`is_late`) untuk status `planned`, `in_progress`, dan `completed`.
+- **Penanganan Data Kosong**: Memperbaiki bug `null%` dengan memastikan backend mengirim `null` untuk bulan yang tidak terjadwal dan `0` untuk bulan terjadwal yang belum ada progres. Frontend disesuaikan untuk menampilkan `-` dan `0%` dengan benar.
+- **Data Real-time**: Mengimplementasikan *hook* `useFocus` di frontend untuk secara otomatis memuat ulang data laporan setiap kali halaman kembali aktif, memberikan pengalaman pengguna yang *real-time*.
+
+**Status Saat Ini:**
+Modul Laporan Matriks kini stabil dan berfungsi sesuai harapan. Tampilan tabel, akurasi data, pewarnaan status, dan pembaruan data secara *real-time* telah berhasil diimplementasikan.
+
+**Langkah Selanjutnya:**
+Memeriksa modul terakhir, yaitu **Laporan Tahunan**.
+
+---
+
+# Checkpoint: Refactoring Arsitektur Progres & Stabilisasi Final
+
+**Tanggal:** 22 Oktober 2025
+
+**Tujuan Tercapai:**
+Menyelesaikan refactoring fundamental pada arsitektur kalkulasi progres dan menuntaskan semua bug terkait, menghasilkan sistem yang stabil, akurat, dan performan.
+
+**Perbaikan Utama (Arsitektur):**
+- **Implementasi Accessor Real-time**: Logika kalkulasi progres keseluruhan (`overall_progress`) dipindahkan dari *controller* ke *Accessor* di dalam model `RencanaAksi`. Ini memastikan progres dihitung secara *real-time* setiap kali diakses, menghilangkan masalah data basi (*stale data*) secara permanen.
+- **Pembersihan Arsitektur**: Dengan adanya *Accessor*, logika `updateRencanaAksiOverallStatus` di `TodoItemController` dan kolom `progress_keseluruhan` di database berhasil dihapus, membuat arsitektur lebih bersih dan terpusat pada model.
+- **Solusi Bug Inti (Tipe Data)**: Akar masalah ketidakakuratan data (`progress` 0% yang tidak terduga) berhasil diidentifikasi dan diperbaiki dengan mengubah tipe data kolom `tanggal_monitoring` dari `DATE` menjadi `DATETIME`, yang menjamin pengurutan data terbaru selalu akurat.
+
+**Status Saat Ini:**
+Modul Rencana Aksi dan Laporan Bulanan telah sepenuhnya stabil. Semua alur kerja, mulai dari penambahan/penghapusan `TodoItem` hingga kalkulasi progres bulanan dan keseluruhan, kini berjalan dengan benar, akurat, dan secara *real-time*.
+
+**Langkah Selanjutnya:**
+Setelah komputer di-restart, sesi berikutnya akan dimulai dengan pemeriksaan **modul Laporan Matriks**.
+
+---
+
 # Checkpoint: Stabilisasi Laporan Bulanan
 
 **Tanggal:** 21 Oktober 2025

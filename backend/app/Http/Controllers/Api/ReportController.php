@@ -155,26 +155,43 @@ class ReportController extends Controller
             ->get();
 
         // [DEBUG] - Cek data yang diambil
+        
+        logger()->info('Matrix Report - Fetched RencanaAksi count: ' . $rencanaAksis->count());
+
         if ($rencanaAksis->isEmpty()) {
             logger()->warning('No RencanaAksi found for year: ' . $year);
             return collect();
-            }
+        }
 
         return $rencanaAksis->map(function ($aksi) {
+            $monthlyProgress = $aksi->progressMonitorings->mapWithKeys(function ($progress) use ($aksi) {
+
             // [FIX] - Pastikan kategori ada
             $kategoriNama = optional($aksi->kegiatan->kategoriUtama)->nama_kategori
                 ?? 'Uncategorized';
 
-            $monthlyProgress = $aksi->progressMonitorings->mapWithKeys(function ($progress) {
-                $month = (int) date('m', strtotime($progress->report_date));
-                return [$month => $progress->progress_percentage];
-                });
+            $monthlyProgress = collect(range(1, 12))->mapWithKeys(function ($month) use ($aksi) {
+                if (!in_array($month, $aksi->target_months)) {
+                    return [$month => null]; // Not scheduled for this month
+                }
+
+                $latestProgressForMonth = $aksi->progressMonitorings
+                    ->filter(function ($pm) use ($month) {
+                        return \Carbon\Carbon::parse($pm->report_date)->month == $month;
+                    })
+                    ->sortByDesc('tanggal_monitoring')
+                    ->first();
+
+                // Scheduled, but no progress record found yet, so it's 0%
+                return [$month => $latestProgressForMonth->progress_percentage ?? 0]; 
+            });
 
             return [
                 'id'               => $aksi->id,
                 'deskripsi_aksi'   => $aksi->deskripsi_aksi,
                 'catatan'          => $aksi->catatan,
                 'status'           => $aksi->status,
+                'is_late'          => !$aksi->status === 'completed' && $aksi->target_tanggal?->isPast(),
                 'kegiatan'         => [
                     'nama_kegiatan' => $aksi->kegiatan->nama_kegiatan,
                     'kategori'      => [
@@ -234,7 +251,7 @@ class ReportController extends Controller
                             return [
                                 'nama_kegiatan' => $kegiatanGroup->first()->kegiatan->nama_kegiatan,
                                 'rencana_aksi'  => $kegiatanGroup->map(function ($aksi) {
-                                    $monthlyProgress = $aksi->progressMonitorings->mapWithKeys(function ($progress) {
+                                    $monthlyProgress = $aksi->progressMonitorings->mapWithKeys(function ($progress) use ($aksi) {
                                         return [(int) date('m', strtotime($progress->report_date)) => $progress->progress_percentage];
                                         });
                                     return [
