@@ -349,11 +349,18 @@ class ReportController extends Controller
             ->orderBy('nomor')
             ->get()
             ->map(function ($kategori) {
-                $kegiatan = $kategori->getRelation('kegiatan');
-                if ($kegiatan->isEmpty()) {
+                // Ambil semua rencana aksi dari semua kegiatan dalam kategori ini
+                $allAksi = $kategori->kegiatan->flatMap(function ($kegiatan) {
+                    return $kegiatan->rencanaAksi;
+                });
+
+                if ($allAksi->isEmpty()) {
                     return null;
                 }
-                $averageProgress = $kegiatan->avg('overall_progress_percentage');
+
+                // Hitung rata-rata dari progress semua rencana aksi
+                $averageProgress = $allAksi->avg('overall_progress_percentage');
+
                 return [
                     'category_name'    => "{$kategori->nomor}. {$kategori->nama_kategori}",
                     'average_progress' => round($averageProgress, 2),

@@ -72,6 +72,7 @@
             text-transform: capitalize;
         }
         .progress-bar-container {
+            position: relative;
             width: 100%;
             background-color: #e0e0e0;
             border-radius: 5px;
@@ -80,9 +81,6 @@
         .progress-bar {
             background-color: #4CAF50;
             height: 20px;
-            line-height: 20px;
-            color: white;
-            text-align: center;
             border-radius: 5px;
         }
         .footer {
@@ -142,7 +140,8 @@
                             <td>{{ $progress['category_name'] }}</td>
                             <td>
                                 <div class="progress-bar-container">
-                                    <div class="progress-bar" style="width: {{ $progress['average_progress'] }}%;">
+                                    <div class="progress-bar" style="width: {{ $progress['average_progress'] }}%;"></div>
+                                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 20px; line-height: 20px; text-align: center; color: #222;">
                                         {{ $progress['average_progress'] }}%
                                     </div>
                                 </div>
