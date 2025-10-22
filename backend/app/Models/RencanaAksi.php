@@ -147,4 +147,21 @@ class RencanaAksi extends Model
         );
     }
 
+    /**
+     * [NEW] Accessor for progress based on approved TodoItems.
+     */
+    protected function todoProgressPercentage(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                $this->loadMissing('todoItems');
+                $totalTodos = $this->todoItems->count();
+                if ($totalTodos === 0) {
+                    return 0;
+                }
+                $approvedTodos = $this->todoItems->where('status_approval', 'approved')->count();
+                return round(($approvedTodos / $totalTodos) * 100);
+            }
+        );
+    }
 }

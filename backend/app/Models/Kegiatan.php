@@ -34,4 +34,25 @@ class Kegiatan extends Model
         return $this->hasMany(RencanaAksi::class);
     }
 
+    /**
+     * Accessor for overall progress percentage.
+     *
+     * @return \Illuminate\Database\Eloquent\Casts\Attribute
+     */
+    protected function overallProgressPercentage(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: function () {
+                // Eager load relasi jika belum dimuat
+                $this->loadMissing('rencanaAksi');
+                
+                if ($this->rencanaAksi->isEmpty()) {
+                    return 0;
+                }
+
+                // Gunakan accessor 'overall_progress_percentage' dari RencanaAksi
+                return round($this->rencanaAksi->avg('overall_progress_percentage'));
+            }
+        );
+    }
 }

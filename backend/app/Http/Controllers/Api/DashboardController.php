@@ -104,54 +104,85 @@ class DashboardController extends Controller
         $categories = $query->with([
             'kegiatan' => function ($q) use ($filters) {
                 $q->when($filters['kegiatan_id'] ?? null, fn($sq, $id) => $sq->where('id', $id));
+                // Eager load relasi yang dibutuhkan oleh accessor di Kegiatan
+                $q->with('rencanaAksi.progressMonitorings');
             },
             'kegiatan.rencanaAksi' => function ($q) use ($filters) {
                 // We only need to apply user/status filters here as others are contextually applied
+                $q->where('jadwal_tipe', '!=', 'rutin'); // <-- FIX: Exclude routine tasks
                 $q->when($filters['user_id'] ?? null, fn($sq, $id) => $sq->where('assigned_to', $id));
                 $q->when($filters['status'] ?? null, fn($sq, $status) => $sq->where('status', $status));
             },
-            'kegiatan.rencanaAksi.progressMonitorings'
         ])->orderBy('nomor')->get();
 
         return $categories->map(function ($kategori) {
-            $allAksi = $kategori->kegiatan->flatMap(fn($kg) => $kg->rencanaAksi);
-            if ($allAksi->isEmpty()) return null;
-            $average = $allAksi->avg('overall_progress_percentage');
+            // Ambil semua kegiatan yang sudah di-load dengan relasinya
+            $kegiatan = $kategori->getRelation('kegiatan');
+            
+            if ($kegiatan->isEmpty()) {
+                return null;
+            }
+
+            // Hitung rata-rata dari accessor 'overall_progress_percentage' di setiap kegiatan
+            $average = $kegiatan->avg('overall_progress_percentage');
+
             return ['name' => "{$kategori->nomor}. {$kategori->nama_kategori}", 'progress' => round($average, 2)];
         })->filter()->values();
     }
 
-    private function getProgressByKegiatan($programKerjaId, array $filters = [])
-    {
-        $query = Kegiatan::whereHas('kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerjaId));
-        
-        $query->when($filters['kategori_id'] ?? null, fn($q, $id) => $q->where('kategori_id', $id));
-        $query->when($filters['kegiatan_id'] ?? null, fn($q, $id) => $q->where('id', $id));
+        private function getProgressByKegiatan($programKerjaId, array $filters = [])
 
-        $kegiatan = $query->with([
-            'rencanaAksi' => function ($q) use ($filters) {
-                $q->when($filters['user_id'] ?? null, fn($sq, $id) => $sq->where('assigned_to', $id));
-                $q->when($filters['status'] ?? null, fn($sq, $status) => $sq->where('status', $status));
-            },
-            'rencanaAksi.progressMonitorings'
-        ])->get();
+        {
 
-        return $kegiatan->map(function ($item) {
-            if ($item->rencanaAksi->isEmpty()) return null;
-            $average = $item->rencanaAksi->avg('overall_progress_percentage');
-            return ['name' => $item->nama_kegiatan, 'progress' => round($average, 2)];
-        })->filter()->values();
-    }
+            $query = Kegiatan::whereHas('kategoriUtama', fn($q) => $q->where('program_kerja_id', $programKerjaId));
+
+            
+
+            $query->when($filters['kategori_id'] ?? null, fn($q, $id) => $q->where('kategori_id', $id));
+
+            $query->when($filters['kategori_id'] ?? null, fn($q, $id) => $q->where('id', $id));
+
+    
+
+            $kegiatan = $query->with([
+
+                'rencanaAksi' => function ($q) use ($filters) {
+
+                    $q->where('jadwal_tipe', '!=', 'rutin'); // <-- FIX: Exclude routine tasks
+
+                    $q->when($filters['user_id'] ?? null, fn($sq, $id) => $sq->where('assigned_to', $id));
+
+                    $q->when($filters['status'] ?? null, fn($sq, $status) => $sq->where('status', 'status'));
+
+                },
+
+                'rencanaAksi.progressMonitorings'
+
+            ])->get();
+
+    
+
+            return $kegiatan->map(function ($item) {
+
+                if ($item->rencanaAksi->isEmpty()) return null;
+
+                $average = $item->rencanaAksi->avg('overall_progress_percentage');
+
+                return ['name' => $item->nama_kegiatan, 'progress' => round($average, 2)];
+
+            })->filter()->values();
+
+        }
 
     private function getProgressByRencanaAksi($programKerjaId, array $filters = [])
     {
         $query = RencanaAksi::query();
         $this->applyCommonFilters($query, array_merge($filters, ['program_kerja_id' => $programKerjaId]));
         
-        $aksi = $query->with('progressMonitorings')->get();
+        $aksi = $query->with('todoItems')->get();
 
         return $aksi->map(function ($item) {
-            return ['name' => \Illuminate\Support\Str::limit($item->deskripsi_aksi, 50), 'progress' => $item->overall_progress_percentage];
+            return ['name' => \Illuminate\Support\Str::limit($item->deskripsi_aksi, 50), 'progress' => $item->todo_progress_percentage];
         });
     }
 
