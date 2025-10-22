@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../services/apiClient';
 import { toast } from 'react-toastify';
+import Modal from '../components/common/Modal';
+import JabatanForm from '../components/Jabatan/JabatanForm';
+import { FiEdit, FiTrash2 } from 'react-icons/fi';
 
 const JabatanPage = () => {
     const [jabatanList, setJabatanList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedJabatan, setSelectedJabatan] = useState(null);
 
     const fetchJabatan = async () => {
         try {
@@ -25,14 +30,46 @@ const JabatanPage = () => {
         fetchJabatan();
     }, []);
 
-    const handleCreate = () => { console.log('Open create modal'); };
-    const handleEdit = (jabatan) => { console.log('Open edit modal for:', jabatan); };
+    const handleCreate = () => {
+        setSelectedJabatan(null);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (jabatan) => {
+        setSelectedJabatan(jabatan);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setSelectedJabatan(null);
+    };
+
+    const handleSave = async (formData) => {
+        try {
+            if (selectedJabatan) {
+                // Update
+                await apiClient.put(`/jabatan/${selectedJabatan.id}`, formData);
+                toast.success('Jabatan berhasil diperbarui.');
+            } else {
+                // Create
+                await apiClient.post('/jabatan', formData);
+                toast.success('Jabatan berhasil ditambahkan.');
+            }
+            fetchJabatan();
+            handleCloseModal();
+        } catch (err) {
+            const message = err.response?.data?.message || 'Gagal menyimpan data.';
+            toast.error(message);
+        }
+    };
+
     const handleDelete = async (id) => {
         if (window.confirm('Apakah Anda yakin ingin menghapus jabatan ini?')) {
             try {
                 await apiClient.delete(`/jabatan/${id}`);
                 toast.success('Jabatan berhasil dihapus.');
-                fetchJabatan(); // Refresh list
+                fetchJabatan();
             } catch (err) {
                 const message = err.response?.data?.message || 'Gagal menghapus jabatan.';
                 toast.error(message);
@@ -40,9 +77,8 @@ const JabatanPage = () => {
         }
     };
 
-
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>{error}</div>;
+    if (loading) return <div className="flex justify-center items-center h-screen"><div className="text-xl">Loading...</div></div>;
+    if (error) return <div className="text-red-500 text-center mt-10">{error}</div>;
 
     return (
         <div className="container mx-auto p-4">
@@ -52,7 +88,7 @@ const JabatanPage = () => {
                     Tambah Jabatan
                 </button>
             </div>
-            {/* Placeholder for table */}
+            
             <div className="bg-white shadow-md rounded my-6">
                 <table className="min-w-max w-full table-auto">
                     <thead>
@@ -60,7 +96,7 @@ const JabatanPage = () => {
                             <th className="py-3 px-6 text-left">Nama Jabatan</th>
                             <th className="py-3 px-6 text-left">Bidang</th>
                             <th className="py-3 px-6 text-left">Atasan Langsung</th>
-                            <th className="py-3 px-6 text-center">Actions</th>
+                            <th className="py-3 px-6 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-600 text-sm font-light">
@@ -71,8 +107,12 @@ const JabatanPage = () => {
                                 <td className="py-3 px-6 text-left">{jabatan.parent?.nama_jabatan || '-'}</td>
                                 <td className="py-3 px-6 text-center">
                                     <div className="flex item-center justify-center">
-                                        <button onClick={() => handleEdit(jabatan)} className="w-8 h-8 rounded bg-yellow-500 text-white mr-2">E</button>
-                                        <button onClick={() => handleDelete(jabatan.id)} className="w-8 h-8 rounded bg-red-500 text-white">H</button>
+                                        <button onClick={() => handleEdit(jabatan)} title="Edit Jabatan" className="w-8 h-8 flex items-center justify-center rounded bg-yellow-500 text-white mr-2 hover:bg-yellow-600">
+                                            <FiEdit />
+                                        </button>
+                                        <button onClick={() => handleDelete(jabatan.id)} title="Hapus Jabatan" className="w-8 h-8 flex items-center justify-center rounded bg-red-500 text-white hover:bg-red-600">
+                                            <FiTrash2 />
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -80,6 +120,15 @@ const JabatanPage = () => {
                     </tbody>
                 </table>
             </div>
+
+            <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={selectedJabatan ? 'Edit Jabatan' : 'Tambah Jabatan'}>
+                <JabatanForm
+                    onSave={handleSave}
+                    onCancel={handleCloseModal}
+                    jabatan={selectedJabatan}
+                    jabatanList={jabatanList}
+                />
+            </Modal>
         </div>
     );
 };
