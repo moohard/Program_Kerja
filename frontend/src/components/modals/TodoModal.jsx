@@ -101,14 +101,31 @@ const FileUploader = ({ todo, onUploadComplete, selectedMonth }) => {
 };
 
 
-function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedMonth, userList = [] }) {
+function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, userList = [] }) {
     // --- HOOKS (SEMUA DI ATAS) ---
     const { user } = useContext(AuthContext);
     const [rencanaAksi, setRencanaAksi] = useState(initialRencanaAksi);
     const [todos, setTodos] = useState([]);
     const [newTodoDesc, setNewTodoDesc] = useState('');
     const [newTodoPelaksanaId, setNewTodoPelaksanaId] = useState('');
-    const [newTodoDeadline, setNewTodoDeadline] = useState('');
+    
+    // Helper untuk format tanggal YYYY-MM-DD tanpa konversi timezone
+    const toYYYYMMDD = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    // Inisialisasi state deadline HANYA jika bulan spesifik dipilih
+    const [newTodoDeadline, setNewTodoDeadline] = useState(() => {
+        if (selectedDate && selectedDate instanceof Date && !isNaN(selectedDate)) {
+            const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+            return toYYYYMMDD(firstDay);
+        }
+        return ''; // Jika tidak, biarkan kosong
+    });
+
     const [loading, setLoading] = useState(true);
     const [hasMadeChanges, setHasMadeChanges] = useState(false);
 
@@ -120,35 +137,23 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedMonth, us
         return Math.round((approvedCount / todos.length) * 100);
     }, [todos]);
 
+    // Batasi date picker HANYA jika bulan spesifik dipilih
     const { minDate, maxDate } = useMemo(() => {
-        if (!selectedMonth) {
-            // If no month is selected, the max date is the target date.
-            return { 
-                min: undefined,
-                max: rencanaAksi?.target_tanggal ? rencanaAksi.target_tanggal.split('T')[0] : undefined
+        if (selectedDate && selectedDate instanceof Date && !isNaN(selectedDate)) {
+            const year = selectedDate.getFullYear();
+            const month = selectedDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            return {
+                minDate: toYYYYMMDD(firstDay),
+                maxDate: toYYYYMMDD(lastDay),
             };
         }
+        // Jika tidak, jangan batasi picker sama sekali
+        return { minDate: '', maxDate: '' };
+    }, [selectedDate]);
 
-        const year = new Date().getFullYear(); // Assuming current year
-        const monthIndex = selectedMonth - 1;
-
-        // Min date is the first day of the selected month
-        const minDate = new Date(year, monthIndex, 1).toISOString().split('T')[0];
-
-        // Max date logic
-        let maxDate;
-        const targetDate = rencanaAksi?.target_tanggal ? new Date(rencanaAksi.target_tanggal) : null;
-
-        if (targetDate && targetDate.getFullYear() === year && targetDate.getMonth() === monthIndex) {
-            // If target date is in the selected month, max is the target date
-            maxDate = targetDate.toISOString().split('T')[0];
-        } else {
-            // Otherwise, max is the last day of the selected month
-            maxDate = new Date(year, monthIndex + 1, 0).toISOString().split('T')[0];
-        }
-
-        return { min: minDate, max: maxDate };
-    }, [selectedMonth, rencanaAksi?.target_tanggal]);
+    const selectedMonth = useMemo(() => selectedDate ? selectedDate.getMonth() + 1 : null, [selectedDate]);
 
     // --- EFFECTS (setelah MEMOS) ---
     useEffect(() => {
@@ -210,7 +215,12 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedMonth, us
             });
             setNewTodoDesc('');
             setNewTodoPelaksanaId('');
-            setNewTodoDeadline('');
+            // Reset deadline ke awal bulan setelah submit berhasil
+            if (selectedDate) {
+                const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+                setNewTodoDeadline(firstDay.toISOString().split('T')[0]);
+            }
+
             setHasMadeChanges(true);
 
             fetchTodos();
@@ -218,7 +228,7 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedMonth, us
             const errorMessage = error.response?.data?.message || 'Gagal menambahkan to-do.';
             alert(errorMessage);
         }
-    }, [newTodoDesc, newTodoPelaksanaId, newTodoDeadline, rencanaAksi?.id, selectedMonth, fetchTodos]);
+    }, [newTodoDesc, newTodoPelaksanaId, newTodoDeadline, rencanaAksi?.id, selectedMonth, fetchTodos, selectedDate]);
 
     const handleUpdatePelaksana = useCallback((todoId, newPelaksanaId) => {
         setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, pelaksana_id: newPelaksanaId, pelaksana: userList.find(u => u.id === newPelaksanaId) } : t));
@@ -273,21 +283,35 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedMonth, us
                         <div className="flex justify-between items-center mb-2">
                             <h3 className="text-sm font-bold text-gray-800">Tambah Tugas Baru</h3>
                         </div>
-                        <form onSubmit={handleAddTodo} className="grid grid-cols-1 md:grid-cols-10 gap-2 items-center">
-                            <input type="text" value={newTodoDesc} onChange={e => setNewTodoDesc(e.target.value)} placeholder="Deskripsi tugas..." className="md:col-span-4 border-gray-300 rounded-md shadow-sm" />
-                            <select value={newTodoPelaksanaId} onChange={e => setNewTodoPelaksanaId(e.target.value)} className="md:col-span-2 border-gray-300 rounded-md shadow-sm">
-                                <option value="">-- Pilih Pelaksana --</option>
-                                {userList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
-                            </select>
-                            <input 
-                                type="date" 
-                                value={newTodoDeadline} 
-                                onChange={e => setNewTodoDeadline(e.target.value)} 
-                                min={minDate}
-                                max={maxDate}
-                                className="md:col-span-2 border-gray-300 rounded-md shadow-sm" 
-                            />
-                            <button type="submit" className="md:col-span-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Tambah</button>
+                        <form onSubmit={handleAddTodo} className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-10 gap-4">
+                                <div className="md:col-span-5">
+                                    <label htmlFor="new-todo-desc" className="block text-xs font-medium text-gray-600 mb-1">Deskripsi Tugas</label>
+                                    <input id="new-todo-desc" type="text" value={newTodoDesc} onChange={e => setNewTodoDesc(e.target.value)} placeholder="Deskripsi tugas..." className="w-full border-gray-300 rounded-md shadow-sm" />
+                                </div>
+                                <div className="md:col-span-3">
+                                    <label htmlFor="new-todo-pelaksana" className="block text-xs font-medium text-gray-600 mb-1">Pelaksana</label>
+                                    <select id="new-todo-pelaksana" value={newTodoPelaksanaId} onChange={e => setNewTodoPelaksanaId(e.target.value)} className="w-full border-gray-300 rounded-md shadow-sm">
+                                        <option value="">-- Pilih Pelaksana --</option>
+                                        {userList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label htmlFor="new-todo-deadline" className="block text-xs font-medium text-gray-600 mb-1">Deadline</label>
+                                    <input 
+                                        id="new-todo-deadline"
+                                        type="date" 
+                                        value={newTodoDeadline} 
+                                        onChange={e => setNewTodoDeadline(e.target.value)} 
+                                        min={minDate}
+                                        max={maxDate}
+                                        className="w-full border-gray-300 rounded-md shadow-sm" 
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end">
+                                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Tambah</button>
+                            </div>
                         </form>
                     </div>
                 )}

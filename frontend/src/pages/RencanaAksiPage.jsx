@@ -14,7 +14,7 @@ function RencanaAksiPage() {
 
     const [selectedKategori, setSelectedKategori] = useState('');
     const [selectedKegiatan, setSelectedKegiatan] = useState('');
-    const [selectedMonth, setSelectedMonth] = useState('');
+    const [selectedDate, setSelectedDate] = useState(null);
 
     const [loading, setLoading] = useState({ kategori: false, kegiatan: false, rencana: false });
 
@@ -90,24 +90,24 @@ function RencanaAksiPage() {
         setLoading(prev => ({ ...prev, rencana: true }));
         try {
             let url = `/rencana-aksi?kegiatan_id=${selectedKegiatan}`;
-            if (selectedMonth) {
-                url += `&month=${selectedMonth}`;
+            if (selectedDate) {
+                // getMonth() is 0-indexed, so add 1 for the API
+                url += `&month=${selectedDate.getMonth() + 1}`;
             }
             const response = await apiClient.get(url);
-            console.log(response.data.data);
             setRencanaAksiList(response.data.data);
         } catch (error) {
             console.error("Error fetching rencana aksi:", error);
         } finally {
             setLoading(prev => ({ ...prev, rencana: false }));
         }
-    }, [selectedKegiatan, selectedMonth]);
+    }, [selectedKegiatan, selectedDate]);
 
     useEffect(() => {
         if (selectedKegiatan) {
             fetchRencanaAksi();
         }
-    }, [selectedKegiatan, selectedMonth, fetchRencanaAksi]);
+    }, [selectedKegiatan, selectedDate, fetchRencanaAksi]);
 
     const handleKategoriChange = (e) => {
         const kategoriId = e.target.value;
@@ -183,10 +183,18 @@ function RencanaAksiPage() {
                 </div>
                 <div>
                     <label htmlFor="month" className="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
-                    <select id="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="w-full p-2 border rounded-md">
+                    <select 
+                        id="month" 
+                        value={selectedDate ? selectedDate.getMonth() : ''} 
+                        onChange={(e) => {
+                            const month = e.target.value;
+                            setSelectedDate(month ? new Date(new Date().getFullYear(), month, 1) : null);
+                        }} 
+                        className="w-full p-2 border rounded-md"
+                    >
                         <option value="">-- Semua Bulan --</option>
                         {Array.from({ length: 12 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>{new Date(0, i).toLocaleString('id-ID', { month: 'long' })}</option>
+                            <option key={i} value={i}>{new Date(0, i).toLocaleString('id-ID', { month: 'long' })}</option>
                         ))}
                     </select>
                 </div>
@@ -219,13 +227,13 @@ function RencanaAksiPage() {
                                                 <div className="w-full bg-gray-200 rounded-full h-2.5">
                                                     <div
                                                         className="bg-green-500 h-2.5 rounded-full"
-                                                        style={{ width: `${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%` }}>
+                                                        style={{ width: `${(selectedDate ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%` }}>
                                                     </div>
                                                 </div>
                                                 <span className="text-xs text-gray-500 ml-2">
-                                                    {`${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%`}
+                                                    {`${(selectedDate ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%`}
                                                 </span>
-                                                {(selectedMonth ? item.monthly_progress?.is_late : item.latest_progress?.is_late) ? (
+                                                {(selectedDate ? item.monthly_progress?.is_late : item.latest_progress?.is_late) ? (
                                                     <FiAlertTriangle className="ml-2 text-yellow-500" title="Progress dilaporkan terlambat" />
                                                 ) : null}
                                             </div>
@@ -271,13 +279,13 @@ function RencanaAksiPage() {
                                         <div className="w-full bg-gray-200 rounded-full h-2.5">
                                             <div
                                                 className="bg-green-500 h-2.5 rounded-full"
-                                                style={{ width: `${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%` }}>
+                                                style={{ width: `${(selectedDate ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%` }}>
                                             </div>
                                         </div>
                                         <span className="text-xs text-gray-500 ml-2">
-                                            {`${(selectedMonth ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%`}
+                                            {`${(selectedDate ? item.monthly_progress?.progress_percentage : item.overall_progress) || 0}%`}
                                         </span>
-                                        {(selectedMonth ? item.monthly_progress?.is_late : item.latest_progress?.is_late) ? (
+                                        {(selectedDate ? item.monthly_progress?.is_late : item.latest_progress?.is_late) ? (
                                             <FiAlertTriangle className="ml-2 text-yellow-500" title="Progress dilaporkan terlambat" />
                                         ) : null}
                                     </div>
@@ -310,7 +318,7 @@ function RencanaAksiPage() {
             />}
             {isTodoModalOpen && <TodoModal 
                 rencanaAksi={selectedRencanaAksi} 
-                selectedMonth={selectedMonth}
+                selectedDate={selectedDate}
                 userList={userList}
                 onClose={handleCloseTodoModal} 
             />}

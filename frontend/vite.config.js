@@ -7,8 +7,8 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     https: {
-      key: './localhost+1-key.pem',
-      cert: './localhost+1.pem',
+      key: './localhost-key.pem',
+      cert: './localhost.pem',
     },
     proxy: {
       '/api': {

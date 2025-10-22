@@ -24,6 +24,8 @@ class RencanaAksiResource extends JsonResource
             'jadwal_tipe'      => $this->jadwal_tipe,
             'jadwal_config'    => $this->jadwal_config,
             'target_months'    => $this->target_months,
+            'tahun'            => $this->tahun,
+            'bulan'            => $this->bulan,
 
             // Progress keseluruhan - SELALU dihitung dari semua data melalui accessor
             'overall_progress' => $this->overall_progress_percentage,
