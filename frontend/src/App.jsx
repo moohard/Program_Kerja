@@ -1,5 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/Layout/ProtectedRoute';
@@ -15,6 +17,8 @@ const AnnualReportPage = lazy(() => import('./pages/AnnualReportPage'));
 // Statically import other pages
 import KategoriUtamaPage from './pages/master/KategoriUtamaPage';
 import KegiatanPage from './pages/master/KegiatanPage';
+import JabatanPage from './pages/JabatanPage'; // Import JabatanPage
+import UserPage from './pages/UserPage'; // Import UserPage
 import RencanaAksiPage from './pages/RencanaAksiPage';
 import LaporanPage from './pages/LaporanPage';
 import LaporanMatriksPage from './pages/LaporanMatriksPage';
@@ -26,6 +30,17 @@ function App() {
     return (
         <ErrorBoundary>
             <BrowserRouter>
+                <ToastContainer
+                    position="top-right"
+                    autoClose={5000}
+                    hideProgressBar={false}
+                    newestOnTop={false}
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                />
                 <AuthProvider>
                     <Suspense fallback={<div className="flex h-screen w-full items-center justify-center">Loading...</div>}>
                         <Routes>
@@ -39,6 +54,8 @@ function App() {
                                 <Route path="/laporan/tahunan" element={<AnnualReportPage />} />
                                 <Route path="/master/kategori-utama" element={<KategoriUtamaPage />} />
                                 <Route path="/master/kegiatan" element={<KegiatanPage />} />
+                                <Route path="/master/jabatan" element={<JabatanPage />} />
+                                <Route path="/master/users" element={<UserPage />} />
                                 <Route path="/templates" element={<TemplateManagementPage />} />
                                 <Route path="/audit-logs" element={<AuditLogPage />} />
                             </Route>

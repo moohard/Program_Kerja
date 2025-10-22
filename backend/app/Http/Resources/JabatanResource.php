@@ -17,12 +17,12 @@ class JabatanResource extends JsonResource
         return [
             'id' => $this->id,
             'nama_jabatan' => $this->nama_jabatan,
-            'role' => $this->role,
+            'bidang' => $this->bidang,
             'parent_id' => $this->parent_id,
-            // 'whenLoaded' memastikan relasi hanya disertakan jika sudah di-load
-            // Ini mencegah N+1 problem dan error jika relasi tidak di-load
-            'users' => UserResource::collection($this->whenLoaded('users')),
+            'parent' => new JabatanResource($this->whenLoaded('parent')),
             'children' => JabatanResource::collection($this->whenLoaded('children')),
+            'created_at' => $this->created_at->toIso8601String(),
+            'updated_at' => $this->updated_at->toIso8601String(),
         ];
     }
 }

@@ -3,74 +3,52 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\KategoriUtamaController;
 use App\Http\Controllers\Api\KegiatanController;
+use App\Http\Controllers\Api\ProgramKerjaController;
 use App\Http\Controllers\Api\RencanaAksiController;
 use App\Http\Controllers\Api\TodoItemController;
 use App\Http\Controllers\Api\ProgressMonitoringController;
-use App\Http\Controllers\Api\UserController;
-use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\TemplateController;
-use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\ImportExportController;
 use App\Http\Controllers\Api\JabatanController;
-use App\Http\Controllers\Api\TodoItemAttachmentController;
-use App\Http\Controllers\Api\ProgramKerjaController;
+use App\Http\Controllers\Api\UserController;
 
-// Rute publik untuk otentikasi
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']); // Asumsi ada, jika tidak bisa dihapus
+Route::post('/register-device', [AuthController::class, 'registerDevice']);
 
-// Rute yang dilindungi oleh Sanctum
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-    // API Resources
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    Route::apiResource('program-kerja', ProgramKerjaController::class);
     Route::apiResource('kategori-utama', KategoriUtamaController::class);
     Route::apiResource('kegiatan', KegiatanController::class);
     Route::apiResource('rencana-aksi', RencanaAksiController::class);
-    
-    // Nested routes for TodoItems under RencanaAksi
-    Route::get('/rencana-aksi/{rencanaAksi}/todo-items', [TodoItemController::class, 'index']);
-    Route::post('/rencana-aksi/{rencanaAksi}/todo-items', [TodoItemController::class, 'store']);
-    Route::put('/todo-items/{todoItem}', [TodoItemController::class, 'update']);
-    Route::delete('/todo-items/{todoItem}', [TodoItemController::class, 'destroy']);
+    Route::post('rencana-aksi/import', [RencanaAksiController::class, 'import']);
+    Route::get('rencana-aksi-template', [RencanaAksiController::class, 'downloadTemplate']);
 
-    // Route untuk upload attachment ke to-do item
-    Route::post('/todo-items/{todoItem}/attachments', [TodoItemAttachmentController::class, 'store']);
+    Route::apiResource('todo-items', TodoItemController::class);
+    Route::post('/todo-items/{todoItem}/approve', [TodoItemController::class, 'approve']);
+    Route::post('/todo-items/{todoItem}/reject', [TodoItemController::class, 'reject']);
 
-    Route::apiResource('progress-monitoring', ProgressMonitoringController::class);
+
+    Route::apiResource('progress-monitoring', ProgressMonitoringController::class)->except(['update']);
+    Route::post('progress-monitoring/{progressMonitoring}', [ProgressMonitoringController::class, 'update']); // Handle form-data
+
+    Route::get('reports/monthly', [ReportController::class, 'monthly']);
+    Route::get('reports/matrix', [ReportController::class, 'matrix']);
+    Route::get('reports/export-matrix', [ReportController::class, 'exportMatrix']);
+    Route::get('reports/annual-summary', [ReportController::class, 'annualSummary']);
+    Route::post('reports/export-annual-summary', [ReportController::class, 'exportAnnualSummary']);
+
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
+
+    // Routes for Jabatan and User Management
+    Route::apiResource('jabatan', JabatanController::class);
     Route::apiResource('users', UserController::class);
-    Route::apiResource('templates', TemplateController::class);
-    Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
-    Route::apiResource('jabatan', JabatanController::class)->only(['index']);
-
-    // Routes for Program Kerja
-    Route::apiResource('program-kerja', ProgramKerjaController::class);
-    Route::post('/program-kerja/{programKerja}/activate', [ProgramKerjaController::class, 'activate']);
-    Route::get('/program-kerja/{programKerja}/filter-options', [ProgramKerjaController::class, 'getFilterOptions']);
-
-    // Route for Rencana Aksi
-    Route::apiResource('rencana-aksi', RencanaAksiController::class);
-
-    // Route untuk mengambil progress berdasarkan Rencana Aksi
-    Route::get('/rencana-aksi/{rencanaAksi}/progress', [ProgressMonitoringController::class, 'indexByRencanaAksi']);
-    Route::post('/rencana-aksi/{rencanaAksi}/progress-monitoring', [ProgressMonitoringController::class, 'store']);
-
-
-    // Rute spesifik
-    Route::get('/dashboard-stats', [DashboardController::class, 'index']);
-    Route::get('/reports/matrix', [ReportController::class, 'matrix']);
-    Route::get('/reports/annual-summary', [ReportController::class, 'annualSummary']);
-    Route::get('/reports/monthly', [ReportController::class, 'monthly']);
-    Route::get('/reports/export-matrix', [ReportController::class, 'exportMatrix']);
-    Route::post('/reports/export-annual-summary', [ReportController::class, 'exportAnnualSummary']);
-    Route::post('/notifications/device-token', [NotificationController::class, 'storeToken']);
-
-    // Import/Export
-    Route::get('/export/rencana-aksi-template', [ImportExportController::class, 'exportRencanaAksiTemplate']);
-    Route::post('/import/rencana-aksi', [ImportExportController::class, 'importRencanaAksi']);
 });

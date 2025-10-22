@@ -62,6 +62,12 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                             <NavLink to="/master/kegiatan" className={navLinkClasses}>
                                 <FiDatabase className="mr-3" /> Kegiatan
                             </NavLink>
+                            <NavLink to="/master/jabatan" className={navLinkClasses}>
+                                <FiDatabase className="mr-3" /> Jabatan
+                            </NavLink>
+                            <NavLink to="/master/users" className={navLinkClasses}>
+                                <FiDatabase className="mr-3" /> Manajemen Pengguna
+                            </NavLink>
                         </div>
                     </div>
                     <NavLink to="/audit-logs" className={navLinkClasses}>

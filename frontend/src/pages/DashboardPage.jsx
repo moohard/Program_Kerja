@@ -29,7 +29,7 @@ function DashboardPage() {
             }, {});
 
             const params = new URLSearchParams(activeFilters);
-            const response = await apiClient.get(`/dashboard-stats?${params.toString()}`);
+            const response = await apiClient.get(`/dashboard?${params.toString()}`);
             setDashboardData(response.data);
         } catch (error) {
             console.error("Gagal memuat data dashboard:", error);

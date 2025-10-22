@@ -21,6 +21,7 @@ return [
 
     'allowed_origins'          => [
         'http://localhost:5173',
+        'https://localhost:5173', // Allow HTTPS for Vite dev server
         'http://127.0.0.1:5173',
         'http://192.168.10.10:5173', // <-- Tambahkan baris ini untuk mengizinkan akses dari jaringan lokal
         env('FRONTEND_URL'),
