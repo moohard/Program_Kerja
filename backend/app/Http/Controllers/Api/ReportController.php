@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 
 class ReportController extends Controller
@@ -245,56 +246,78 @@ class ReportController extends Controller
                 ->with(['kegiatan.kategoriUtama', 'assignedTo:id,name', 'progressMonitorings' => fn($q) => $q->whereYear('report_date', $year)])
                 ->get();
             $fileName     = "Laporan_Matriks_{$year}.xlsx";
-            return Excel::download(new LaporanMatriksExport($rencanaAksis), $fileName);
+            return Excel::download(new LaporanMatriksExport($rencanaAksis, new \App\Services\JadwalService()), $fileName);
             }
 
-        if ($request->format === 'pdf') {
-            // 1. Ambil data mentah
-            $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
-                ->where('jadwal_tipe', '!=', 'rutin')
-                ->with(['kegiatan.kategoriUtama', 'assignedTo:id,name', 'progressMonitorings' => fn($q) => $q->whereYear('report_date', $year)])
-                ->orderBy('kegiatan_id') // Urutkan untuk grouping
-                ->get();
-
-            // 2. Proses dan kelompokkan data untuk view PDF
-            $groupedData = $rencanaAksis->groupBy(function ($item) {
-                return optional($item->kegiatan->kategoriUtama)->nama_kategori ?? 'Uncategorized';
-                })->map(function ($kategoriGroup) {
-                    return $kategoriGroup->groupBy('kegiatan.nama_kegiatan')
-                        ->map(function ($kegiatanGroup) {
-                            return [
-                                'nama_kegiatan' => $kegiatanGroup->first()->kegiatan->nama_kegiatan,
-                                'rencana_aksi'  => $kegiatanGroup->map(function ($aksi) {
-                                    $monthlyProgress = $aksi->progressMonitorings->mapWithKeys(function ($progress) use ($aksi) {
-                                        return [(int) date('m', strtotime($progress->report_date)) => $progress->progress_percentage];
-                                        });
-                                    return [
-                                        'deskripsi_aksi'   => $aksi->deskripsi_aksi,
-                                        'assigned_to'      => $aksi->assignedTo,
-                                        'target_tanggal'   => $aksi->target_tanggal,
-                                        'monthly_progress' => $monthlyProgress,
-                                    ];
+                if ($request->format === 'pdf') {
+                    // 1. Ambil data mentah
+                    $rencanaAksis = RencanaAksi::whereYear('target_tanggal', $year)
+                        ->where('jadwal_tipe', '!=', 'rutin')
+                        ->with(['kegiatan.kategoriUtama', 'assignedTo:id,name', 'progressMonitorings' => fn($q) => $q->whereYear('report_date', $year)])
+                        ->orderBy('kegiatan_id') // Urutkan untuk grouping
+                        ->get();
+        
+                    $jadwalService = new \App\Services\JadwalService();
+        
+                    // 2. Proses dan kelompokkan data untuk view PDF
+                    $groupedData = $rencanaAksis->groupBy(function ($item) {
+                        return optional($item->kegiatan->kategoriUtama)->nama_kategori ?? 'Uncategorized';
+                    })->map(function ($kategoriGroup) use ($jadwalService) {
+                        return $kategoriGroup->groupBy('kegiatan.nama_kegiatan')
+                            ->map(function ($kegiatanGroup) use ($jadwalService) {
+                                return [
+                                    'nama_kegiatan' => $kegiatanGroup->first()->kegiatan->nama_kegiatan,
+                                    'rencana_aksi'  => $kegiatanGroup->map(function ($aksi) use ($jadwalService) {
+                                        // Logika yang disempurnakan, mirip dengan LaporanMatriksExport
+                                        $progressByMonth = [];
+                                        foreach ($aksi->progressMonitorings as $progress) {
+                                            $month = Carbon::parse($progress->report_date)->month;
+                                            // Ambil yang terbaru untuk setiap bulan
+                                            if (!isset($progressByMonth[$month]) || Carbon::parse($progress->tanggal_monitoring)->isAfter(Carbon::parse($progressByMonth[$month]->tanggal_monitoring))) {
+                                                $progressByMonth[$month] = $progress;
+                                            }
+                                        }
+        
+                                                                        $schedule = array_fill(1, 12, null); // Default null (tidak ada jadwal)
+                                                                        if (!empty($aksi->jadwal_config) && is_array($aksi->jadwal_config)) {
+                                                                            $plannedMonths = $jadwalService->getTargetMonths($aksi->jadwal_tipe, $aksi->jadwal_config);
+                                                                            foreach ($plannedMonths as $month) {
+                                                                                if ($month >= 1 && $month <= 12) {
+                                                                                    if (isset($progressByMonth[$month])) {
+                                                                                        $progress = $progressByMonth[$month];
+                                                                                        $schedule[$month] = $progress->progress_percentage . '%';
+                                                                                    } else {
+                                                                                        $schedule[$month] = '0%';
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }        
+                                        return [
+                                            'deskripsi_aksi'   => $aksi->deskripsi_aksi,
+                                            'assigned_to'      => $aksi->assignedTo,
+                                            'target_tanggal'   => $aksi->target_tanggal,
+                                            'monthly_schedule' => $schedule, // Kirim jadwal yang sudah diproses
+                                        ];
                                     })->values()->all(),
-                            ];
+                                ];
                             })->values()->all();
                     });
-
-            // 3. Buat PDF
-            $pdf = Pdf::loadView('reports.matriks_pdf', ['data' => $groupedData, 'year' => $year])
-                ->setPaper('a3', 'landscape');
-
-            // 4. Simpan ke S3 dan dapatkan URL
-            $fileName = 'generated-reports/laporan-matriks-' . $year . '-' . Str::uuid() . '.pdf';
-            Storage::disk('s3')->put($fileName, $pdf->output());
-
-            $url = Storage::disk('s3')->temporaryUrl(
-                $fileName,
-                now()->addMinutes(15) // URL berlaku selama 15 menit
-            );
-
-            return response()->json(['download_url' => $url]);
-            }
-        }
+        
+                    // 3. Buat PDF
+                    $pdf = Pdf::loadView('reports.matriks_pdf', ['data' => $groupedData, 'year' => $year])
+                        ->setPaper('a3', 'landscape');
+        
+                    // 4. Simpan ke S3 dan dapatkan URL
+                    $fileName = 'generated-reports/laporan-matriks-' . $year . '-' . Str::uuid() . '.pdf';
+                    Storage::disk('s3')->put($fileName, $pdf->output());
+        
+                    $url = Storage::disk('s3')->temporaryUrl(
+                        $fileName,
+                        now()->addMinutes(15) // URL berlaku selama 15 menit
+                    );
+        
+                    return response()->json(['download_url' => $url]);
+                }        }
 
     public function exportAnnualSummary(Request $request)
         {

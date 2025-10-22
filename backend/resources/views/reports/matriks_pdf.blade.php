@@ -42,7 +42,7 @@
                             <td>{{ $aksi['assigned_to']['name'] ?? 'N/A' }}</td>
                             <td>{{ date('d M Y', strtotime($aksi['target_tanggal'])) }}</td>
                             @for ($i = 1; $i <= 12; $i++)
-                                <td>{{ $aksi['monthly_progress'][$i] ?? '' }}%</td>
+                                <td>{{ $aksi['monthly_schedule'][$i] ?? '' }}</td>
                             @endfor
                         </tr>
                     @endforeach

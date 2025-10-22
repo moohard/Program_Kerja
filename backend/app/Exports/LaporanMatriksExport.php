@@ -15,13 +15,15 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
 {
 
     protected $data;
+    protected $jadwalService;
 
-    public function __construct($data)
+    public function __construct($data, \App\Services\JadwalService $jadwalService)
     {
         // NOTE: Pastikan data yang di-pass ke sini sudah eager load relasi
         // yang dibutuhkan untuk menghindari N+1 query problem.
         // Contoh: RencanaAksi::with('kegiatan.kategoriUtama', 'assignedTo', 'progressMonitorings.attachments')->get();
         $this->data = $data;
+        $this->jadwalService = $jadwalService;
     }
 
     /**
@@ -76,7 +78,9 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
         // Determine status for each month
         $schedule = array_fill(1, 12, '');
         if (!empty($row->jadwal_config) && is_array($row->jadwal_config)) {
-            $plannedMonths = $row->jadwal_config['months'] ?? [];
+            // Menggunakan JadwalService untuk mendapatkan bulan yang direncanakan secara akurat
+            $plannedMonths = $this->jadwalService->getTargetMonths($row->jadwal_tipe, $row->jadwal_config);
+
             foreach ($plannedMonths as $month) {
                 if ($month >= 1 && $month <= 12) {
                     if (isset($progressByMonth[$month])) {
@@ -86,7 +90,8 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
                         } elseif ($progress->progress_percentage > 0) {
                             $schedule[$month] = 'progress';
                         } else {
-                            $schedule[$month] = 'planned';
+                            // Jika ada progress report tapi 0%, anggap 'progress' bukan 'planned'
+                            $schedule[$month] = 'progress';
                         }
                     } else {
                         $schedule[$month] = 'planned';
@@ -98,9 +103,11 @@ class LaporanMatriksExport implements FromCollection, WithHeadings, WithMapping,
         // Collect all attachment filenames
         $attachmentsList = [];
         foreach ($row->progressMonitorings as $progress) {
-            foreach ($progress->attachments as $attachment) {
-                // Asumsi nama file disimpan di kolom 'file_name' atau 'original_name'
-                $attachmentsList[] = $attachment->file_name ?? $attachment->original_name ?? 'unknown_file';
+            if ($progress->attachments) {
+                foreach ($progress->attachments as $attachment) {
+                    // Asumsi nama file disimpan di kolom 'file_name' atau 'original_name'
+                    $attachmentsList[] = $attachment->file_name ?? $attachment->original_name ?? 'unknown_file';
+                }
             }
         }
         $output = count($attachmentsList) > 0 ? implode("\n", $attachmentsList) : '-';
