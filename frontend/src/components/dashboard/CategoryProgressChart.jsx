@@ -35,6 +35,7 @@ function CategoryProgressChart({ data }) {
 
     const options = {
         responsive: true,
+        maintainAspectRatio: false, // <-- Tambahkan ini
         plugins: {
             legend: {
                 position: 'top',
@@ -58,7 +59,7 @@ function CategoryProgressChart({ data }) {
     };
 
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="bg-white p-4 rounded-lg shadow-md max-h-[500px] h-[500px]"> {/* <-- Ubah padding & tambah tinggi */}
             <Bar data={chartData} options={options} />
         </div>
     );
