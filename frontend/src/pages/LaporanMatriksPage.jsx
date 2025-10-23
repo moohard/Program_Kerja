@@ -94,21 +94,21 @@ const LaporanMatriksPage = () => {
     };
 
     const getMonthlyProgressColor = (progress) => {
-        if (progress === null || progress === undefined) return 'bg-gray-50';
-        if (progress == 100) return 'bg-green-200 text-green-800';
-        if (progress > 0) return 'bg-yellow-200 text-yellow-800';
-        return 'bg-blue-200 text-blue-800';
+        if (progress === null || progress === undefined) return 'bg-gray-50'; // Tidak dijadwalkan
+        if (progress == 100) return 'bg-green-500 text-white'; // Selesai
+        if (progress > 0) return 'bg-blue-500 text-white'; // Aktif dikerjakan
+        return 'bg-yellow-400 text-yellow-900'; // Dijadwalkan, belum dikerjakan (0%)
     };
 
     const getStatusColor = (status, isLate) => {
         if (isLate) {
-            if (status === 'completed') return 'bg-pink-200 text-pink-800'; // Pink pastel
-            if (status === 'planned' || status === 'in_progress') return 'bg-yellow-200 text-yellow-800'; // Kuning pastel
+            if (status === 'in_progress' || status === 'planned') return 'bg-red-500 text-white'; // Masalah Aktif!
+            if (status === 'completed') return 'bg-yellow-500 text-yellow-900'; // Selesai (dengan catatan)
         }
         switch (status) {
-            case 'completed': return 'bg-green-200 text-green-800'; // Hijau pastel
-            case 'in_progress': return 'bg-blue-200 text-blue-800'; // Biru pastel
-            case 'planned': return 'bg-gray-200 text-gray-800'; // Abu-abu pastel
+            case 'completed': return 'bg-green-500 text-white'; // Aman dan selesai
+            case 'in_progress': return 'bg-blue-500 text-white'; // Dalam progress, sesuai rencana
+            case 'planned': return 'bg-gray-400 text-gray-900'; // Belum dimulai
             default: return 'bg-white';
         }
     };
