@@ -4,12 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite --host 0.0.0.0\" \"cd ../backend && php artisan serve\"",
+    "dev": "concurrently \"vite --host 0.0.0.0\" \"cd ../backend && php artisan serve --host=0.0.0.0\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "axios": "^1.12.2",
     "chart.js": "^4.5.0",
     "date-fns": "^4.1.0",
@@ -39,6 +40,7 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "vite": "^7.1.2",
+    "vite-plugin-mkcert": "^1.17.9",
     "vite-plugin-pwa": "^1.0.3"
   },
   "browserslist": [

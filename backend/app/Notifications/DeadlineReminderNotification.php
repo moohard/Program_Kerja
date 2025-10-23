@@ -6,9 +6,7 @@ use App\Models\RencanaAksi;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
-use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification as FirebaseNotification;
-use App\Channels\FcmChannel;
 
 class DeadlineReminderNotification extends Notification implements ShouldQueue
 {
@@ -16,47 +14,42 @@ class DeadlineReminderNotification extends Notification implements ShouldQueue
 
     protected $rencanaAksi;
 
-    /**
-     * Create a new notification instance.
-     *
-     * @param RencanaAksi $rencanaAksi
-     */
     public function __construct(RencanaAksi $rencanaAksi)
     {
         $this->rencanaAksi = $rencanaAksi;
     }
 
-    /**
-     * Get the notification's delivery channels.
-     *
-     * @param  mixed  $notifiable
-     * @return array
-     */
     public function via($notifiable)
     {
-        return [FcmChannel::class];
+        return ['fcm', 'database'];
     }
 
-    /**
-     * Get the FCM representation of the notification.
-     *
-     * @param  mixed  $notifiable
-     * @return \Kreait\Firebase\Messaging\CloudMessage
-     */
-    public function toFcm($notifiable)
+    public function toFcm($notifiable): array
     {
-        $deadline = $this->rencanaAksi->target_tanggal->format('d M Y');
-        $title = 'Pengingat Deadline Mendekat';
+        $deadline = \Carbon\Carbon::parse($this->rencanaAksi->target_tanggal)->format('d M Y');
+        $title = 'Pengingat: Deadline Mendekat';
         $body = "Tugas '{$this->rencanaAksi->deskripsi_aksi}' akan berakhir pada {$deadline}.";
 
-        return CloudMessage::new()
-            ->withNotification(FirebaseNotification::create($title, $body))
-            ->withData([
-                'fcm_options' => [
-                    'link' => '/program-kerja/' . $this->rencanaAksi->kegiatan->programKerja->id,
-                ],
-                'notification_type' => 'deadline_reminder',
+        return [
+            'notification' => FirebaseNotification::create($title, $body),
+            'data' => [
+                'type' => 'deadline_reminder',
+                'title' => $title,
+                'body' => $body,
                 'rencana_aksi_id' => (string) $this->rencanaAksi->id,
-            ]);
+                'click_action' => '/rencana-aksi'
+            ]
+        ];
+    }
+
+    public function toDatabase($notifiable): array
+    {
+        $deadline = \Carbon\Carbon::parse($this->rencanaAksi->target_tanggal)->format('d M Y');
+        return [
+            'rencana_aksi_id' => $this->rencanaAksi->id,
+            'title' => 'Pengingat: Deadline Mendekat',
+            'message' => "Tugas '{$this->rencanaAksi->deskripsi_aksi}' akan berakhir pada {$deadline}.",
+            'type' => 'deadline_reminder',
+        ];
     }
 }

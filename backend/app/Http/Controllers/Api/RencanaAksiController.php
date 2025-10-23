@@ -143,6 +143,7 @@ class RencanaAksiController extends Controller
     {
         $this->authorize('update', $rencanaAksi);
 
+        $originalPicId = $rencanaAksi->assigned_to;
         $validated = $request->validated();
 
         // Validasi jadwal_config menggunakan JadwalService
@@ -164,14 +165,15 @@ class RencanaAksiController extends Controller
 
         try {
             $assignedUserId = $validated['assigned_to'] ?? null;
-            if ($assignedUserId) {
+            // Kirim notifikasi HANYA jika PIC berubah dan tidak kosong
+            if ($assignedUserId && $assignedUserId != $originalPicId) {
                 $userToNotify = User::find($assignedUserId);
                 if ($userToNotify) {
                     $userToNotify->notify(new RencanaAksiAssigned($rencanaAksi));
                 }
             }
         } catch (\Exception $e) {
-            \Log::error('FCM Notification failed during update: ' . $e->getMessage());
+            \Log::error('FCM Notification failed during RencanaAksi update: ' . $e->getMessage());
         }
 
         return new RencanaAksiResource(RencanaAksi::with(['assignedTo', 'progressMonitorings', 'latestProgress'])->findOrFail($rencanaAksi->id));

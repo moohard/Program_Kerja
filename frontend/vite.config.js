@@ -1,24 +1,24 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import mkcert from 'vite-plugin-mkcert'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
     host: '0.0.0.0',
-    https: {
-      key: './localhost-key.pem',
-      cert: './localhost.pem',
-    },
+    https: true, // Enable https and let mkcert handle it
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://192.168.9.11:8000', // Use the network IP
         changeOrigin: true,
+        secure: false,
       },
     }
   },
   plugins: [
     react(),
+    mkcert(), // Add mkcert plugin
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['/icons/icon-192x192.png', '/icons/icon-512x512.png'],

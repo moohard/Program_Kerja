@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/Layout/ProtectedRoute';
 import PublicRoute from './components/Layout/PublicRoute';
+import NotificationHandler from './components/NotificationHandler';
 
 import MainLayout from './components/Layout/MainLayout';
 import LoginPage from './pages/LoginPage';
@@ -42,6 +43,7 @@ function App() {
                     pauseOnHover
                 />
                 <AuthProvider>
+                    <NotificationHandler />
                     <Suspense fallback={<div className="flex h-screen w-full items-center justify-center">Loading...</div>}>
                         <Routes>
                             <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />

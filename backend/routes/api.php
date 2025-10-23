@@ -15,15 +15,18 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\JabatanController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\TodoItemAttachmentController;
+use App\Http\Controllers\Api\DeviceTokenController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register-device', [AuthController::class, 'registerDevice']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/device-tokens', [DeviceTokenController::class, 'store']);
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
+
 
     Route::apiResource('program-kerja', ProgramKerjaController::class);
     Route::get('/program-kerja/{programKerja}/filter-options', [ProgramKerjaController::class, 'getFilterOptions']);

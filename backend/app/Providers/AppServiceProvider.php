@@ -6,6 +6,7 @@ use App\Channels\FcmChannel;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use Illuminate\Support\ServiceProvider;
+use Kreait\Firebase\Messaging\CloudMessage;
 use Notification;
 
 class AppServiceProvider extends ServiceProvider
@@ -34,11 +35,26 @@ class AppServiceProvider extends ServiceProvider
 
                 public function send($notifiable, $notification)
                     {
-                    $message = $notification->toFcm($notifiable);
+                    $tokens = (array) $notifiable->routeNotificationFor('fcm', $notification);
 
-                    if ($message) {
-                        $this->messaging->send($message);
+                    if (empty($tokens)) {
+                        return;
+                    }
+
+                    $messagePayload = $notification->toFcm($notifiable);
+
+                    foreach ($tokens as $token) {
+                        try {
+                            $message = CloudMessage::withTarget('token', $token)
+                                ->withNotification($messagePayload['notification'])
+                                ->withData($messagePayload['data']);
+                            
+                            $this->messaging->send($message);
+                        } catch (\Exception $e) {
+                            // Log error for a specific token, but don't stop the loop
+                            \Log::error('Failed to send FCM to a token.', ['user_id' => $notifiable->id, 'exception' => $e->getMessage()]);
                         }
+                    }
                     }
                 };
             });

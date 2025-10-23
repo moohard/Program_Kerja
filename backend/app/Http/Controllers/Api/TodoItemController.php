@@ -10,6 +10,9 @@ use App\Models\RencanaAksi;
 use App\Models\TodoItem;
 use Illuminate\Http\Request;
 use App\Models\ProgressMonitoring;
+use App\Models\User;
+use App\Notifications\TodoItemAssigned;
+use App\Notifications\TodoItemStatusUpdated;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -62,6 +65,18 @@ class TodoItemController extends Controller
             return $todoItem;
         });
 
+        // Notify the assigned user
+        try {
+            if (!empty($validated['pelaksana_id'])) {
+                $userToNotify = User::find($validated['pelaksana_id']);
+                if ($userToNotify) {
+                    $userToNotify->notify(new TodoItemAssigned($todoItem));
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('FCM Notification failed for TodoItemAssigned (store): ' . $e->getMessage());
+        }
+
         return new TodoItemResource($todoItem->load(['attachments', 'pelaksana']));
     }
 
@@ -69,6 +84,8 @@ class TodoItemController extends Controller
     {
         $validated = $request->validated();
         $note = "Status to-do '{$todoItem->deskripsi}' diubah.";
+        $originalPelaksanaId = $todoItem->pelaksana_id;
+        $originalStatus = $todoItem->status_approval;
 
         // Logika khusus untuk approval oleh PIC
         if (isset($validated['status_approval'])) {
@@ -88,6 +105,28 @@ class TodoItemController extends Controller
         }
         
         $todoItem->update($validated);
+
+        // --- NOTIFICATION LOGIC ---
+        try {
+            // 1. Notify new assignee if pelaksana_id changed
+            $newPelaksanaId = $todoItem->pelaksana_id;
+            if ($newPelaksanaId && $newPelaksanaId !== $originalPelaksanaId) {
+                $userToNotify = User::find($newPelaksanaId);
+                if ($userToNotify) {
+                    $userToNotify->notify(new TodoItemAssigned($todoItem));
+                }
+            }
+
+            // 2. Notify pelaksana if status_approval changed
+            if (isset($validated['status_approval']) && $validated['status_approval'] !== $originalStatus) {
+                if ($todoItem->pelaksana) { // Make sure pelaksana exists
+                    $todoItem->pelaksana->notify(new TodoItemStatusUpdated($todoItem));
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('FCM Notification failed for TodoItem (update): ' . $e->getMessage());
+        }
+        // --- END NOTIFICATION LOGIC ---
 
         // [FIX] Gunakan bulan dari deadline item sebagai fallback jika tidak ada di request
         $monthToRecalculate = $request->input('month') ?? ($todoItem->deadline ? $todoItem->deadline->month : null);

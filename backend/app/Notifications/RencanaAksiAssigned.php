@@ -24,24 +24,20 @@ class RencanaAksiAssigned extends Notification
         return ['fcm', 'database'];
     }
 
-    public function toFcm(object $notifiable): CloudMessage
+    public function toFcm(object $notifiable): array
     {
-        // Karena token ada di table device_tokens, 
-        // Laravel akan otomatis handle multiple tokens via routeNotificationForFcm()
-        
-        // Data untuk React PWA
-        return CloudMessage::new()
-            ->withNotification(FirebaseNotification::create()
+        return [
+            'notification' => FirebaseNotification::create()
                 ->withTitle('Tugas Baru Untuk Anda!')
-                ->withBody($this->rencanaAksi->deskripsi_aksi)
-            )
-            ->withData([
+                ->withBody($this->rencanaAksi->deskripsi_aksi),
+            'data' => [
                 'type' => 'rencana_aksi_assigned',
                 'title' => 'Tugas Baru Untuk Anda!',
                 'body' => $this->rencanaAksi->deskripsi_aksi,
                 'rencana_aksi_id' => (string) $this->rencanaAksi->id,
                 'click_action' => '/rencana-aksi'
-            ]);
+            ]
+        ];
     }
 
     public function toDatabase(object $notifiable): array
