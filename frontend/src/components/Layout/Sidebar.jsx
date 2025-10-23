@@ -1,8 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FiGrid, FiFileText, FiBarChart2, FiSettings, FiGitMerge, FiDatabase, FiX } from 'react-icons/fi';
+import { FiGrid, FiFileText, FiBarChart2, FiSettings, FiGitMerge, FiDatabase, FiUsers, FiKey, FiX } from 'react-icons/fi';
+import useAuth from '../../hooks/useAuth'; // Import useAuth
 
 const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
+    const { user } = useAuth(); // Get the user object
+
+    // Helper function to check for a permission
+    const can = (permissionName) => {
+        return user?.permissions?.includes(permissionName) ?? false;
+    };
+
     const navLinkClasses = ({ isActive }) =>
         `flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
             isActive ? 'bg-indigo-700 text-white' : 'text-gray-200 hover:bg-indigo-500 hover:text-white'
@@ -66,8 +74,13 @@ const Sidebar = ({ isSidebarOpen, setSidebarOpen }) => {
                                 <FiDatabase className="mr-3" /> Jabatan
                             </NavLink>
                             <NavLink to="/master/users" className={navLinkClasses}>
-                                <FiDatabase className="mr-3" /> Manajemen Pengguna
+                                <FiUsers className="mr-3" /> Manajemen Pengguna
                             </NavLink>
+                            {can('manage roles and permissions') && (
+                                <NavLink to="/manajemen-role" className={navLinkClasses}>
+                                    <FiKey className="mr-3" /> Manajemen Role
+                                </NavLink>
+                            )}
                         </div>
                     </div>
                     <NavLink to="/audit-logs" className={navLinkClasses}>

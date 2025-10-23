@@ -17,29 +17,30 @@ class RbacSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         // === DEFINISI PERMISSIONS ===
-        Permission::create(['name' => 'manage users']);
-        Permission::create(['name' => 'manage jabatan']);
-        Permission::create(['name' => 'manage master data']);
+        Permission::firstOrCreate(['name' => 'manage users']);
+        Permission::firstOrCreate(['name' => 'manage jabatan']);
+        Permission::firstOrCreate(['name' => 'manage master data']);
 
-        Permission::create(['name' => 'view all data']);
-        Permission::create(['name' => 'view team data']); // Permission baru untuk manajer
-        Permission::create(['name' => 'create rencana aksi']);
-        Permission::create(['name' => 'edit rencana aksi']);
-        Permission::create(['name' => 'delete rencana aksi']);
-        Permission::create(['name' => 'assign rencana aksi']);
-        Permission::create(['name' => 'approve todo']);
-        Permission::create(['name' => 'upload evidence']);
-        Permission::create(['name' => 'manage own todos']);
+        Permission::firstOrCreate(['name' => 'view all data']);
+        Permission::firstOrCreate(['name' => 'view team data']); // Permission baru untuk manajer
+        Permission::firstOrCreate(['name' => 'create rencana aksi']);
+        Permission::firstOrCreate(['name' => 'edit rencana aksi']);
+        Permission::firstOrCreate(['name' => 'delete rencana aksi']);
+        Permission::firstOrCreate(['name' => 'assign rencana aksi']);
+        Permission::firstOrCreate(['name' => 'approve todo']);
+        Permission::firstOrCreate(['name' => 'upload evidence']);
+        Permission::firstOrCreate(['name' => 'manage own todos']);
+        Permission::firstOrCreate(['name' => 'manage roles and permissions']); // Permission baru
 
         // === DEFINISI ROLES & PEMBERIAN PERMISSIONS ===
 
         // 1. Admin: Semua hak akses
-        $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo(Permission::all());
+        $adminRole = Role::firstOrCreate(['name' => 'admin']);
+        $adminRole->syncPermissions(Permission::all());
 
         // 2. Pimpinan: Akses lihat global + hak manajerial
-        $pimpinanRole = Role::create(['name' => 'pimpinan']);
-        $pimpinanRole->givePermissionTo([
+        $pimpinanRole = Role::firstOrCreate(['name' => 'pimpinan']);
+        $pimpinanRole->syncPermissions([
             'view all data',
             'create rencana aksi', 'edit rencana aksi', 'delete rencana aksi',
             'assign rencana aksi',
@@ -49,8 +50,8 @@ class RbacSeeder extends Seeder
         ]);
 
         // 3. Manajer: Pimpinan Bidang, terbatas pada timnya
-        $manajerRole = Role::create(['name' => 'manajer']);
-        $manajerRole->givePermissionTo([
+        $manajerRole = Role::firstOrCreate(['name' => 'manajer']);
+        $manajerRole->syncPermissions([
             'view team data', // Menggunakan permission baru
             'create rencana aksi', 'edit rencana aksi', 'delete rencana aksi',
             'assign rencana aksi',
@@ -60,16 +61,16 @@ class RbacSeeder extends Seeder
         ]);
 
         // 4. Staff: Eksekutor
-        $staffRole = Role::create(['name' => 'staff']);
-        $staffRole->givePermissionTo(['manage own todos', 'upload evidence']);
+        $staffRole = Role::firstOrCreate(['name' => 'staff']);
+        $staffRole->syncPermissions(['manage own todos', 'upload evidence']);
 
         // 5. Pengawas: Auditor (Read-only)
-        $pengawasRole = Role::create(['name' => 'pengawas']);
-        $pengawasRole->givePermissionTo('view all data');
+        $pengawasRole = Role::firstOrCreate(['name' => 'pengawas']);
+        $pengawasRole->syncPermissions('view all data');
 
         // 6. Operator: Juru Tulis / Input Rencana Aksi
-        $operatorRole = Role::create(['name' => 'operator']);
-        $operatorRole->givePermissionTo([
+        $operatorRole = Role::firstOrCreate(['name' => 'operator']);
+        $operatorRole->syncPermissions([
             'create rencana aksi',
             'edit rencana aksi',
             'delete rencana aksi',

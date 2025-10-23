@@ -68,4 +68,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('jabatan/{jabatanItem}', [JabatanController::class, 'destroy']);
 
     Route::apiResource('users', UserController::class);
+
+    // Routes for Role & Permission Management (Admin Only)
+    Route::middleware('permission:manage roles and permissions')->group(function () {
+        Route::get('/roles', [\App\Http\Controllers\Api\RolePermissionController::class, 'indexRoles']);
+        Route::get('/permissions', [\App\Http\Controllers\Api\RolePermissionController::class, 'indexPermissions']);
+        Route::post('/roles/{role}/permissions', [\App\Http\Controllers\Api\RolePermissionController::class, 'syncPermissions']);
+    });
 });

@@ -25,6 +25,7 @@ import LaporanPage from './pages/LaporanPage';
 import LaporanMatriksPage from './pages/LaporanMatriksPage';
 import TemplateManagementPage from './pages/TemplateManagementPage';
 import AuditLogPage from './pages/AuditLogPage';
+import RolePermissionPage from './pages/RolePermissionPage'; // Import halaman baru
 import ErrorBoundary from './components/ErrorBoundary'; // Import ErrorBoundary
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
                                 <Route path="/master/users" element={<UserPage />} />
                                 <Route path="/templates" element={<TemplateManagementPage />} />
                                 <Route path="/audit-logs" element={<AuditLogPage />} />
+                                <Route path="/manajemen-role" element={<RolePermissionPage />} /> 
                             </Route>
                             <Route path="*" element={<Navigate to="/dashboard" />} />
                         </Routes>
