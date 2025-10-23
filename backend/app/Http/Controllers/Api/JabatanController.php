@@ -61,4 +61,51 @@ class JabatanController extends Controller
         $jabatanItem->delete();
         return response()->noContent();
     }
+
+    /**
+     * Fetch assignable jabatan tree for the current user.
+     * Only returns the user's own jabatan and its descendants.
+     */
+    public function getAssignableTree(Request $request)
+    {
+        $user = $request->user();
+        if (!$user->jabatan_id) {
+            // If user has no jabatan, return empty array or handle as per business logic
+            // For a super admin, maybe return the whole tree? For now, return empty.
+            $rootJabatan = Jabatan::whereNull('parent_id')->with('users')->get();
+            $tree = $this->buildTree($rootJabatan);
+            return response()->json($tree);
+        }
+
+        // Fetch the user's own jabatan and eager load its children recursively
+        $userJabatan = Jabatan::with('users')->find($user->jabatan_id);
+
+        if (!$userJabatan) {
+            return response()->json([]);
+        }
+
+        // Build the tree starting from the user's own jabatan
+        $tree = $this->buildTree([$userJabatan]);
+
+        return response()->json($tree);
+    }
+
+    /**
+     * Recursively build the jabatan tree.
+     */
+    private function buildTree($jabatans)
+    {
+        $tree = [];
+        foreach ($jabatans as $jabatan) {
+            $children = $this->buildTree($jabatan->children()->with('users')->get());
+            $data = [
+                'id' => $jabatan->id,
+                'nama_jabatan' => $jabatan->nama_jabatan,
+                'users' => $jabatan->users->map(fn ($user) => ['id' => $user->id, 'name' => $user->name]),
+                'children' => $children,
+            ];
+            $tree[] = $data;
+        }
+        return $tree;
+    }
 }

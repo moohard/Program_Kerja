@@ -10,8 +10,6 @@ function RencanaAksiPage() {
     const [kegiatanList, setKegiatanList] = useState([]);
     const [rencanaAksiList, setRencanaAksiList] = useState([]);
     const [jabatanTree, setJabatanTree] = useState([]);
-    const [userList, setUserList] = useState([]);
-    const [processedJabatanTree, setProcessedJabatanTree] = useState([]); // State for merged data
 
     const [selectedKategori, setSelectedKategori] = useState('');
     const [selectedKegiatan, setSelectedKegiatan] = useState('');
@@ -31,16 +29,12 @@ function RencanaAksiPage() {
         const fetchInitialData = async () => {
             setLoading(prev => ({ ...prev, kategori: true }));
             try {
-                const [kategoriRes, jabatanRes, usersRes] = await Promise.all([
+                const [kategoriRes, jabatanRes] = await Promise.all([
                     apiClient.get('/kategori-utama'),
-                    apiClient.get('/jabatan'),
-                    apiClient.get('/users')
+                    apiClient.get('/jabatan/assignable-tree')
                 ]);
-                console.log("Raw Jabatan Tree:", jabatanRes.data.data);
-                console.log("Raw User List:", usersRes.data.data);
                 setKategoriList(kategoriRes.data.data);
-                setJabatanTree(jabatanRes.data.data);
-                setUserList(usersRes.data.data);
+                setJabatanTree(jabatanRes.data); // The new endpoint returns the tree directly
             } catch (error) {
                 console.error("Error fetching initial data:", error);
             } finally {
@@ -49,32 +43,6 @@ function RencanaAksiPage() {
         };
         fetchInitialData();
     }, []);
-
-    // Effect to merge users into the jabatan tree
-    useEffect(() => {
-        if (jabatanTree.length > 0 && userList.length > 0) {
-            const usersByJabatan = userList.reduce((acc, user) => {
-                const jabatanId = user.jabatan_id;
-                if (!acc[jabatanId]) {
-                    acc[jabatanId] = [];
-                }
-                acc[jabatanId].push(user);
-                return acc;
-            }, {});
-
-            const mapUsersToTree = (nodes) => {
-                return nodes.map(node => ({
-                    ...node,
-                    users: usersByJabatan[node.id] || [],
-                    children: node.children ? mapUsersToTree(node.children) : [],
-                }));
-            };
-
-            const newProcessedTree = mapUsersToTree(jabatanTree);
-            console.log("Processed Jabatan Tree:", newProcessedTree);
-            setProcessedJabatanTree(newProcessedTree);
-        }
-    }, [jabatanTree, userList]);
 
     // Fetch Kegiatan based on selected Kategori
     const fetchKegiatan = useCallback(async (kategoriId) => {
@@ -321,14 +289,14 @@ function RencanaAksiPage() {
                 isOpen={isModalOpen}
                 currentData={currentItem}
                 kegiatanId={selectedKegiatan}
-                jabatanTree={processedJabatanTree} // Use the processed tree
+                jabatanTree={jabatanTree} // Use the direct tree
                 onClose={handleCloseModal}
                 onSave={fetchRencanaAksi}
             />}
             {isTodoModalOpen && <TodoModal 
                 rencanaAksi={selectedRencanaAksi} 
                 selectedDate={selectedDate}
-                userList={userList}
+                jabatanTree={jabatanTree}
                 onClose={handleCloseTodoModal} 
             />}
         </div>

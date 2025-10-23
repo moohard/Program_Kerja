@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\JabatanController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\TodoItemAttachmentController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register-device', [AuthController::class, 'registerDevice']);
@@ -31,9 +32,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('rencana-aksi/import', [RencanaAksiController::class, 'import']);
     Route::get('rencana-aksi-template', [RencanaAksiController::class, 'downloadTemplate']);
 
-    Route::apiResource('todo-items', TodoItemController::class);
+    // Nested routes for TodoItems under RencanaAksi
+    Route::get('/rencana-aksi/{rencanaAksi}/todo-items', [TodoItemController::class, 'index']);
+    Route::post('/rencana-aksi/{rencanaAksi}/todo-items', [TodoItemController::class, 'store']);
+
+    Route::apiResource('todo-items', TodoItemController::class)->except(['index', 'store']);
     Route::post('/todo-items/{todoItem}/approve', [TodoItemController::class, 'approve']);
     Route::post('/todo-items/{todoItem}/reject', [TodoItemController::class, 'reject']);
+    Route::post('/todo-items/{todoItem}/attachments', [TodoItemAttachmentController::class, 'store']);
 
 
     Route::apiResource('progress-monitoring', ProgressMonitoringController::class)->except(['update']);
@@ -51,6 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Routes for Jabatan and User Management
     // Route::apiResource('jabatan', JabatanController::class); // Replaced for debugging
     Route::get('jabatan', [JabatanController::class, 'index']);
+    Route::get('jabatan/assignable-tree', [JabatanController::class, 'getAssignableTree']);
     Route::post('jabatan', [JabatanController::class, 'store']);
     Route::get('jabatan/{jabatan}', [JabatanController::class, 'show']);
     Route::put('jabatan/{jabatanItem}', [JabatanController::class, 'update']);

@@ -101,9 +101,32 @@ const FileUploader = ({ todo, onUploadComplete, selectedMonth }) => {
 };
 
 
-function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, userList = [] }) {
+function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, jabatanTree = [] }) {
     // --- HOOKS (SEMUA DI ATAS) ---
     const { user } = useContext(AuthContext);
+
+    // Flatten the jabatan tree to get a list of all possible users for assignment
+    const assignableUsers = useMemo(() => {
+        const users = new Map(); // Use a Map to prevent duplicate users
+        const flattenTree = (nodes) => {
+            if (!nodes) return;
+            for (const node of nodes) {
+                if (node.users) {
+                    node.users.forEach(u => {
+                        if (!users.has(u.id)) {
+                            users.set(u.id, u);
+                        }
+                    });
+                }
+                if (node.children) {
+                    flattenTree(node.children);
+                }
+            }
+        };
+        flattenTree(jabatanTree);
+        return Array.from(users.values());
+    }, [jabatanTree]);
+
     const [rencanaAksi, setRencanaAksi] = useState(initialRencanaAksi);
     const [todos, setTodos] = useState([]);
     const [newTodoDesc, setNewTodoDesc] = useState('');
@@ -231,10 +254,10 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, use
     }, [newTodoDesc, newTodoPelaksanaId, newTodoDeadline, rencanaAksi?.id, selectedMonth, fetchTodos, selectedDate]);
 
     const handleUpdatePelaksana = useCallback((todoId, newPelaksanaId) => {
-        setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, pelaksana_id: newPelaksanaId, pelaksana: userList.find(u => u.id === newPelaksanaId) } : t));
+        setTodos(prevTodos => prevTodos.map(t => t.id === todoId ? { ...t, pelaksana_id: newPelaksanaId, pelaksana: assignableUsers.find(u => u.id === newPelaksanaId) } : t));
         setHasMadeChanges(true); // Mark changes immediately
         debouncedUpdate(todoId, { pelaksana_id: newPelaksanaId || null });
-    }, [debouncedUpdate, userList]);
+    }, [debouncedUpdate, assignableUsers]);
 
     const handleDeleteTodo = useCallback(async (todoId) => {
         if (window.confirm('Yakin ingin menghapus to-do ini?')) {
@@ -293,7 +316,7 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, use
                                     <label htmlFor="new-todo-pelaksana" className="block text-xs font-medium text-gray-600 mb-1">Pelaksana</label>
                                     <select id="new-todo-pelaksana" value={newTodoPelaksanaId} onChange={e => setNewTodoPelaksanaId(e.target.value)} className="w-full border-gray-300 rounded-md shadow-sm">
                                         <option value="">-- Pilih Pelaksana --</option>
-                                        {userList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                                        {assignableUsers.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                                     </select>
                                 </div>
                                 <div className="md:col-span-2">
@@ -359,7 +382,7 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, use
                                             {isPIC ? (
                                                 <select value={todo.pelaksana_id || ''} onChange={(e) => handleUpdatePelaksana(todo.id, parseInt(e.target.value, 10) || null)} className="ml-1 border-none bg-gray-50 text-xs p-0 focus:ring-0">
                                                     <option value="">Belum Ditugaskan</option>
-                                                    {userList.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
+                                                    {assignableUsers.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
                                                 </select>
                                             ) : (
                                                 <span className="ml-1 font-semibold">{todo.pelaksana?.name || 'Belum Ditugaskan'}</span>

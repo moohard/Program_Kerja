@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../../services/apiClient';
 import JabatanSelector from '../form/JabatanSelector';
+import AuthContext from '../../contexts/AuthContext';
 
 const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, jabatanTree }) => {
+    const { user: currentUser } = useContext(AuthContext);
+    const isKetua = currentUser?.jabatan?.parent_id === null;
+
     const [formData, setFormData] = useState({
         deskripsi_aksi: '',
         target_tanggal: '',
@@ -122,7 +126,7 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
             jadwal_tipe,
             jadwal_config: relevantConfig,
             kegiatan_id: kegiatanId,
-            assigned_to: formData.assigned_to || null,
+            assigned_to: isKetua ? (formData.assigned_to || null) : currentUser.id,
         };
 
         try {
@@ -222,12 +226,27 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
                         {errors.deskripsi_aksi && <p className="text-red-500 text-xs mt-1">{errors.deskripsi_aksi[0]}</p>}
                     </div>
 
-                    <JabatanSelector
-                        jabatanTree={jabatanTree}
-                        selectedUser={formData.assigned_to}
-                        onChange={handleChange}
-                        data-cy="jabatan-selector"
-                    />
+                    <div>
+                        <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700">Penanggung Jawab</label>
+                        {isKetua ? (
+                            <JabatanSelector
+                                jabatanTree={jabatanTree}
+                                selectedUser={formData.assigned_to}
+                                onChange={handleChange}
+                                data-cy="jabatan-selector"
+                            />
+                        ) : (
+                            <input
+                                type="text"
+                                id="assigned_to_display"
+                                name="assigned_to_display"
+                                value={currentUser.name}
+                                readOnly
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm bg-gray-100"
+                            />
+                        )}
+                        {errors.assigned_to && <p className="text-red-500 text-xs mt-1">{errors.assigned_to[0]}</p>}
+                    </div>
 
                     <div>
                         <label htmlFor="target_tanggal" className="block text-sm font-medium text-gray-700">Target Tanggal</label>

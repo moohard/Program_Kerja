@@ -66,7 +66,8 @@ class RencanaAksiController extends Controller
         
                     // Filter RencanaAksi yang memiliki target di bulan tersebut
                     $rencanaAksi = $rencanaAksi->filter(function ($ra) use ($month, $jadwalService) {
-                        $targetMonths = $jadwalService->getTargetMonths($ra->jadwal_tipe, $ra->jadwal_config);
+                        $config = $ra->jadwal_config ?? []; // Ensure config is an array
+                        $targetMonths = $jadwalService->getTargetMonths($ra->jadwal_tipe, $config);
                         return in_array($month, $targetMonths);
                     });
         
