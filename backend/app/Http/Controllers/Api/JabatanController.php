@@ -69,12 +69,17 @@ class JabatanController extends Controller
     public function getAssignableTree(Request $request)
     {
         $user = $request->user();
-        if (!$user->jabatan_id) {
-            // If user has no jabatan, return empty array or handle as per business logic
-            // For a super admin, maybe return the whole tree? For now, return empty.
+
+        // If user is an admin, return the whole tree.
+        if ($user->hasRole('admin')) {
             $rootJabatan = Jabatan::whereNull('parent_id')->with('users')->get();
             $tree = $this->buildTree($rootJabatan);
             return response()->json($tree);
+        }
+
+        if (!$user->jabatan_id) {
+            // If user has no jabatan, return empty array
+            return response()->json([]);
         }
 
         // Fetch the user's own jabatan and eager load its children recursively

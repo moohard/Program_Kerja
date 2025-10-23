@@ -30,7 +30,12 @@ class UserController extends Controller
         $validated['password'] = Hash::make($validated['password']);
 
         $user = User::create($validated);
-        return new UserResource($user);
+
+        if ($request->has('roles')) {
+            $user->assignRole($request->roles);
+        }
+
+        return new UserResource($user->load('roles'));
     }
 
     /**
@@ -56,7 +61,12 @@ class UserController extends Controller
         }
 
         $user->update($validated);
-        return new UserResource($user);
+
+        if ($request->has('roles')) {
+            $user->syncRoles($request->roles);
+        }
+
+        return new UserResource($user->load('roles'));
     }
 
     /**

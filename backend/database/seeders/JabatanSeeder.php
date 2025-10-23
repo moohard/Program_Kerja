@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Models\Jabatan;
+use Illuminate\Support\Facades\Schema;
 
 class JabatanSeeder extends Seeder
 {
@@ -13,30 +13,42 @@ class JabatanSeeder extends Seeder
      */
     public function run(): void
     {
-        // Kosongkan tabel untuk seeding ulang
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
-        Jabatan::truncate();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+        // Nonaktifkan foreign key checks untuk truncate dan insert
+        Schema::disableForeignKeyConstraints();
+        DB::table('jabatan')->truncate();
 
-        // Bidang Teknis
-        Jabatan::create(['nama_jabatan' => 'Administrator', 'role' => 'admin', 'bidang' => 'teknis']);
+        $jabatans = [
+            ['id' => 1, 'parent_id' => null, 'nama_jabatan' => 'Administrator', 'role' => 'admin', 'bidang' => 'teknis'],
+            ['id' => 2, 'parent_id' => null, 'nama_jabatan' => 'Ketua', 'role' => 'manajer', 'bidang' => 'pimpinan'],
+            ['id' => 3, 'parent_id' => 2, 'nama_jabatan' => 'Wakil Ketua', 'role' => 'manajer', 'bidang' => 'pimpinan'],
+            ['id' => 4, 'parent_id' => 3, 'nama_jabatan' => 'Hakim', 'role' => 'manajer', 'bidang' => 'hakim'],
+            ['id' => 5, 'parent_id' => 3, 'nama_jabatan' => 'Sekretaris', 'role' => 'manajer', 'bidang' => 'kesekretariatan'],
+            ['id' => 6, 'parent_id' => 5, 'nama_jabatan' => 'Kepala Sub Bagian Umum dan Keuangan', 'role' => 'pengawas', 'bidang' => 'kesekretariatan'],
+            ['id' => 7, 'parent_id' => 6, 'nama_jabatan' => 'Pelaksana Umum dan Keuangan', 'role' => 'staff', 'bidang' => 'kesekretariatan'],
+            ['id' => 8, 'parent_id' => 3, 'nama_jabatan' => 'Panitera', 'role' => 'manajer', 'bidang' => 'kepaniteraan'],
+            ['id' => 9, 'parent_id' => 8, 'nama_jabatan' => 'Panitera Muda Permohonan', 'role' => 'pengawas', 'bidang' => 'kepaniteraan'],
+            ['id' => 10, 'parent_id' => 9, 'nama_jabatan' => 'Pelaksana Panitera Muda Permohonan', 'role' => 'staff', 'bidang' => 'kepaniteraan'],
+            ['id' => 11, 'parent_id' => 8, 'nama_jabatan' => 'Panitera Pengganti', 'role' => 'staff', 'bidang' => 'kepaniteraan'],
+            ['id' => 12, 'parent_id' => 8, 'nama_jabatan' => 'Jurusita', 'role' => 'staff', 'bidang' => 'kepaniteraan'],
+            ['id' => 13, 'parent_id' => 8, 'nama_jabatan' => 'Jurusita Pengganti', 'role' => 'staff', 'bidang' => 'kepaniteraan'],
+            ['id' => 14, 'parent_id' => 5, 'nama_jabatan' => 'Kepala Sub Bagian Kepegawaian dan Ortala', 'role' => 'admin', 'bidang' => 'kesekretariatan'],
+            ['id' => 15, 'parent_id' => 5, 'nama_jabatan' => 'Kepala Sub Bagian Perencanaan, Teknologi Informasi dan Pelaporan', 'role' => 'admin', 'bidang' => 'kesekretariatan'],
+            ['id' => 18, 'parent_id' => 14, 'nama_jabatan' => 'Pelaksana Kepegawaian dan Ortala', 'role' => 'admin', 'bidang' => 'kesekretariatan'],
+            ['id' => 19, 'parent_id' => 15, 'nama_jabatan' => 'Pelaksana Perencanaan, Teknologi Informasi dan Pelaporan', 'role' => 'admin', 'bidang' => 'kesekretariatan'],
+            ['id' => 20, 'parent_id' => 8, 'nama_jabatan' => 'Panitera Muda Gugatan', 'role' => 'admin', 'bidang' => 'kepaniteraan'],
+            ['id' => 21, 'parent_id' => 8, 'nama_jabatan' => 'Panitera Muda Hukum', 'role' => 'admin', 'bidang' => 'kepaniteraan'],
+            ['id' => 22, 'parent_id' => 20, 'nama_jabatan' => 'Pelaksana Panitera Muda Gugatan', 'role' => 'admin', 'bidang' => 'kepaniteraan'],
+            ['id' => 23, 'parent_id' => 21, 'nama_jabatan' => 'Pelaksana Panitera Muda Hukum', 'role' => 'admin', 'bidang' => 'kepaniteraan'],
+        ];
 
-        // Bidang Pimpinan
-        $ketua = Jabatan::create(['nama_jabatan' => 'Ketua', 'role' => 'manajer', 'bidang' => 'pimpinan']);
-        Jabatan::create(['parent_id' => $ketua->id, 'nama_jabatan' => 'Wakil Ketua', 'role' => 'manajer', 'bidang' => 'pimpinan']);
-        Jabatan::create(['parent_id' => $ketua->id, 'nama_jabatan' => 'Hakim', 'role' => 'manajer', 'bidang' => 'pimpinan']);
+        foreach ($jabatans as &$jabatan) {
+            $jabatan['created_at'] = now();
+            $jabatan['updated_at'] = now();
+        }
 
-        // Bidang Kesekretariatan
-        $sekretaris = Jabatan::create(['nama_jabatan' => 'Sekretaris', 'role' => 'manajer', 'bidang' => 'kesekretariatan']);
-        $kasubbag = Jabatan::create(['parent_id' => $sekretaris->id, 'nama_jabatan' => 'Kasubbag', 'role' => 'pengawas', 'bidang' => 'kesekretariatan']);
-        Jabatan::create(['parent_id' => $kasubbag->id, 'nama_jabatan' => 'Pelaksana Kesekretariatan', 'role' => 'staff', 'bidang' => 'kesekretariatan']);
+        DB::table('jabatan')->insert($jabatans);
 
-        // Bidang Kepaniteraan
-        $panitera = Jabatan::create(['nama_jabatan' => 'Panitera', 'role' => 'manajer', 'bidang' => 'kepaniteraan']);
-        $panmud = Jabatan::create(['parent_id' => $panitera->id, 'nama_jabatan' => 'Panitera Muda (Panmud)', 'role' => 'pengawas', 'bidang' => 'kepaniteraan']);
-        Jabatan::create(['parent_id' => $panmud->id, 'nama_jabatan' => 'Pelaksana Kepaniteraan', 'role' => 'staff', 'bidang' => 'kepaniteraan']);
-        Jabatan::create(['parent_id' => $panitera->id, 'nama_jabatan' => 'Panitera Pengganti', 'role' => 'staff', 'bidang' => 'kepaniteraan']);
-        Jabatan::create(['parent_id' => $panitera->id, 'nama_jabatan' => 'Jurusita', 'role' => 'staff', 'bidang' => 'kepaniteraan']);
-        Jabatan::create(['parent_id' => $panitera->id, 'nama_jabatan' => 'Jurusita Pengganti', 'role' => 'staff', 'bidang' => 'kepaniteraan']);
+        // Aktifkan kembali foreign key checks
+        Schema::enableForeignKeyConstraints();
     }
 }

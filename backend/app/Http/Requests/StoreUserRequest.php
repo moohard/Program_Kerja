@@ -27,6 +27,8 @@ class StoreUserRequest extends FormRequest
             'email' => 'required|string|email|max:255|unique:users,email',
             'password' => ['required', 'confirmed', Password::defaults()],
             'jabatan_id' => 'required|integer|exists:jabatan,id',
+            'roles' => 'sometimes|array',
+            'roles.*' => 'string|exists:roles,name',
         ];
     }
 }

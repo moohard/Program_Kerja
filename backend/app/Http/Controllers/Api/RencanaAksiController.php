@@ -35,8 +35,7 @@ class RencanaAksiController extends Controller
         
                 $kegiatanId = $request->kegiatan_id;
                 $month = $request->month;
-                $user = $request->user()->load('jabatan');
-                $userJabatan = $user->jabatan->nama_jabatan ?? null;
+                $user = $request->user();
         
                 // 1. Base query - LOAD SEMUA PROGRESS untuk perhitungan keseluruhan
                 $rencanaAksiQuery = RencanaAksi::where('kegiatan_id', $kegiatanId)
@@ -48,7 +47,7 @@ class RencanaAksiController extends Controller
                     ->where('jadwal_tipe', '!=', 'rutin');
         
                 // 2. Apply authorization filter
-                if (!in_array($userJabatan, ['Administrator', 'Ketua'])) {
+                if (!$user->can('view all data')) {
                     $rencanaAksiQuery->where(function ($query) use ($user) {
                         $query->where('assigned_to', $user->id)
                               ->orWhereHas('todoItems', function ($todoQuery) use ($user) {
@@ -109,12 +108,7 @@ class RencanaAksiController extends Controller
             }
     public function store(StoreRencanaAksiRequest $request)
     {
-        $user = $request->user()->load('jabatan');
-        $userJabatan = $user->jabatan->nama_jabatan ?? null;
-
-        if (!in_array($userJabatan, ['Administrator', 'Ketua'])) {
-            abort(403, 'Anda tidak memiliki izin untuk membuat Rencana Aksi baru.');
-        }
+        $this->authorize('create', RencanaAksi::class);
 
         $validated = $request->validated();
 
@@ -147,14 +141,7 @@ class RencanaAksiController extends Controller
 
     public function update(UpdateRencanaAksiRequest $request, RencanaAksi $rencanaAksi)
     {
-        $user = $request->user()->load('jabatan');
-        $userJabatan = $user->jabatan->nama_jabatan ?? null;
-
-        // Allow admins/chairs to edit anything.
-        // Allow regular users (PICs) to edit only their own assigned Rencana Aksi.
-        if (!in_array($userJabatan, ['Administrator', 'Ketua']) && $rencanaAksi->assigned_to !== $user->id) {
-            abort(403, 'Anda tidak memiliki izin untuk mengubah Rencana Aksi ini.');
-        }
+        $this->authorize('update', $rencanaAksi);
 
         $validated = $request->validated();
 
@@ -192,12 +179,7 @@ class RencanaAksiController extends Controller
 
     public function destroy(RencanaAksi $rencanaAksi)
     {
-        $user = request()->user()->load('jabatan'); // Get user from request helper
-        $userJabatan = $user->jabatan->nama_jabatan ?? null;
-
-        if (!in_array($userJabatan, ['Administrator', 'Ketua'])) {
-            abort(403, 'Anda tidak memiliki izin untuk menghapus Rencana Aksi.');
-        }
+        $this->authorize('delete', $rencanaAksi);
 
         $rencanaAksi->delete();
         return response()->noContent();

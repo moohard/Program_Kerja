@@ -35,6 +35,7 @@ class AuthController extends Controller
         }
 
         $user->load('jabatan'); // Eager load relasi jabatan
+        $permissions = $user->getAllPermissions()->pluck('name');
 
         $token = $user->createToken('api-token')->plainTextToken;
 
@@ -43,7 +44,8 @@ class AuthController extends Controller
                 'id'      => $user->id,
                 'name'    => $user->name,
                 'email'   => $user->email,
-                'jabatan' => $user->jabatan, // Mengembalikan objek jabatan
+                'jabatan' => $user->jabatan,
+                'permissions' => $permissions,
             ],
             'token' => $token,
         ]);
@@ -54,8 +56,16 @@ class AuthController extends Controller
      */
     public function user(Request $request)
     {
-        // Mengembalikan user yang sedang login beserta jabatannya
-        return response()->json($request->user()->load('jabatan'));
+        $user = $request->user()->load('jabatan');
+        $permissions = $user->getAllPermissions()->pluck('name');
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'jabatan' => $user->jabatan,
+            'permissions' => $permissions,
+        ]);
     }
 
     public function logout(Request $request)

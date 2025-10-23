@@ -26,6 +26,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
     Route::apiResource('program-kerja', ProgramKerjaController::class);
+    Route::get('/program-kerja/{programKerja}/filter-options', [ProgramKerjaController::class, 'getFilterOptions']);
     Route::apiResource('kategori-utama', KategoriUtamaController::class);
     Route::apiResource('kegiatan', KegiatanController::class);
     Route::apiResource('rencana-aksi', RencanaAksiController::class);

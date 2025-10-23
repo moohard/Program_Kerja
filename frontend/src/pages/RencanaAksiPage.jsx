@@ -4,8 +4,10 @@ import apiClient from '../services/apiClient';
 import RencanaAksiModal from '../components/modals/RencanaAksiModal';
 import TodoModal from '../components/modals/TodoModal';
 import { FiPlus, FiAlertTriangle, FiList, FiEdit, FiTrash2 } from 'react-icons/fi';
+import { usePermissions } from '../hooks/usePermissions';
 
 function RencanaAksiPage() {
+    const { can } = usePermissions();
     const [kategoriList, setKategoriList] = useState([]);
     const [kegiatanList, setKegiatanList] = useState([]);
     const [rencanaAksiList, setRencanaAksiList] = useState([]);
@@ -131,15 +133,17 @@ function RencanaAksiPage() {
         <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
             <div className="flex flex-col md:flex-row md:justify-between md:items-center space-y-4 md:space-y-0">
                 <h1 className="text-2xl font-bold">Rencana Aksi</h1>
-                <button
-                    onClick={() => handleOpenModal()}
-                    disabled={!selectedKegiatan}
-                    className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
-                    data-cy="add-rencana-aksi-button"
-                >
-                    <FiPlus className="mr-2" />
-                    Tambah Rencana Aksi
-                </button>
+                {can('create rencana aksi') && (
+                    <button
+                        onClick={() => handleOpenModal()}
+                        disabled={!selectedKegiatan}
+                        className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                        data-cy="add-rencana-aksi-button"
+                    >
+                        <FiPlus className="mr-2" />
+                        Tambah Rencana Aksi
+                    </button>
+                )}
             </div>
 
             {/* Filters */}

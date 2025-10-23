@@ -2,10 +2,11 @@ import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../../services/apiClient';
 import JabatanSelector from '../form/JabatanSelector';
 import AuthContext from '../../contexts/AuthContext';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, jabatanTree }) => {
     const { user: currentUser } = useContext(AuthContext);
-    const isKetua = currentUser?.jabatan?.parent_id === null;
+    const { can } = usePermissions();
 
     const [formData, setFormData] = useState({
         deskripsi_aksi: '',
@@ -126,7 +127,7 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
             jadwal_tipe,
             jadwal_config: relevantConfig,
             kegiatan_id: kegiatanId,
-            assigned_to: isKetua ? (formData.assigned_to || null) : currentUser.id,
+            assigned_to: can('assign rencana aksi') ? (formData.assigned_to || null) : currentUser.id,
         };
 
         try {
@@ -228,7 +229,7 @@ const RencanaAksiModal = ({ isOpen, onClose, onSave, currentData, kegiatanId, ja
 
                     <div>
                         <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700">Penanggung Jawab</label>
-                        {isKetua ? (
+                        {can('assign rencana aksi') ? (
                             <JabatanSelector
                                 jabatanTree={jabatanTree}
                                 selectedUser={formData.assigned_to}

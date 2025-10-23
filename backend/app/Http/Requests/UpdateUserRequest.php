@@ -36,6 +36,8 @@ class UpdateUserRequest extends FormRequest
             ],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'jabatan_id' => 'required|integer|exists:jabatan,id',
+            'roles' => 'sometimes|array',
+            'roles.*' => 'string|exists:roles,name',
         ];
     }
 }
