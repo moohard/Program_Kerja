@@ -22,3 +22,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+\n# Scribe Documentation
+public/docs
+.scribe
