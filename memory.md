@@ -1,5 +1,38 @@
 # Project Memory & To-Do List
 
+## Sesi Implementasi RBAC & Dokumentasi (23 Oktober 2025)
+
+**Tugas yang Telah Selesai:**
+
+1.  **Implementasi Role-Based Access Control (RBAC) Penuh**:
+    *   Mengintegrasikan package `spatie/laravel-permission`.
+    *   Mendefinisikan 6 peran fungsional (`admin`, `pimpinan`, `manajer`, `staff`, `pengawas`, `operator`) dengan hak akses yang jelas.
+    *   Mengganti semua logika otorisasi yang di-hardcode dengan Laravel Policies (`RencanaAksiPolicy`).
+    *   Menyesuaikan frontend untuk menyembunyikan/menampilkan UI berdasarkan *permissions* pengguna.
+    *   Memperbaiki berbagai bug terkait hak akses dan alur kerja pimpinan.
+
+2.  **Penyempurnaan Data & Alur Kerja**:
+    *   Memperbarui `JabatanSeeder` agar sesuai dengan struktur organisasi yang sebenarnya dari file `.sql`.
+    *   Memperbaiki `UsersSeeder` untuk menugaskan peran default kepada pengguna.
+    *   Menyesuaikan logika pemilihan PIC agar `admin` bisa melihat semua pengguna.
+
+3.  **Perbaikan UI/UX**:
+    *   Menyempurnakan skema pewarnaan pada Laporan Matriks agar lebih intuitif dan mudah dibaca.
+    *   Memperbaiki kontras warna teks pada laporan.
+
+4.  **Perapian & Dokumentasi Proyek**:
+    *   Memindahkan semua file non-aplikasi ke dalam folder `_Dokumentasi` dan mengeluarkannya dari Git.
+    *   Menghasilkan dokumentasi API teknis secara otomatis menggunakan Scribe.
+    *   Membuat dokumentasi skema database, panduan deployment (Linux & Windows), dan panduan troubleshooting.
+    *   Membuat panduan pengguna (user manual) yang komprehensif berdasarkan peran.
+
+**Tugas Selanjutnya (Sesuai Rencana):**
+
+*   **Implementasi Fitur Notifikasi**: Melanjutkan pekerjaan sesuai dengan panduan di `_Dokumentasi/rencana_implementasi_notification.md`.
+
+---
+*Catatan Lama di Bawah*
+
 ## Sesi Pengerjaan Fitur & Bug Fixing (22 Oktober 2025)
 
 **Tugas yang Telah Selesai:**
