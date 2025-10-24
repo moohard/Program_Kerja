@@ -1,24 +1,43 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import mkcert from 'vite-plugin-mkcert'
+import { resolve } from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
   server: {
     host: '0.0.0.0',
-    https: true, // Enable https and let mkcert handle it
+    https: false, // Disable HTTPS for development
     proxy: {
       '/api': {
-        target: 'http://192.168.9.11:8000', // Use the network IP
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('proxy error', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            console.log('Sending Request to the Target:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+          });
+        },
       },
     }
   },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+    },
+  },
   plugins: [
     react(),
-    mkcert(), // Add mkcert plugin
+    tailwindcss(),
+    // mkcert(), // Disable mkcert for now
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['/icons/icon-192x192.png', '/icons/icon-512x512.png'],
@@ -62,4 +81,3 @@ export default defineConfig({
     }),
   ]
 })
-
