@@ -11,9 +11,10 @@ Setiap kali Anda memberikan contoh kode atau solusi, harap patuhi aturan berikut
     * **Kode**: Ikuti standar PSR-12, gunakan *type-hinting*, dan *return types*.
     * **Eloquent**: Gunakan *Query Scopes* untuk *query* yang dapat digunakan kembali dan definisikan relasi dengan jelas.
 
-2.  **Frontend (React 18)**:
+2.  **Frontend (React 18 & 19)**:
     * **Acuan**: [React Docs](https://react.dev/learn).
     * **Style**: Gunakan *Functional Components* dengan *Hooks*. Hindari *Class Components*.
+    * **Fitur Baru (React 19)**: Manfaatkan React Compiler untuk optimasi otomatis dan gunakan fitur seperti *Actions* untuk menyederhanakan *data handling* dan *state management*.
     * **Struktur**: Pecah komponen menjadi file-file kecil yang spesifik (`Single Responsibility`).
     * **State Management**: Utamakan *Hooks* bawaan (`useState`, `useContext`). Untuk *global state*, gunakan Zustand.
     * **Clean Code**: Hindari logika kompleks di dalam JSX. Gunakan `key` yang unik dan stabil untuk *list rendering*.

@@ -117,10 +117,12 @@ class TodoItemController extends Controller
                 }
             }
 
-            // 2. Notify pelaksana if status_approval changed
+            // 2. Notify pelaksana if status_approval changed and notification is enabled
             if (isset($validated['status_approval']) && $validated['status_approval'] !== $originalStatus) {
-                if ($todoItem->pelaksana) { // Make sure pelaksana exists
-                    $todoItem->pelaksana->notify(new TodoItemStatusUpdated($todoItem));
+                if ($request->input('notify', 'true') === 'true' || $request->input('notify', true) === true) {
+                    if ($todoItem->pelaksana) { // Make sure pelaksana exists
+                        $todoItem->pelaksana->notify(new TodoItemStatusUpdated($todoItem));
+                    }
                 }
             }
         } catch (\Exception $e) {

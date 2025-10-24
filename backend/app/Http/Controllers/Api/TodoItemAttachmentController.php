@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Notifications\EvidenceUploaded;
+use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class TodoItemAttachmentController extends Controller
 {
@@ -72,6 +75,20 @@ class TodoItemAttachmentController extends Controller
                 "Eviden direvisi/diunggah untuk to-do: '{$todoItem->deskripsi}', menunggu validasi.",
                 $month ? (int)$month : null
             );
+
+            // --- NOTIFICATION LOGIC ---
+            try {
+                $rencanaAksi = $todoItem->rencanaAksi()->first();
+                if ($rencanaAksi && $rencanaAksi->assigned_to) {
+                    $pic = User::find($rencanaAksi->assigned_to);
+                    if ($pic) {
+                        $pic->notify(new EvidenceUploaded($todoItem->load('pelaksana')));
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('FCM Notification failed for EvidenceUploaded: ' . $e->getMessage());
+            }
+            // --- END NOTIFICATION LOGIC ---
 
             return $newAttachment;
         });

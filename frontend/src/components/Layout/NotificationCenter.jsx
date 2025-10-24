@@ -64,7 +64,7 @@ const NotificationCenter = () => {
                                     notifications.unread.map((notif) => (
                                         <div key={notif.id} className="border-b px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <p className="font-bold">{notif.data.title}</p>
-                                            <p>{notif.data.body}</p>
+                                            <p className="text-gray-600">{notif.data.message}</p>
                                             <div className="text-xs text-gray-500 mt-1 flex justify-between items-center">
                                                 <span>{formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: id })}</span>
                                                 <button onClick={() => handleMarkAsRead(notif.id)} className="text-blue-500 hover:underline">Tandai dibaca</button>
@@ -79,7 +79,7 @@ const NotificationCenter = () => {
                                     notifications.read.map((notif) => (
                                         <div key={notif.id} className="px-4 py-2 text-sm text-gray-500">
                                             <p className="font-bold">{notif.data.title}</p>
-                                            <p>{notif.data.body}</p>
+                                            <p className="text-gray-600">{notif.data.message}</p>
                                             <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: id })}</span>
                                         </div>
                                     ))
