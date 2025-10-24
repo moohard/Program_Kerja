@@ -2,9 +2,9 @@ import { useEffect, useContext } from 'react';
 import { toast } from 'react-toastify';
 import { onMessage } from 'firebase/messaging';
 
-import AuthContext from '../contexts/AuthContext';
-import { requestForToken, messaging } from '../firebase-config';
-import apiClient from '../services/apiClient';
+import AuthContext from '@/context/AuthContext';
+import { requestForToken, messaging } from '@/firebase-config';
+import apiClient from '@/services/apiClient';
 
 const NotificationHandler = () => {
     const { user } = useContext(AuthContext);

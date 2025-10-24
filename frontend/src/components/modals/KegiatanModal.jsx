@@ -9,7 +9,7 @@ function KegiatanModal({ item, onClose, onSave }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" data-cy="kegiatan-modal">
+        <div className="fixed inset-0 bg-transparent flex justify-center items-center z-50" data-cy="kegiatan-modal">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
                 <h2 className="text-xl font-bold mb-4">{item ? 'Edit' : 'Tambah'} Kegiatan</h2>
                 <form onSubmit={handleSubmit}>

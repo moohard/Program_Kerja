@@ -1,5 +1,23 @@
 # Project Memory & To-Do List
 
+## Sesi Integrasi Template Tailwick (24 Oktober 2025)
+
+**Tugas Saat Ini:** Mengintegrasikan template premium React "Tailwick" ke dalam proyek `frontend`.
+
+**Progres:**
+1.  **Dependensi & File**: Berhasil menggabungkan `package.json`, menginstal semua dependensi, dan menyalin seluruh struktur file (`/src`, `tailwind.config.js`, `vite.config.js`, dll.) dari template Tailwick ke proyek `frontend`.
+2.  **Integrasi Otentikasi**: Berhasil mengintegrasikan kembali `AuthContext`, `apiClient`, `ProtectedRoute`, `PublicRoute`, dan halaman `LoginPage` dari aplikasi lama ke dalam struktur template baru.
+3.  **Fungsionalitas Dasar**: Aplikasi berhasil dijalankan, menampilkan halaman login yang benar, dan setelah login berhasil, mengarahkan ke layout utama (Sidebar & Topbar) dari template Tailwick.
+4.  **Integrasi Konten**: Halaman Dashboard dari aplikasi lama telah berhasil ditampilkan di dalam layout baru. Menu sidebar dan topbar juga telah disesuaikan dengan menu dan data pengguna aplikasi kita.
+
+**Masalah Saat Ini (Blocking):**
+*   **Bug Layout CSS**: Terdapat masalah layout yang persisten di mana konten utama halaman (`<main>`) muncul di bawah sidebar, bukan di sebelahnya. Ini mengindikasikan bahwa aturan CSS fundamental (`display: flex` pada `div.wrapper`) tidak diterapkan dengan benar, meskipun semua file konfigurasi dan struktur komponen tampak sudah benar.
+
+**Tugas Selanjutnya (Setelah PC Restart):**
+*   **Investigasi CSS di Browser**: Pengguna akan me-restart PC, lalu membuka Developer Tools di browser untuk **menginspeksi elemen `<div class="wrapper">`**. Tujuannya adalah untuk memverifikasi di panel "Styles" apakah properti `display: flex;` benar-benar diterapkan, dicoret, atau tidak ada sama sekali. Hasil dari investigasi ini akan menjadi langkah kita selanjutnya untuk debugging.
+
+---
+
 ## Sesi Implementasi RBAC & Dokumentasi (23 Oktober 2025)
 
 **Tugas yang Telah Selesai:**

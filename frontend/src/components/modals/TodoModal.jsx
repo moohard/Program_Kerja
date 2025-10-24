@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useContext } from 'react';
-import apiClient from '../../services/apiClient';
+import apiClient from '@/services/apiClient';
 import { FiPaperclip, FiTrash2, FiUploadCloud, FiGitCommit, FiCheckCircle, FiCircle, FiThumbsUp, FiThumbsDown } from 'react-icons/fi';
 import { debounce } from 'lodash';
-import AuthContext from '../../contexts/AuthContext';
+import AuthContext from '@/context/AuthContext';
 
 // Komponen ApprovalControls (BARU)
 const ApprovalControls = ({ todo, onApprovalDone, onStateChange, selectedMonth }) => {
@@ -291,7 +291,7 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, jab
 
     // --- RENDER UTAMA ---
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50 overflow-y-auto pt-10">
+        <div className="fixed inset-0 bg-transparent flex justify-center items-start z-50 overflow-y-auto pt-10">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-4xl mb-10">
                 <h2 className="text-xl font-bold mb-2">To-Do List & Progress</h2>
                 <p className="text-sm text-gray-600 mb-4">{rencanaAksi.deskripsi_aksi}</p>

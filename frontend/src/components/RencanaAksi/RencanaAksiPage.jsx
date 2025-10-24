@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
-import AuthContext from '../contexts/AuthContext';
-import apiClient from '../services/apiClient';
-import RencanaAksiModal from '../components/modals/RencanaAksiModal';
-import TodoModal from '../components/modals/TodoModal';
+import AuthContext from '@/context/AuthContext';
+import apiClient from '@/services/apiClient';
+import RencanaAksiModal from '@/components/modals/RencanaAksiModal';
+import TodoModal from '@/components/modals/TodoModal';
 import { FiPlus, FiAlertTriangle, FiList, FiEdit, FiTrash2 } from 'react-icons/fi';
-import { usePermissions } from '../hooks/usePermissions';
+import { usePermissions } from '@/hooks/usePermissions';
 
 function RencanaAksiPage() {
     const { can } = usePermissions();
@@ -18,15 +18,12 @@ function RencanaAksiPage() {
     const [selectedDate, setSelectedDate] = useState(null);
 
     const [loading, setLoading] = useState({ kategori: false, kegiatan: false, rencana: false });
-
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
 
     const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
     const [selectedRencanaAksi, setSelectedRencanaAksi] = useState(null);
     const { user: currentUser } = useContext(AuthContext);
 
-    // Fetch Kategori Utama, Jabatan Tree & Users
     useEffect(() => {
         const fetchInitialData = async () => {
             setLoading(prev => ({ ...prev, kategori: true }));
@@ -36,7 +33,7 @@ function RencanaAksiPage() {
                     apiClient.get('/jabatan/assignable-tree')
                 ]);
                 setKategoriList(kategoriRes.data.data);
-                setJabatanTree(jabatanRes.data); // The new endpoint returns the tree directly
+                setJabatanTree(jabatanRes.data);
             } catch (error) {
                 console.error("Error fetching initial data:", error);
             } finally {
@@ -46,7 +43,6 @@ function RencanaAksiPage() {
         fetchInitialData();
     }, []);
 
-    // Fetch Kegiatan based on selected Kategori
     const fetchKegiatan = useCallback(async (kategoriId) => {
         if (!kategoriId) return;
         setLoading(prev => ({ ...prev, kegiatan: true }));
@@ -63,14 +59,12 @@ function RencanaAksiPage() {
         }
     }, []);
 
-    // Fetch Rencana Aksi based on selected Kegiatan and Month
     const fetchRencanaAksi = useCallback(async () => {
         if (!selectedKegiatan) return;
         setLoading(prev => ({ ...prev, rencana: true }));
         try {
             let url = `/rencana-aksi?kegiatan_id=${selectedKegiatan}`;
             if (selectedDate) {
-                // getMonth() is 0-indexed, so add 1 for the API
                 url += `&month=${selectedDate.getMonth() + 1}`;
             }
             const response = await apiClient.get(url);
@@ -94,21 +88,15 @@ function RencanaAksiPage() {
         fetchKegiatan(kategoriId);
     };
 
-    // --- Handlers for RencanaAksiModal ---
     const handleOpenModal = (item = null) => {
         setCurrentItem(item);
-        setIsModalOpen(true);
-    };
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
-        setCurrentItem(null);
     };
 
-    // --- Handlers for TodoModal ---
     const handleOpenTodoModal = (item) => {
-        setSelectedRencanaAksi(item); // Simpan seluruh objek
+        setSelectedRencanaAksi(item);
         setIsTodoModalOpen(true);
     };
+
     const handleCloseTodoModal = (shouldRefetch = false) => {
         setIsTodoModalOpen(false);
         setSelectedRencanaAksi(null);
@@ -135,10 +123,11 @@ function RencanaAksiPage() {
                 <h1 className="text-2xl font-bold">Rencana Aksi</h1>
                 {can('create rencana aksi') && (
                     <button
-                        onClick={() => handleOpenModal()}
+                        type="button"
+                        onClick={() => handleOpenModal(null)}
                         disabled={!selectedKegiatan}
-                        className="flex items-center bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
-                        data-cy="add-rencana-aksi-button"
+                        className="btn bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
+                        data-hs-overlay="#rencana-aksi-modal"
                     >
                         <FiPlus className="mr-2" />
                         Tambah Rencana Aksi
@@ -150,28 +139,28 @@ function RencanaAksiPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label htmlFor="kategori" className="block text-sm font-medium text-gray-700 mb-1">Kategori Utama</label>
-                    <select id="kategori" value={selectedKategori} onChange={handleKategoriChange} className="w-full p-2 border rounded-md" data-cy="kategori-select">
+                    <select id="kategori" value={selectedKategori} onChange={handleKategoriChange} className="form-select w-full" data-cy="kategori-select">
                         <option value="">-- Pilih Kategori --</option>
                         {kategoriList.map(k => <option key={k.id} value={k.id}>{k.nomor}. {k.nama_kategori}</option>)}
                     </select>
                 </div>
                 <div>
                     <label htmlFor="kegiatan" className="block text-sm font-medium text-gray-700 mb-1">Kegiatan</label>
-                    <select id="kegiatan" value={selectedKegiatan} onChange={(e) => setSelectedKegiatan(e.target.value)} disabled={!selectedKategori || loading.kegiatan} className="w-full p-2 border rounded-md" data-cy="kegiatan-select">
+                    <select id="kegiatan" value={selectedKegiatan} onChange={(e) => setSelectedKegiatan(e.target.value)} disabled={!selectedKategori || loading.kegiatan} className="form-select w-full" data-cy="kegiatan-select">
                         <option value="">-- Pilih Kegiatan --</option>
                         {kegiatanList.map(k => <option key={k.id} value={k.id}>{k.nama_kegiatan}</option>)}
                     </select>
                 </div>
                 <div>
                     <label htmlFor="month" className="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
-                    <select 
-                        id="month" 
-                        value={selectedDate ? selectedDate.getMonth() : ''} 
+                    <select
+                        id="month"
+                        value={selectedDate ? selectedDate.getMonth() : ''}
                         onChange={(e) => {
                             const month = e.target.value;
                             setSelectedDate(month ? new Date(new Date().getFullYear(), month, 1) : null);
-                        }} 
-                        className="w-full p-2 border rounded-md"
+                        }}
+                        className="form-select w-full"
                     >
                         <option value="">-- Semua Bulan --</option>
                         {Array.from({ length: 12 }, (_, i) => (
@@ -224,7 +213,7 @@ function RencanaAksiPage() {
                                                 <button onClick={() => handleOpenTodoModal(item)} className="flex items-center text-gray-600 hover:text-gray-900" data-cy={`todo-progress-button-${item.id}`}>
                                                     <FiList size={18} /><span className="hidden md:inline ml-2">To-Do & Progress</span>
                                                 </button>
-                                                <button onClick={() => handleOpenModal(item)} className="flex items-center text-indigo-600 hover:text-indigo-900" data-cy={`edit-rencana-aksi-button-${item.id}`}>
+                                                <button type="button" onClick={() => handleOpenModal(item)} className="flex items-center text-indigo-600 hover:text-indigo-900" data-cy={`edit-rencana-aksi-button-${item.id}`} data-hs-overlay="#rencana-aksi-modal">
                                                     <FiEdit size={18} /><span className="hidden md:inline ml-2">Edit</span>
                                                 </button>
                                                 <button onClick={() => handleDelete(item.id)} className="flex items-center text-red-600 hover:text-red-900" data-cy={`delete-rencana-aksi-button-${item.id}`}>
@@ -276,7 +265,7 @@ function RencanaAksiPage() {
                                     <button onClick={() => handleOpenTodoModal(item)} className="flex items-center text-gray-600 hover:text-gray-900 text-sm" data-cy={`todo-progress-button-${item.id}`}>
                                         <FiList size={16} className="mr-1" /> To-Do
                                     </button>
-                                    <button onClick={() => handleOpenModal(item)} className="flex items-center text-indigo-600 hover:text-indigo-900 text-sm" data-cy={`edit-rencana-aksi-button-${item.id}`}>
+                                    <button type="button" onClick={() => handleOpenModal(item)} className="flex items-center text-indigo-600 hover:text-indigo-900 text-sm" data-cy={`edit-rencana-aksi-button-${item.id}`} data-hs-overlay="#rencana-aksi-modal">
                                         <FiEdit size={16} className="mr-1" /> Edit
                                     </button>
                                     <button onClick={() => handleDelete(item.id)} className="flex items-center text-red-600 hover:text-red-900 text-sm" data-cy={`delete-rencana-aksi-button-${item.id}`}>
@@ -288,15 +277,13 @@ function RencanaAksiPage() {
                     </div>
                 </>
             }
-            {isModalOpen && <RencanaAksiModal
-                key={currentItem ? currentItem.id : 'new'}
-                isOpen={isModalOpen}
+            <RencanaAksiModal
+                key={currentItem ? currentItem.id : 'new-item'}
                 currentData={currentItem}
                 kegiatanId={selectedKegiatan}
-                jabatanTree={jabatanTree} // Use the direct tree
-                onClose={handleCloseModal}
-                onSave={fetchRencanaAksi}
-            />}
+                jabatanTree={jabatanTree}
+                onSaveSuccess={fetchRencanaAksi}
+            />
             {isTodoModalOpen && <TodoModal 
                 rencanaAksi={selectedRencanaAksi} 
                 selectedDate={selectedDate}

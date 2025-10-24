@@ -2,20 +2,40 @@ import React from 'react';
 
 function StatCard({ title, value, icon, color }) {
     const colorClasses = {
-        blue: 'bg-blue-100 text-blue-800',
-        green: 'bg-green-100 text-green-800',
-        yellow: 'bg-yellow-100 text-yellow-800',
-        red: 'bg-red-100 text-red-800',
+        blue: {
+            bg: 'bg-primary/10',
+            text: 'text-primary',
+        },
+        green: {
+            bg: 'bg-success/10',
+            text: 'text-success',
+        },
+        yellow: {
+            bg: 'bg-warning/10',
+            text: 'text-warning',
+        },
+        red: {
+            bg: 'bg-danger/10',
+            text: 'text-danger',
+        },
     };
 
+    const selectedColor = colorClasses[color] || colorClasses.blue;
+
     return (
-        <div className="bg-white p-6 rounded-lg shadow-md flex items-center">
-            <div className={`p-3 rounded-full mr-4 ${colorClasses[color]}`}>
-                {icon}
-            </div>
-            <div>
-                <p className="text-sm font-medium text-gray-500">{title}</p>
-                <p className="text-2xl font-bold text-gray-800">{value}</p>
+        <div className="card">
+            <div className="card-body">
+                <div className="flex items-center gap-3">
+                    <div className={`btn ${selectedColor.bg} ${selectedColor.text} size-12`}>
+                        {icon}
+                    </div>
+                    <div>
+                        <h5 className="mb-1 text-base text-heading font-semibold">
+                            <span className="counter-value">{value}</span>
+                        </h5>
+                        <p className="text-default-500">{title}</p>
+                    </div>
+                </div>
             </div>
         </div>
     );

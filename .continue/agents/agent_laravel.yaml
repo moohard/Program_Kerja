@@ -20,7 +20,7 @@ models:
     chatOptions:
       # Untuk chat biasa
       baseSystemMessage: |
-        You are a senior full-stack developer expert in Laravel 12 and React 18.
+        You are a senior full-stack developer expert in Laravel 12 and React 19.
         You are helping with a Letter Management System migration project.
         Always reference official documentation and follow best practices.
       

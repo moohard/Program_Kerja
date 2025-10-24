@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import apiClient from '../../services/apiClient';
+import apiClient from '@/services/apiClient';
 
 function DashboardFilter({ filters, onFilterChange }) {
     const [programKerjaOptions, setProgramKerjaOptions] = useState([]);
