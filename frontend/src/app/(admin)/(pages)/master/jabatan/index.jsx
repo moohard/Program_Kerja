@@ -3,7 +3,8 @@ import apiClient from '@/services/apiClient';
 import { toast } from 'react-toastify';
 import Modal from '@/components/common/Modal';
 import JabatanForm from '@/components/Jabatan/JabatanForm';
-import { FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiEdit, FiTrash2, FiMoreVertical } from 'react-icons/fi';
+import { showConfirmationToast } from '@/components/common/ConfirmationToast';
 
 const JabatanPage = () => {
     const [jabatanList, setJabatanList] = useState([]);
@@ -13,8 +14,8 @@ const JabatanPage = () => {
     const [selectedJabatan, setSelectedJabatan] = useState(null);
 
     const fetchJabatan = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
             const response = await apiClient.get('/jabatan');
             setJabatanList(response.data.data);
             setError(null);
@@ -48,11 +49,9 @@ const JabatanPage = () => {
     const handleSave = async (formData) => {
         try {
             if (selectedJabatan) {
-                // Update
                 await apiClient.put(`/jabatan/${selectedJabatan.id}`, formData);
                 toast.success('Jabatan berhasil diperbarui.');
             } else {
-                // Create
                 await apiClient.post('/jabatan', formData);
                 toast.success('Jabatan berhasil ditambahkan.');
             }
@@ -65,7 +64,7 @@ const JabatanPage = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus jabatan ini?')) {
+        showConfirmationToast('Apakah Anda yakin ingin menghapus jabatan ini?', async () => {
             try {
                 await apiClient.delete(`/jabatan/${id}`);
                 toast.success('Jabatan berhasil dihapus.');
@@ -74,7 +73,7 @@ const JabatanPage = () => {
                 const message = err.response?.data?.message || 'Gagal menghapus jabatan.';
                 toast.error(message);
             }
-        }
+        });
     };
 
     if (loading) return <div className="flex justify-center items-center h-screen"><div className="text-xl">Loading...</div></div>;
@@ -89,30 +88,41 @@ const JabatanPage = () => {
                 </button>
             </div>
             
-            <div className="bg-white shadow-md rounded my-6">
-                <table className="min-w-max w-full table-auto">
+            <div className="bg-white shadow-md rounded my-6 overflow-x-auto">
+                <table className="min-w-full w-full table-auto">
                     <thead>
                         <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                            <th className="py-3 px-6 text-left">Nama Jabatan</th>
-                            <th className="py-3 px-6 text-left">Bidang</th>
-                            <th className="py-3 px-6 text-left">Atasan Langsung</th>
+                            <th className="py-3 px-6 text-left">Jabatan</th>
                             <th className="py-3 px-6 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-600 text-sm font-light">
                         {jabatanList.map(jabatan => (
                             <tr key={jabatan.id} className="border-b border-gray-200 hover:bg-gray-100">
-                                <td className="py-3 px-6 text-left whitespace-nowrap">{jabatan.nama_jabatan}</td>
-                                <td className="py-3 px-6 text-left">{jabatan.bidang || '-'}</td>
-                                <td className="py-3 px-6 text-left">{jabatan.parent?.nama_jabatan || '-'}</td>
+                                <td className="py-3 px-6 text-left">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold whitespace-normal">{jabatan.nama_jabatan}</span>
+                                        <span className="text-xs text-gray-500 mt-1">
+                                            Bidang: {jabatan.bidang || '-'}
+                                        </span>
+                                        <span className="text-xs text-gray-500">
+                                            Atasan: {jabatan.parent?.nama_jabatan || '-'}
+                                        </span>
+                                    </div>
+                                </td>
                                 <td className="py-3 px-6 text-center">
-                                    <div className="flex item-center justify-center">
-                                        <button onClick={() => handleEdit(jabatan)} title="Edit Jabatan" className="w-8 h-8 flex items-center justify-center rounded bg-yellow-500 text-white mr-2 hover:bg-yellow-600">
-                                            <FiEdit />
+                                    <div className="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                        <button className="hs-dropdown-toggle">
+                                            <FiMoreVertical size={20} />
                                         </button>
-                                        <button onClick={() => handleDelete(jabatan.id)} title="Hapus Jabatan" className="w-8 h-8 flex items-center justify-center rounded bg-red-500 text-white hover:bg-red-600">
-                                            <FiTrash2 />
-                                        </button>
+                                        <div className="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden z-10 mt-2 min-w-[10rem] bg-white shadow-md rounded-lg p-2">
+                                            <button onClick={() => handleEdit(jabatan)} className="w-full flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100">
+                                                <FiEdit /> Edit
+                                            </button>
+                                            <button onClick={() => handleDelete(jabatan.id)} className="w-full flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-red-600 hover:bg-gray-100">
+                                                <FiTrash2 /> Hapus
+                                            </button>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>

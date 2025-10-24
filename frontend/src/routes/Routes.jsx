@@ -13,6 +13,7 @@ const UserPage = lazy(() => import('@/app/(admin)/(pages)/master/users'));
 const TemplateManagementPage = lazy(() => import('@/app/(admin)/(pages)/templates'));
 const AuditLogPage = lazy(() => import('@/app/(admin)/(pages)/audit-logs'));
 const RolePermissionPage = lazy(() => import('@/app/(admin)/(pages)/manajemen-role'));
+const ProfilePage = lazy(() => import('@/app/(admin)/(pages)/profile'));
 
 // Auth & Other Pages from Template
 const BasicLogin = lazy(() => import('@/app/(auth)/basic-login'));
@@ -32,6 +33,11 @@ export const layoutsRoutes = [
     path: '/dashboard',
     name: 'Dashboard',
     element: <DashboardPage />,
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    element: <ProfilePage />,
   },
   {
     path: '/rencana-aksi',

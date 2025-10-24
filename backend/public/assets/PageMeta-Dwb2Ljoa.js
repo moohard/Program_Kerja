@@ -1,0 +1,1 @@
+import{j as t}from"./index-kK03ZpaK.js";const e=({title:i})=>t.jsx("title",{children:i?`${i} | Tailwick - Tailwind CSS 3 Admin Layout & UI Kit Template`:" Tailwick - Tailwind CSS 3 Admin Layout & UI Kit Template"});export{e as P};

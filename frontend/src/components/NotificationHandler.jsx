@@ -11,13 +11,19 @@ const NotificationHandler = () => {
 
     useEffect(() => {
         const setupNotifications = async () => {
-            const token = await requestForToken();
-            if (token) {
-                try {
+            console.log('[Debug] Attempting to get notification token...');
+            try {
+                const token = await requestForToken();
+                if (token) {
+                    console.log('[Debug] Got token:', token);
+                    console.log('[Debug] Sending token to backend...');
                     await apiClient.post('/device-tokens', { token });
-                } catch (error) {
-                    console.error('Error sending device token to backend:', error);
+                    console.log('[Debug] Token sent to backend successfully.');
+                } else {
+                    console.warn('[Debug] No notification token received. User may have denied permission.');
                 }
+            } catch (error) {
+                console.error('[Debug] Error getting or sending notification token:', error);
             }
         };
 

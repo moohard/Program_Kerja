@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '@/services/apiClient';
 import { FiPlus, FiTrash2, FiCopy } from 'react-icons/fi';
+import { toast } from 'react-toastify';
+import { showConfirmationToast } from '@/components/common/ConfirmationToast';
 
 const CreateTemplateModal = ({ isOpen, onClose, onSave }) => {
     const [namaTemplate, setNamaTemplate] = useState('');
@@ -144,14 +146,15 @@ const TemplateManagementPage = () => {
     }, []);
 
     const handleDelete = async (id) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus template ini?')) {
+        showConfirmationToast('Apakah Anda yakin ingin menghapus template ini?', async () => {
             try {
                 await apiClient.delete(`/templates/${id}`);
                 fetchTemplates();
+                toast.success('Template berhasil dihapus.');
             } catch (error) {
-                alert('Gagal menghapus template.');
+                toast.error('Gagal menghapus template.');
             }
-        }
+        });
     };
 
     const handleOpenApplyModal = (template) => {
@@ -160,7 +163,7 @@ const TemplateManagementPage = () => {
     };
 
     const handleApplySuccess = (message) => {
-        alert(message); // Menampilkan pesan sukses dari backend
+        toast.success(message); // Menampilkan pesan sukses dari backend
         // Anda bisa menambahkan logika refresh data lain jika perlu
     };
 

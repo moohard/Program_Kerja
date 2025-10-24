@@ -2,17 +2,27 @@ import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '@/services/apiClient';
 import KegiatanModal from '@/components/modals/KegiatanModal';
 import { FiEdit, FiTrash2 } from 'react-icons/fi';
+import { showConfirmationToast } from '@/components/common/ConfirmationToast';
+import { toast } from 'react-toastify';
 
-function KegiatanPage() {
-    const [kategoriList, setKategoriList] = useState([]);
+const KegiatanPage = () => {
     const [kegiatanList, setKegiatanList] = useState([]);
+    const [kategoriList, setKategoriList] = useState([]);
     const [selectedKategori, setSelectedKategori] = useState('');
-    const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        apiClient.get('/kategori-utama').then(res => setKategoriList(res.data.data));
+        // Fetch kategori list for the dropdown
+        apiClient.get('/kategori-utama')
+            .then(response => {
+                setKategoriList(response.data.data);
+            })
+            .catch(() => {
+                toast.error('Gagal memuat daftar kategori.');
+            });
     }, []);
 
     const fetchKegiatan = useCallback(async () => {
@@ -24,30 +34,48 @@ function KegiatanPage() {
         try {
             const response = await apiClient.get(`/kegiatan?kategori_id=${selectedKategori}`);
             setKegiatanList(response.data.data);
+            setError(null);
         } catch (err) {
-            console.error(err);
-        } finally { setLoading(false); }
+            setError('Gagal memuat data kegiatan.');
+            toast.error('Gagal memuat data kegiatan.');
+        } finally {
+            setLoading(false);
+        }
     }, [selectedKategori]);
 
     useEffect(() => {
         fetchKegiatan();
     }, [fetchKegiatan]);
 
-    const handleOpenModal = (item = null) => { setCurrentItem(item); setIsModalOpen(true); };
-    const handleCloseModal = () => { setIsModalOpen(false); setCurrentItem(null); };
-    const handleSave = async (itemData) => {
-        try {
-            const payload = { ...itemData, kategori_id: selectedKategori };
-            if (currentItem) await apiClient.put(`/kegiatan/${currentItem.id}`, payload);
-            else await apiClient.post('/kegiatan', payload);
-            fetchKegiatan(); handleCloseModal();
-        } catch (err) { alert('Gagal menyimpan data kegiatan.'); }
-    };
-    const handleDelete = async (id) => {
-        if (window.confirm('Yakin ingin menghapus kegiatan ini?')) {
-            try { await apiClient.delete(`/kegiatan/${id}`); fetchKegiatan(); }
-            catch (err) { alert('Gagal menghapus data kegiatan.'); }
+    const handleOpenModal = (item = null) => {
+        if (!selectedKategori) {
+            toast.warn('Silakan pilih kategori utama terlebih dahulu.');
+            return;
         }
+        setCurrentItem(item);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setCurrentItem(null);
+    };
+
+    const handleSave = () => {
+        fetchKegiatan();
+        handleCloseModal();
+    };
+
+    const handleDelete = (id) => {
+        showConfirmationToast('Yakin ingin menghapus kegiatan ini?', async () => {
+            try {
+                await apiClient.delete(`/kegiatan/${id}`);
+                toast.success('Kegiatan berhasil dihapus.');
+                fetchKegiatan();
+            } catch (error) {
+                toast.error('Gagal menghapus kegiatan.');
+            }
+        });
     };
 
     return (

@@ -5,6 +5,8 @@ import RencanaAksiModal from '@/components/modals/RencanaAksiModal';
 import TodoModal from '@/components/modals/TodoModal';
 import { FiPlus, FiAlertTriangle, FiList, FiEdit, FiTrash2 } from 'react-icons/fi';
 import { usePermissions } from '@/hooks/usePermissions';
+import { toast } from 'react-toastify';
+import { showConfirmationToast } from '@/components/common/ConfirmationToast';
 
 function RencanaAksiPage() {
     const { can } = usePermissions();
@@ -106,15 +108,16 @@ function RencanaAksiPage() {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus item ini?')) {
+        showConfirmationToast('Apakah Anda yakin ingin menghapus item ini?', async () => {
             try {
                 await apiClient.delete(`/rencana-aksi/${id}`);
                 fetchRencanaAksi();
+                toast.success('Rencana aksi berhasil dihapus.');
             } catch (error) {
                 console.error('Error deleting item:', error);
-                alert('Gagal menghapus item.');
+                toast.error('Gagal menghapus item.');
             }
-        }
+        });
     };
 
     return (

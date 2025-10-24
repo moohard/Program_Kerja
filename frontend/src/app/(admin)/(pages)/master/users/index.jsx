@@ -3,7 +3,8 @@ import apiClient from '@/services/apiClient';
 import { toast } from 'react-toastify';
 import Modal from '@/components/common/Modal';
 import UserForm from '@/components/User/UserForm';
-import { FiEdit, FiTrash2 } from 'react-icons/fi';
+import { FiEdit, FiTrash2, FiMoreVertical } from 'react-icons/fi';
+import { showConfirmationToast } from '@/components/common/ConfirmationToast';
 
 const UserPage = () => {
     const [userList, setUserList] = useState([]);
@@ -59,15 +60,18 @@ const UserPage = () => {
         }
 
         try {
+            let message = '';
             if (selectedUser) {
                 await apiClient.put(`/users/${selectedUser.id}`, payload);
-                toast.success('Pengguna berhasil diperbarui.');
+                message = 'Pengguna berhasil diperbarui.';
             } else {
                 await apiClient.post('/users', payload);
-                toast.success('Pengguna berhasil ditambahkan.');
+                message = 'Pengguna berhasil ditambahkan.';
             }
-            fetchData();
-            handleCloseModal();
+            handleCloseModal(); // 1. Close the modal immediately
+            console.log('Attempting to show toast with message:', message); // DEBUG LOG
+            toast.success(message); // 2. Then, show the success toast
+            fetchData(); // 3. Refresh the data in the background
         } catch (err) {
             const message = err.response?.data?.message || 'Gagal menyimpan data.';
             toast.error(message);
@@ -75,7 +79,7 @@ const UserPage = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
+        showConfirmationToast('Apakah Anda yakin ingin menghapus pengguna ini?', async () => {
             try {
                 await apiClient.delete(`/users/${id}`);
                 toast.success('Pengguna berhasil dihapus.');
@@ -84,7 +88,7 @@ const UserPage = () => {
                 const message = err.response?.data?.message || 'Gagal menghapus pengguna.';
                 toast.error(message);
             }
-        }
+        });
     };
 
     if (loading) return <div className="flex justify-center items-center h-screen"><div className="text-xl">Loading...</div></div>;
@@ -99,30 +103,37 @@ const UserPage = () => {
                 </button>
             </div>
             
-            <div className="bg-white shadow-md rounded my-6">
-                <table className="min-w-max w-full table-auto">
+            <div className="bg-white shadow-md rounded my-6 overflow-x-auto">
+                <table className="min-w-full w-full table-auto">
                     <thead>
                         <tr className="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
-                            <th className="py-3 px-6 text-left">Nama</th>
-                            <th className="py-3 px-6 text-left">Email</th>
-                            <th className="py-3 px-6 text-left">Jabatan</th>
+                            <th className="py-3 px-6 text-left">Pengguna</th>
                             <th className="py-3 px-6 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-600 text-sm font-light">
                         {userList.map(user => (
                             <tr key={user.id} className="border-b border-gray-200 hover:bg-gray-100">
-                                <td className="py-3 px-6 text-left whitespace-nowrap">{user.name}</td>
-                                <td className="py-3 px-6 text-left">{user.email}</td>
-                                <td className="py-3 px-6 text-left">{user.jabatan?.nama_jabatan || '-'}</td>
+                                <td className="py-3 px-6 text-left">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold whitespace-normal">{user.name}</span>
+                                        <span className="text-xs text-gray-500 mt-1">{user.email}</span>
+                                        <span className="text-xs text-gray-500">{user.jabatan?.nama_jabatan || '-'}</span>
+                                    </div>
+                                </td>
                                 <td className="py-3 px-6 text-center">
-                                    <div className="flex item-center justify-center">
-                                        <button onClick={() => handleEdit(user)} title="Edit Pengguna" className="w-8 h-8 flex items-center justify-center rounded bg-yellow-500 text-white mr-2 hover:bg-yellow-600">
-                                            <FiEdit />
+                                    <div className="hs-dropdown relative inline-flex [--placement:bottom-right]">
+                                        <button className="hs-dropdown-toggle">
+                                            <FiMoreVertical size={20} />
                                         </button>
-                                        <button onClick={() => handleDelete(user.id)} title="Hapus Pengguna" className="w-8 h-8 flex items-center justify-center rounded bg-red-500 text-white hover:bg-red-600">
-                                            <FiTrash2 />
-                                        </button>
+                                        <div className="hs-dropdown-menu transition-[opacity,margin] duration hs-dropdown-open:opacity-100 opacity-0 hidden z-10 mt-2 min-w-[10rem] bg-white shadow-md rounded-lg p-2">
+                                            <button onClick={() => handleEdit(user)} className="w-full flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-gray-800 hover:bg-gray-100">
+                                                <FiEdit /> Edit
+                                            </button>
+                                            <button onClick={() => handleDelete(user.id)} className="w-full flex items-center gap-x-3.5 py-2 px-3 rounded-lg text-sm text-red-600 hover:bg-gray-100">
+                                                <FiTrash2 /> Hapus
+                                            </button>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -132,12 +143,14 @@ const UserPage = () => {
             </div>
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={selectedUser ? 'Edit Pengguna' : 'Tambah Pengguna'}>
-                <UserForm
-                    onSave={handleSave}
-                    onCancel={handleCloseModal}
-                    user={selectedUser}
-                    jabatanList={jabatanList}
-                />
+                {isModalOpen && (
+                    <UserForm
+                        onSave={handleSave}
+                        onCancel={handleCloseModal}
+                        user={selectedUser}
+                        jabatanList={jabatanList}
+                    />
+                )}
             </Modal>
         </div>
     );

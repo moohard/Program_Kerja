@@ -2,42 +2,60 @@ import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '@/services/apiClient';
 import KategoriModal from '@/components/modals/KategoriModal';
 import { FiEdit, FiTrash2 } from 'react-icons/fi';
+import { showConfirmationToast } from '@/components/common/ConfirmationToast';
 
-function KategoriUtamaPage() {
+const KategoriUtamaPage = () => {
     const [kategoriList, setKategoriList] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const fetchData = useCallback(async () => {
+    const fetchKategori = useCallback(async () => {
         setLoading(true);
         try {
             const response = await apiClient.get('/kategori-utama');
             setKategoriList(response.data.data);
-        } catch (err) { setError('Gagal memuat data.'); }
-        finally { setLoading(false); }
+            setError(null);
+        } catch (err) {
+            setError('Gagal memuat data. Silakan coba lagi.');
+            toast.error('Gagal memuat data.');
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    useEffect(() => {
+        fetchKategori();
+    }, [fetchKategori]);
 
-    const handleOpenModal = (item = null) => { setCurrentItem(item); setIsModalOpen(true); };
-    const handleCloseModal = () => { setIsModalOpen(false); setCurrentItem(null); };
-
-    const handleSave = async (itemData) => {
-        try {
-            if (currentItem) await apiClient.put(`/kategori-utama/${currentItem.id}`, itemData);
-            else await apiClient.post('/kategori-utama', itemData);
-            fetchData(); handleCloseModal();
-        } catch (err) { alert('Gagal menyimpan data.'); }
+    const handleOpenModal = (item = null) => {
+        setCurrentItem(item);
+        setIsModalOpen(true);
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm('Yakin ingin menghapus item ini?')) {
-            try { await apiClient.delete(`/kategori-utama/${id}`); fetchData(); }
-            catch (err) { alert('Gagal menghapus data.'); }
-        }
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setCurrentItem(null);
     };
+
+    const handleSave = () => {
+        fetchKategori();
+        handleCloseModal();
+    };
+
+    const handleDelete = (id) => {
+        showConfirmationToast('Yakin ingin menghapus item ini?', async () => {
+            try {
+                await apiClient.delete(`/kategori-utama/${id}`);
+                toast.success('Kategori berhasil dihapus.');
+                fetchKategori();
+            } catch (error) {
+                toast.error('Gagal menghapus kategori.');
+            }
+        });
+    };
+
 
     return (
         <div className="bg-white p-8 rounded-lg shadow">
