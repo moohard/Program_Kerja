@@ -42,6 +42,9 @@ const NotificationHandler = () => {
                     {payload.notification.body}
                 </div>
             );
+            
+            // Dispatch custom event to notify other components
+            window.dispatchEvent(new CustomEvent('new-notification'));
         });
 
         // Cleanup listener saat komponen di-unmount

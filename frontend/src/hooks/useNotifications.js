@@ -12,10 +12,17 @@ export const useNotifications = () => {
             setLoading(true);
             const response = await apiClient.get('/notifications');
             const data = response.data;
-            setNotifications(data.notifications);
-            setUnreadCount(data.unread_count);
+            
+            // Combine unread and read notifications
+            const allNotifications = (data.unread || []).concat(data.read || []);
+            
+            // Sort notifications by date, newest first
+            allNotifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            setNotifications(allNotifications);
+            setUnreadCount(data.unread?.length || 0);
         } catch (error) {
-            console.error('Failed to fetch notifications:', error);
+            console.error('Failed to fetch notifications:', error.response || error);
             toast.error('Gagal memuat notifikasi.');
         } finally {
             setLoading(false);
@@ -37,6 +44,13 @@ export const useNotifications = () => {
 
     useEffect(() => {
         fetchNotifications();
+
+        const handleNewNotification = () => fetchNotifications();
+        window.addEventListener('new-notification', handleNewNotification);
+
+        return () => {
+            window.removeEventListener('new-notification', handleNewNotification);
+        };
     }, [fetchNotifications]);
 
     return {
