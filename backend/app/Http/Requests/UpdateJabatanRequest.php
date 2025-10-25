@@ -33,6 +33,7 @@ class UpdateJabatanRequest extends FormRequest
             ],
             'bidang' => 'nullable|in:pimpinan,kesekretariatan,kepaniteraan,teknis,hakim',
             'parent_id' => 'nullable|integer|exists:jabatan,id',
+            'role' => 'required|string|exists:roles,name',
         ];
     }
 }

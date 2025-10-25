@@ -43,8 +43,30 @@ class JabatanController extends Controller
      */
     public function update(UpdateJabatanRequest $request, Jabatan $jabatanItem)
     {
-        $jabatanItem->update($request->validated());
-        return new JabatanResource($jabatanItem);
+        $validatedData = $request->validated();
+
+        // Use a transaction to ensure data integrity
+        \Illuminate\Support\Facades\DB::transaction(function () use ($jabatanItem, $validatedData) {
+            // Manually assign attributes to avoid mass assignment issue
+            $jabatanItem->fill($validatedData);
+            $jabatanItem->save();
+
+            // If a role is provided in the validated data, sync it to all users in that Jabatan
+            if (isset($validatedData['role'])) {
+                $newRoleName = $validatedData['role'];
+
+                // Eager load users to avoid N+1 queries
+                $jabatanItem->load('users');
+
+                foreach ($jabatanItem->users as $user) {
+                    // syncRoles expects an array of role names or objects
+                    $user->syncRoles([$newRoleName]);
+                }
+            }
+        });
+
+        // Return the updated resource, which will reflect the changes
+        return new JabatanResource($jabatanItem->fresh());
     }
 
     /**

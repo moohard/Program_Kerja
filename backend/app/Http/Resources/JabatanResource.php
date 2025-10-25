@@ -17,6 +17,7 @@ class JabatanResource extends JsonResource
         return [
             'id' => $this->id,
             'nama_jabatan' => $this->nama_jabatan,
+            'role' => $this->role,
             'bidang' => $this->bidang,
             'parent_id' => $this->parent_id,
             'parent' => new JabatanResource($this->whenLoaded('parent')),
