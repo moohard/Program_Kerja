@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\TodoItemAttachmentController;
 use App\Http\Controllers\Api\DeviceTokenController;
+use App\Http\Controllers\Api\AuditLogController;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register-device', [AuthController::class, 'registerDevice']);
@@ -62,6 +63,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAsRead']);
+
+    Route::get('/audit-logs', [AuditLogController::class, 'index']);
 
     // Routes for Jabatan and User Management
     // Route::apiResource('jabatan', JabatanController::class); // Replaced for debugging

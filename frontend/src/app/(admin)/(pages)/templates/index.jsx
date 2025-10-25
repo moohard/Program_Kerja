@@ -134,9 +134,16 @@ const TemplateManagementPage = () => {
         setLoading(true);
         try {
             const response = await apiClient.get('/templates');
-            setTemplates(response.data.data || response.data);
+            const apiData = response.data.data || response.data;
+            if (Array.isArray(apiData)) {
+                setTemplates(apiData);
+            } else {
+                console.error("API response is not an array:", apiData);
+                setTemplates([]); // Default to empty array if response is not an array
+            }
         } catch (error) {
             console.error("Error fetching templates:", error);
+            setTemplates([]); // Also default to empty array on API error
         } finally {
             setLoading(false);
         }

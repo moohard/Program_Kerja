@@ -33,14 +33,24 @@ const AuditLogPage = () => {
             try {
                 const params = new URLSearchParams(filters).toString();
                 const response = await apiClient.get(`/audit-logs?${params}`);
-                setLogs(response.data.data);
-                setPagination({
-                    current_page: response.data.current_page,
-                    last_page: response.data.last_page,
-                    total: response.data.total,
-                });
+                const apiData = response.data.data;
+
+                if (Array.isArray(apiData)) {
+                    setLogs(apiData);
+                    setPagination({
+                        current_page: response.data.current_page,
+                        last_page: response.data.last_page,
+                        total: response.data.total,
+                    });
+                } else {
+                    console.error("Audit logs API response is not an array:", response.data);
+                    setLogs([]);
+                    setPagination({});
+                }
             } catch (error) {
                 console.error("Error fetching audit logs:", error);
+                setLogs([]); // Reset logs on error
+                setPagination({}); // Reset pagination on error
             } finally {
                 setLoading(false);
             }
