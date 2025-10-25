@@ -49,3 +49,4 @@ gha-creds-*.json
 /.continue
 /images
 /frontend/src_backup
+/_archive/
