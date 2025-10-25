@@ -19,7 +19,7 @@ function LoginPage() {
         setError('');
         try {
             await auth.login(email, password);
-            navigate('/index'); // Redirect to main dashboard
+            navigate('/dashboard'); // Redirect to main dashboard
         } catch (err) {
             setError(err.response?.data?.message || 'Login gagal.');
         } finally {

@@ -42,7 +42,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="/" replace />} />
+          <Route index element={<Navigate to="/dashboard" replace />} />
           {layoutsRoutes.map(route => (
             <Route key={route.name} path={route.path} element={route.element} />
           ))}
