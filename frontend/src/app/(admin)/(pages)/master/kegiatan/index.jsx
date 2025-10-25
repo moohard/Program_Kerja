@@ -61,9 +61,23 @@ const KegiatanPage = () => {
         setCurrentItem(null);
     };
 
-    const handleSave = () => {
-        fetchKegiatan();
-        handleCloseModal();
+    const handleSave = async (formData) => {
+        const isUpdating = !!currentItem;
+        const url = isUpdating ? `/kegiatan/${currentItem.id}` : '/kegiatan';
+        const method = isUpdating ? 'put' : 'post';
+
+        // Add the selected kategori_id to the form data
+        const dataToSave = { ...formData, kategori_id: selectedKategori };
+
+        try {
+            await apiClient[method](url, dataToSave);
+            toast.success(`Kegiatan berhasil ${isUpdating ? 'diperbarui' : 'ditambahkan'}.`);
+            fetchKegiatan();
+            handleCloseModal();
+        } catch (error) {
+            const message = error.response?.data?.message || `Gagal ${isUpdating ? 'memperbarui' : 'menambahkan'} kegiatan.`;
+            toast.error(message);
+        }
     };
 
     const handleDelete = (id) => {

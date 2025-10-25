@@ -3,6 +3,8 @@ import apiClient from '@/services/apiClient';
 import KategoriModal from '@/components/modals/KategoriModal';
 import { FiEdit, FiTrash2 } from 'react-icons/fi';
 import { showConfirmationToast } from '@/components/common/ConfirmationToast';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const KategoriUtamaPage = () => {
     const [kategoriList, setKategoriList] = useState([]);
@@ -39,9 +41,20 @@ const KategoriUtamaPage = () => {
         setCurrentItem(null);
     };
 
-    const handleSave = () => {
-        fetchKategori();
-        handleCloseModal();
+    const handleSave = async (formData) => {
+        const isUpdating = !!currentItem;
+        const url = isUpdating ? `/kategori-utama/${currentItem.id}` : '/kategori-utama';
+        const method = isUpdating ? 'put' : 'post';
+
+        try {
+            await apiClient[method](url, formData);
+            toast.success(`Kategori berhasil ${isUpdating ? 'diperbarui' : 'ditambahkan'}.`);
+            fetchKategori();
+            handleCloseModal();
+        } catch (error) {
+            const message = error.response?.data?.message || `Gagal ${isUpdating ? 'memperbarui' : 'menambahkan'} kategori.`;
+            toast.error(message);
+        }
     };
 
     const handleDelete = (id) => {
