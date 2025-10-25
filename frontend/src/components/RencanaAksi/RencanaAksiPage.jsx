@@ -99,11 +99,16 @@ function RencanaAksiPage() {
         setCurrentItem(item);
     };
 
+    const handleOpenTodoModal = (item) => {
+        setSelectedRencanaAksi(item);
+    };
+
     const handleRencanaAksiSelect = (item) => {
         setSelectedRencanaAksi(item);
     };
 
     const handleCloseTodoModal = (shouldRefetch = false) => {
+        setSelectedRencanaAksi(null); // Close the modal
         if (shouldRefetch) {
             fetchRencanaAksi();
         }

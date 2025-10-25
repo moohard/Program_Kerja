@@ -2,6 +2,17 @@ import React, { createContext, useState, useEffect } from 'react';
 import apiClient from '../services/apiClient';
 import { useNavigate } from 'react-router-dom';
 
+// Create a separate instance for CSRF cookie requests (without /api prefix)
+const csrfClient = apiClient;
+// Override baseURL temporarily for CSRF cookie request
+const originalBaseURL = csrfClient.defaults.baseURL;
+csrfClient.getCSRFCookie = async () => {
+    csrfClient.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
+    const response = await csrfClient.get('/sanctum/csrf-cookie');
+    csrfClient.defaults.baseURL = originalBaseURL;
+    return response;
+};
+
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -33,7 +44,39 @@ export const AuthProvider = ({ children }) => {
     }, [token]); // Hanya jalankan saat token berubah
 
     const login = async (email, password) => {
-        const response = await apiClient.post('/login', { email, password });
+        // Clear existing cookies first to avoid duplicates
+        document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.proker.test';
+        document.cookie = 'laravel-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.proker.test';
+        
+        // First, get a CSRF cookie
+        console.log('[Debug] Getting CSRF cookie...');
+        await csrfClient.getCSRFCookie();
+        
+        // Debug: Check cookies
+        console.log('[Debug] Cookies after CSRF:', document.cookie);
+        
+        // Get CSRF token manually for debugging
+        const getCookie = (name) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            // Handle multiple cookies with same name - take the last one
+            if (parts.length >= 2) {
+                const lastPart = parts[parts.length - 1];
+                return lastPart.split(';').shift();
+            }
+            return null;
+        };
+        const csrfToken = getCookie('XSRF-TOKEN');
+        console.log('[Debug] CSRF Token:', csrfToken);
+        
+        // Then, attempt to login (CSRF token akan otomatis ditambahkan oleh interceptor)
+        console.log('[Debug] Attempting login...');
+        const response = await apiClient.post('/login', { 
+            email, 
+            password 
+        });
+        console.log('[Debug] Login response:', response);
+        
         const { token, user } = response.data;
 
         // Simpan token di localStorage
@@ -47,6 +90,7 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
         try {
+            // Use the api client for logout (CSRF token akan otomatis ditambahkan oleh interceptor)
             await apiClient.post('/logout');
         } catch (error) {
             console.error("Logout failed, but clearing session locally.", error);

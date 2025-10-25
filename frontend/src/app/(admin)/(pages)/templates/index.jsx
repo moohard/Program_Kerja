@@ -15,7 +15,8 @@ const CreateTemplateModal = ({ isOpen, onClose, onSave }) => {
         if (isOpen) {
             apiClient.get('/templates/source-years')
                 .then(response => {
-                    const years = response.data.map(item => item.tahun);
+                    const yearsData = response.data.data || response.data;
+                    const years = yearsData.map(item => item.tahun);
                     setExistingYears(years);
                     if (years.length > 0) {
                         setTahunReferensi(years[0]);
@@ -133,7 +134,7 @@ const TemplateManagementPage = () => {
         setLoading(true);
         try {
             const response = await apiClient.get('/templates');
-            setTemplates(response.data);
+            setTemplates(response.data.data || response.data);
         } catch (error) {
             console.error("Error fetching templates:", error);
         } finally {

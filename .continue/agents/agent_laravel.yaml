@@ -6,10 +6,10 @@ schema: v1
 # MODELS CONFIGURATION
 # ============================================
 models:
-  - name: DeepSeek Reasoner
+  - name: DeepSeek Chat
     provider: deepseek
-    model: deepseek-reasoner
-    apiKey: ${{ secrets.DEEPSEEK_API_KEY }}
+    model: deepseek-chat
+    apiKey: sk-16cd8287d1a648efbc8e1653836fa3af
     roles: [chat]
     capabilities: [tool_use]
     defaultCompletionOptions:
@@ -55,7 +55,7 @@ models:
     defaultCompletionOptions:
       contextLength: 2000000           # 2M tokens!
       maxTokens: 8000
-      temperature: 0.1
+      temperature: 0.6
       topP: 0.95
       stream: true
     chatOptions:

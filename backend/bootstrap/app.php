@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
 
+        $middleware->api(prepend: [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
+
         $middleware->alias([
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,

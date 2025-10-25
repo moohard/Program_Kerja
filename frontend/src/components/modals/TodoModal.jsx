@@ -151,10 +151,19 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, jab
 
     const [loading, setLoading] = useState(true);
     const [hasMadeChanges, setHasMadeChanges] = useState(false);
+    const modalRef = useRef(null);
 
     // --- MEMOS ---
     const isPIC = useMemo(() => user && rencanaAksi && user.id === rencanaAksi.assigned_to?.id, [user, rencanaAksi]);
+    
+    // Progress keseluruhan (semua bulan) - sama seperti di Rencana Aksi page
     const progress = useMemo(() => {
+        if (!rencanaAksi) return 0;
+        return rencanaAksi.overall_progress || 0;
+    }, [rencanaAksi]);
+    
+    // Progress bulan tertentu (jika ada bulan yang dipilih)
+    const monthlyProgress = useMemo(() => {
         if (!todos || todos.length === 0) return 0;
         const approvedCount = todos.filter(t => t.status_approval === 'approved').length;
         return Math.round((approvedCount / todos.length) * 100);
@@ -203,6 +212,21 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, jab
             fetchTodos();
         }
     }, [rencanaAksi, fetchTodos]);
+
+    // Handle ESC key only (disable click outside)
+    useEffect(() => {
+        const handleEscKey = (event) => {
+            if (event.key === 'Escape') {
+                onClose(hasMadeChanges);
+            }
+        };
+
+        document.addEventListener('keydown', handleEscKey);
+
+        return () => {
+            document.removeEventListener('keydown', handleEscKey);
+        };
+    }, [onClose, hasMadeChanges]);
 
     // --- HANDLERS ---
     const debouncedUpdate = useCallback(debounce(async (todoId, payload) => {
@@ -292,13 +316,39 @@ function TodoModal({ rencanaAksi: initialRencanaAksi, onClose, selectedDate, jab
     // --- RENDER UTAMA ---
     return (
         <div className="fixed inset-0 bg-transparent flex justify-center items-start z-50 overflow-y-auto pt-10">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-4xl mb-10">
+            <div ref={modalRef} className="bg-white p-6 rounded-lg shadow-xl w-full max-w-4xl mb-10">
                 <h2 className="text-xl font-bold mb-2">To-Do List & Progress</h2>
                 <p className="text-sm text-gray-600 mb-4">{rencanaAksi.deskripsi_aksi}</p>
 
                 <div className="mb-4">
-                    <div className="flex justify-between mb-1"><span className="text-sm font-medium text-gray-700">Progress</span><span className="text-sm font-medium text-gray-700">{progress}%</span></div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5"><div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div></div>
+                    <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-700">
+                            Progress {selectedMonth ? `Bulan ${selectedMonth}` : 'Keseluruhan'}
+                        </span>
+                        <span className="text-sm font-medium text-gray-700">
+                            {selectedMonth ? monthlyProgress : progress}%
+                        </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5">
+                        <div 
+                            className="bg-blue-600 h-2.5 rounded-full" 
+                            style={{ width: `${selectedMonth ? monthlyProgress : progress}%` }}
+                        ></div>
+                    </div>
+                    {selectedMonth && (
+                        <div className="mt-2">
+                            <div className="flex justify-between mb-1">
+                                <span className="text-xs text-gray-600">Progress Keseluruhan</span>
+                                <span className="text-xs text-gray-600">{progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div 
+                                    className="bg-green-500 h-1.5 rounded-full" 
+                                    style={{ width: `${progress}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {isPIC && (

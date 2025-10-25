@@ -20,6 +20,10 @@ return [
     'allowed_methods'          => ['*'],
 
     'allowed_origins'          => [
+        'http://proker.test',
+        'https://proker.test',
+        'http://api.proker.test',
+        'https://api.proker.test',
         'http://localhost:5173',
         'https://localhost:5173',
         'http://localhost:5174',
