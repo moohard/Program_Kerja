@@ -9,18 +9,34 @@ const ApprovalControls = ({ todo, onApprovalDone, onStateChange, selectedMonth }
     const [isLoading, setIsLoading] = useState(false);
 
     const handleApproval = async (newStatus) => {
+        let rejectionNote = null;
+        if (newStatus === 'pending_upload') {
+            rejectionNote = window.prompt("Harap berikan alasan penolakan atau revisi:");
+            if (!rejectionNote) {
+                // Do not show an alert if the user simply cancels the prompt.
+                return; 
+            }
+        }
+
         setIsLoading(true);
         try {
-            await apiClient.put(`/todo-items/${todo.id}`, {
+            const payload = {
                 status_approval: newStatus,
-                month: selectedMonth
-            });
-            // Panggil onStateChange untuk update UI instan
+                month: selectedMonth,
+            };
+    
+            if (rejectionNote) {
+                payload.rejection_note = rejectionNote;
+            }
+
+            await apiClient.put(`/todo-items/${todo.id}`, payload);
+            
             if (onStateChange) onStateChange(todo.id, { status_approval: newStatus, progress_percentage: newStatus === 'approved' ? 100 : 0 });
-            if (onApprovalDone) onApprovalDone(); // Tetap fetch di background
+            if (onApprovalDone) onApprovalDone();
         } catch (error) {
             console.error(`Gagal mengubah status approval ke ${newStatus}:`, error);
-            alert('Gagal menyimpan perubahan status.');
+            const errorMessage = error.response?.data?.message || 'Gagal menyimpan perubahan status.';
+            alert(errorMessage);
         } finally {
             setIsLoading(false);
         }

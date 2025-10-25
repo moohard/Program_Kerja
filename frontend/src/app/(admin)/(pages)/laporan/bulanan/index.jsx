@@ -19,9 +19,11 @@ function LaporanPage() {
             const response = await apiClient.get('/reports/monthly', {
                 params: { year, month }
             });
-            setReportData(response.data.data);
+            console.log('API Response:', response.data);
+            setReportData(response.data.data || []);
         } catch (error) {
             console.error("Gagal membuat laporan:", error);
+            console.error("Error details:", error.response?.data);
             alert("Gagal membuat laporan. Silakan coba lagi.");
         } finally {
             setLoading(false);
@@ -55,7 +57,12 @@ function LaporanPage() {
             </div>
 
             {/* Report Display Section */}
-            {loading && <div className="flex justify-center items-center h-40"><div className="loader"></div></div>}
+            {loading && (
+                <div className="flex justify-center items-center h-40">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                    <span className="ml-3 text-gray-600">Mengambil data laporan...</span>
+                </div>
+            )}
 
             {reportData && (
                 <div className="bg-white p-6 rounded-lg shadow-md">
@@ -66,17 +73,24 @@ function LaporanPage() {
                                     <h2 className="text-xl font-bold text-gray-800 border-b-2 border-indigo-500 pb-2 mb-4">
                                         {kategori.nomor}. {kategori.nama_kategori}
                                     </h2>
-                                    {kategori.kegiatan.map(kg => kg.rencana_aksi.map(ra => (
-                                        <div key={ra.id} className="p-4 mb-3 border rounded-lg">
-                                            <p className="font-semibold">{ra.deskripsi_aksi}</p>
-                                            <div className="flex flex-wrap text-sm text-gray-600 mt-2 gap-x-6 gap-y-1">
-                                                <span><strong>Status:</strong> {ra.status}</span>
-                                                <span><strong>Target:</strong> {ra.target_tanggal_formatted}</span>
-                                                <span><strong>PIC:</strong> {ra.assigned_to?.name || 'N/A'}</span>
-                                                <span><strong>Progress:</strong> {ra.progress}%</span>
-                                            </div>
+                                    {kategori.kegiatan && kategori.kegiatan.map(kg => (
+                                        <div key={kg.nama_kegiatan} className="mb-6">
+                                            <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                                                {kg.nama_kegiatan}
+                                            </h3>
+                                            {kg.rencana_aksi && kg.rencana_aksi.map(ra => (
+                                                <div key={ra.id} className="p-4 mb-3 border rounded-lg bg-gray-50">
+                                                    <p className="font-semibold text-gray-800">{ra.deskripsi_aksi}</p>
+                                                    <div className="flex flex-wrap text-sm text-gray-600 mt-2 gap-x-6 gap-y-1">
+                                                        <span><strong>Status:</strong> <span className={`px-2 py-1 rounded text-xs ${ra.status === 'completed' ? 'bg-green-100 text-green-800' : ra.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{ra.status}</span></span>
+                                                        <span><strong>Target:</strong> {ra.target_tanggal_formatted}</span>
+                                                        <span><strong>PIC:</strong> {ra.assigned_to?.name || 'N/A'}</span>
+                                                        <span><strong>Progress:</strong> <span className="font-medium">{ra.progress}%</span></span>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                    )))}
+                                    ))}
                                 </div>
                             ))}
                         </div>

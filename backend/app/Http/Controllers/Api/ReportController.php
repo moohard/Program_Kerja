@@ -96,21 +96,39 @@ class ReportController extends Controller
                 // Case 1: Untuk jadwal yang mencantumkan bulan secara eksplisit (insidentil, bulanan)
                 $query->where(function ($q) use ($month) {
                     $q->whereIn('jadwal_tipe', ['insidentil', 'bulanan'])
-                      ->whereJsonContains('jadwal_config->months', $month);
+                      ->where(function ($sq) use ($month) {
+                          $sq->whereJsonContains('jadwal_config->months', $month)
+                             ->orWhereNull('jadwal_config'); // Include insidentil tanpa config
+                      });
                 })
-                // Case 2: Untuk jadwal periodik
+                // Case 2: Untuk jadwal periodik dengan interval monthly
                 ->orWhere(function ($q) use ($month) {
                     $q->where('jadwal_tipe', 'periodik')
+                      ->whereJsonContains('jadwal_config->interval', 'monthly')
+                      ->whereJsonContains('jadwal_config->months', $month);
+                })
+                // Case 3: Untuk jadwal periodik dengan interval quarterly
+                ->orWhere(function ($q) use ($month) {
+                    $q->where('jadwal_tipe', 'periodik')
+                      ->whereJsonContains('jadwal_config->interval', 'quarterly')
                       ->where(function ($sq) use ($month) {
-                          // Triwulanan
-                          $sq->where('jadwal_config->periode', 'triwulanan')
-                             ->whereRaw('? IN (3, 6, 9, 12)', [$month])
-                          // Semesteran
-                          ->orWhere(function ($ssq) use ($month) {
-                              $ssq->where('jadwal_config->periode', 'semesteran')
-                                  ->whereRaw('? IN (6, 12)', [$month]);
-                          });
-                          // Tambahkan tipe periodik lain jika ada
+                          $sq->whereRaw('? IN (3, 6, 9, 12)', [$month]);
+                      });
+                })
+                // Case 4: Untuk jadwal periodik dengan periode triwulanan (legacy)
+                ->orWhere(function ($q) use ($month) {
+                    $q->where('jadwal_tipe', 'periodik')
+                      ->whereJsonContains('jadwal_config->periode', 'triwulanan')
+                      ->where(function ($sq) use ($month) {
+                          $sq->whereRaw('? IN (3, 6, 9, 12)', [$month]);
+                      });
+                })
+                // Case 5: Untuk jadwal periodik dengan periode semesteran (legacy)
+                ->orWhere(function ($q) use ($month) {
+                    $q->where('jadwal_tipe', 'periodik')
+                      ->whereJsonContains('jadwal_config->periode', 'semesteran')
+                      ->where(function ($sq) use ($month) {
+                          $sq->whereRaw('? IN (6, 12)', [$month]);
                       });
                 });
             })

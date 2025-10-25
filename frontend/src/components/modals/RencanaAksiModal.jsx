@@ -5,7 +5,7 @@ import AuthContext from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { LuX } from 'react-icons/lu';
 
-const RencanaAksiModal = ({ currentData, kegiatanId, jabatanTree, onSaveSuccess }) => {
+const RencanaAksiModal = ({ currentData, kegiatanId, jabatanTree, onSaveSuccess, isOpen, onClose }) => {
     const { user: currentUser } = useContext(AuthContext);
     const { can } = usePermissions();
 
@@ -132,8 +132,7 @@ const RencanaAksiModal = ({ currentData, kegiatanId, jabatanTree, onSaveSuccess 
                 await apiClient.post('/rencana-aksi', dataToSend);
             }
             onSaveSuccess();
-            const closeButton = document.querySelector('#rencana-aksi-modal-close-btn');
-            if (closeButton) closeButton.click();
+            onClose();
         } catch (error) {
             if (error.response && error.response.status === 422) {
                 setErrors(error.response.data.errors);
@@ -202,106 +201,114 @@ const RencanaAksiModal = ({ currentData, kegiatanId, jabatanTree, onSaveSuccess 
         }
     };
 
+    if (!isOpen) return null;
+
     return (
-        <div id="rencana-aksi-modal" className="hs-overlay hidden size-full fixed top-0 start-0 z-[80] overflow-x-hidden overflow-y-auto pointer-events-none">
-            <div className="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all w-full m-3 max-w-2xl mx-auto">
-                <div className="flex flex-col bg-white border shadow-sm rounded-xl pointer-events-auto">
-                    <div className="flex justify-between items-center py-3 px-4 border-b">
-                        <h3 className="font-bold text-gray-800">
-                            {currentData ? 'Edit' : 'Tambah'} Rencana Aksi
-                        </h3>
-                        <button id="rencana-aksi-modal-close-btn" type="button" className="flex justify-center items-center size-7 text-sm font-semibold rounded-full border border-transparent text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none" data-hs-overlay="#rencana-aksi-modal">
-                            <span className="sr-only">Close</span>
-                            <LuX className="flex-shrink-0 size-4" />
-                        </button>
-                    </div>
-                    <div className="p-4 overflow-y-auto max-h-[70vh]">
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label htmlFor="deskripsi_aksi" className="block text-sm font-medium text-gray-700 mb-1">Deskripsi Rencana Aksi</label>
-                                <textarea
-                                    id="deskripsi_aksi"
-                                    name="deskripsi_aksi"
-                                    value={formData.deskripsi_aksi}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-transparent p-4">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+                <div className="flex justify-between items-center py-3 px-4 border-b">
+                    <h3 className="font-bold text-gray-800">
+                        {currentData ? 'Edit' : 'Tambah'} Rencana Aksi
+                    </h3>
+                    <button 
+                        type="button" 
+                        className="flex justify-center items-center size-7 text-sm font-semibold rounded-full border border-transparent text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:pointer-events-none" 
+                        onClick={onClose}
+                    >
+                        <span className="sr-only">Close</span>
+                        <LuX className="flex-shrink-0 size-4" />
+                    </button>
+                </div>
+                <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label htmlFor="deskripsi_aksi" className="block text-sm font-medium text-gray-700 mb-1">Deskripsi Rencana Aksi</label>
+                            <textarea
+                                id="deskripsi_aksi"
+                                name="deskripsi_aksi"
+                                value={formData.deskripsi_aksi}
+                                onChange={handleChange}
+                                rows="3"
+                                className="form-textarea w-full"
+                                data-cy="deskripsi-input"
+                            />
+                            {errors.deskripsi_aksi && <p className="text-red-500 text-xs mt-1">{errors.deskripsi_aksi[0]}</p>}
+                        </div>
+
+                        <div>
+                            <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700 mb-1">Penanggung Jawab</label>
+                            {can('assign rencana aksi') ? (
+                                <JabatanSelector
+                                    jabatanTree={jabatanTree}
+                                    selectedUser={formData.assigned_to}
                                     onChange={handleChange}
-                                    rows="3"
-                                    className="form-textarea"
-                                    data-cy="deskripsi-input"
+                                    data-cy="jabatan-selector"
                                 />
-                                {errors.deskripsi_aksi && <p className="text-red-500 text-xs mt-1">{errors.deskripsi_aksi[0]}</p>}
-                            </div>
-
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={currentUser.name}
+                                    readOnly
+                                    className="form-input bg-gray-100"
+                                />
+                            )}
+                            {errors.assigned_to && <p className="text-red-500 text-xs mt-1">{errors.assigned_to[0]}</p>}
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700 mb-1">Penanggung Jawab</label>
-                                {can('assign rencana aksi') ? (
-                                    <JabatanSelector
-                                        jabatanTree={jabatanTree}
-                                        selectedUser={formData.assigned_to}
-                                        onChange={handleChange}
-                                        data-cy="jabatan-selector"
-                                    />
-                                ) : (
-                                    <input
-                                        type="text"
-                                        value={currentUser.name}
-                                        readOnly
-                                        className="form-input bg-gray-100"
-                                    />
-                                )}
-                                {errors.assigned_to && <p className="text-red-500 text-xs mt-1">{errors.assigned_to[0]}</p>}
+                                <label htmlFor="target_tanggal" className="block text-sm font-medium text-gray-700 mb-1">Target Tanggal</label>
+                                <input
+                                    type="date"
+                                    id="target_tanggal"
+                                    name="target_tanggal"
+                                    value={formData.target_tanggal}
+                                    onChange={handleChange}
+                                    className="form-input"
+                                />
+                                {errors.target_tanggal && <p className="text-red-500 text-xs mt-1">{errors.target_tanggal[0]}</p>}
                             </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="target_tanggal" className="block text-sm font-medium text-gray-700 mb-1">Target Tanggal</label>
-                                    <input
-                                        type="date"
-                                        id="target_tanggal"
-                                        name="target_tanggal"
-                                        value={formData.target_tanggal}
-                                        onChange={handleChange}
-                                        className="form-input"
-                                    />
-                                    {errors.target_tanggal && <p className="text-red-500 text-xs mt-1">{errors.target_tanggal[0]}</p>}
-                                </div>
-                                <div>
-                                    <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">Prioritas</label>
-                                    <select id="priority" name="priority" value={formData.priority} onChange={handleChange} className="form-select">
-                                        <option value="low">Rendah</option>
-                                        <option value="medium">Sedang</option>
-                                        <option value="high">Tinggi</option>
-                                    </select>
-                                    {errors.priority && <p className="text-red-500 text-xs mt-1">{errors.priority[0]}</p>}
-                                </div>
-                            </div>
-                            
-
                             <div>
-                                <label htmlFor="jadwal_tipe" className="block text-sm font-medium text-gray-700 mb-1">Tipe Jadwal</label>
-                                <select id="jadwal_tipe" name="jadwal_tipe" value={formData.jadwal_tipe} onChange={handleChange} className="form-select" data-cy="jadwal-tipe-select">
-                                    <option value="insidentil">Insidentil (Tidak Wajib)</option>
-                                    <option value="bulanan">Bulanan (Wajib Lapor)</option>
-                                    <option value="periodik">Periodik (Otomatis)</option>
-                                    <option value="rutin">Rutin (Mingguan - Diabaikan di Laporan)</option>
+                                <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">Prioritas</label>
+                                <select id="priority" name="priority" value={formData.priority} onChange={handleChange} className="form-select">
+                                    <option value="low">Rendah</option>
+                                    <option value="medium">Sedang</option>
+                                    <option value="high">Tinggi</option>
                                 </select>
-                                {errors.jadwal_tipe && <p className="text-red-500 text-xs mt-1">{errors.jadwal_tipe[0]}</p>}
+                                {errors.priority && <p className="text-red-500 text-xs mt-1">{errors.priority[0]}</p>}
                             </div>
+                        </div>
+                        
+                        <div>
+                            <label htmlFor="jadwal_tipe" className="block text-sm font-medium text-gray-700 mb-1">Tipe Jadwal</label>
+                            <select id="jadwal_tipe" name="jadwal_tipe" value={formData.jadwal_tipe} onChange={handleChange} className="form-select" data-cy="jadwal-tipe-select">
+                                <option value="insidentil">Insidentil (Tidak Wajib)</option>
+                                <option value="bulanan">Bulanan (Wajib Lapor)</option>
+                                <option value="periodik">Periodik (Otomatis)</option>
+                                <option value="rutin">Rutin (Mingguan - Diabaikan di Laporan)</option>
+                            </select>
+                            {errors.jadwal_tipe && <p className="text-red-500 text-xs mt-1">{errors.jadwal_tipe[0]}</p>}
+                        </div>
 
-                            <div data-cy="jadwal-config-insidentil">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Konfigurasi Jadwal</label>
-                                {renderJadwalInputs()}
-                                {errors.jadwal_config && <p className="text-red-500 text-xs mt-1">{errors.jadwal_config[0]}</p>}
-                            </div>
-                            <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t">
-                                <button type="button" className="btn bg-gray-100 text-gray-800 hover:bg-gray-200" data-hs-overlay="#rencana-aksi-modal">
-                                    Batal
-                                </button>
-                                <button type="submit" disabled={loading} className="btn bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300">
-                                    {loading ? 'Menyimpan...' : 'Simpan'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                        <div data-cy="jadwal-config-insidentil">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Konfigurasi Jadwal</label>
+                            {renderJadwalInputs()}
+                            {errors.jadwal_config && <p className="text-red-500 text-xs mt-1">{errors.jadwal_config[0]}</p>}
+                        </div>
+                        
+                        <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t">
+                            <button 
+                                type="button" 
+                                className="btn bg-gray-100 text-gray-800 hover:bg-gray-200" 
+                                onClick={onClose}
+                            >
+                                Batal
+                            </button>
+                            <button type="submit" disabled={loading} className="btn bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300">
+                                {loading ? 'Menyimpan...' : 'Simpan'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

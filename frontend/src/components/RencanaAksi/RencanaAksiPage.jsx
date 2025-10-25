@@ -23,6 +23,7 @@ function RencanaAksiPage() {
     const [currentItem, setCurrentItem] = useState(null);
 
     const [selectedRencanaAksi, setSelectedRencanaAksi] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const { user: currentUser } = useContext(AuthContext);
 
     useEffect(() => {
@@ -83,11 +84,7 @@ function RencanaAksiPage() {
         }
     }, [selectedKegiatan, selectedDate, fetchRencanaAksi]);
 
-    useEffect(() => {
-        if (!loading.rencana && window.HSStaticMethods) {
-            window.HSStaticMethods.autoInit();
-        }
-    }, [rencanaAksiList, loading.rencana]);
+
 
     const handleKategoriChange = (e) => {
         const kategoriId = e.target.value;
@@ -97,6 +94,12 @@ function RencanaAksiPage() {
 
     const handleOpenModal = (item = null) => {
         setCurrentItem(item);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setCurrentItem(null);
     };
 
     const handleOpenTodoModal = (item) => {
@@ -137,7 +140,6 @@ function RencanaAksiPage() {
                         onClick={() => handleOpenModal(null)}
                         disabled={!selectedKegiatan}
                         className="btn bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed"
-                        data-hs-overlay="#rencana-aksi-modal"
                     >
                         <FiPlus className="mr-2" />
                         Tambah Rencana Aksi
@@ -223,7 +225,7 @@ function RencanaAksiPage() {
                                                 <button onClick={() => handleOpenTodoModal(item)} className="flex items-center text-gray-600 hover:text-gray-900" data-cy={`todo-progress-button-${item.id}`}>
                                                     <FiList size={18} /><span className="hidden md:inline ml-2">To-Do & Progress</span>
                                                 </button>
-                                                <button type="button" onClick={() => handleOpenModal(item)} className="flex items-center text-indigo-600 hover:text-indigo-900" data-cy={`edit-rencana-aksi-button-${item.id}`} data-hs-overlay="#rencana-aksi-modal">
+                                                <button type="button" onClick={() => handleOpenModal(item)} className="flex items-center text-indigo-600 hover:text-indigo-900" data-cy={`edit-rencana-aksi-button-${item.id}`}>
                                                     <FiEdit size={18} /><span className="hidden md:inline ml-2">Edit</span>
                                                 </button>
                                                 <button onClick={() => handleDelete(item.id)} className="flex items-center text-red-600 hover:text-red-900" data-cy={`delete-rencana-aksi-button-${item.id}`}>
@@ -275,7 +277,7 @@ function RencanaAksiPage() {
                                     <button onClick={() => handleOpenTodoModal(item)} className="flex items-center text-gray-600 hover:text-gray-900 text-sm" data-cy={`todo-progress-button-${item.id}`}>
                                         <FiList size={16} className="mr-1" /> To-Do
                                     </button>
-                                    <button type="button" onClick={() => handleOpenModal(item)} className="flex items-center text-indigo-600 hover:text-indigo-900 text-sm" data-cy={`edit-rencana-aksi-button-${item.id}`} data-hs-overlay="#rencana-aksi-modal">
+                                    <button type="button" onClick={() => handleOpenModal(item)} className="flex items-center text-indigo-600 hover:text-indigo-900 text-sm" data-cy={`edit-rencana-aksi-button-${item.id}`}>
                                         <FiEdit size={16} className="mr-1" /> Edit
                                     </button>
                                     <button onClick={() => handleDelete(item.id)} className="flex items-center text-red-600 hover:text-red-900 text-sm" data-cy={`delete-rencana-aksi-button-${item.id}`}>
@@ -292,10 +294,14 @@ function RencanaAksiPage() {
                 currentData={currentItem}
                 kegiatanId={selectedKegiatan}
                 jabatanTree={jabatanTree}
-                onSaveSuccess={fetchRencanaAksi}
+                onSaveSuccess={() => {
+                    fetchRencanaAksi();
+                    handleCloseModal();
+                }}
+                isOpen={isModalOpen}
+                onClose={handleCloseModal}
             />
             {selectedRencanaAksi && <TodoModal 
-                modalId="todo-modal"
                 rencanaAksi={selectedRencanaAksi} 
                 selectedDate={selectedDate}
                 jabatanTree={jabatanTree}
