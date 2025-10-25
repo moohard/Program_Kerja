@@ -28,11 +28,11 @@ class TodoItemAssigned extends Notification
         return [
             'notification' => FirebaseNotification::create()
                 ->withTitle('To-Do Baru Ditugaskan Kepada Anda')
-                ->withBody($this->todoItem->deskripsi),
+                ->withBody("Anda ditugaskan untuk mengerjakan: {$this->todoItem->deskripsi}"),
             'data' => [
                 'type' => 'todo_item_assigned',
                 'title' => 'To-Do Baru Ditugaskan Kepada Anda',
-                'body' => $this->todoItem->deskripsi,
+                'body' => "Anda ditugaskan untuk mengerjakan: {$this->todoItem->deskripsi}",
                 'rencana_aksi_id' => (string) $this->todoItem->rencana_aksi_id,
                 'todo_item_id' => (string) $this->todoItem->id,
                 'click_action' => '/rencana-aksi'
@@ -46,7 +46,7 @@ class TodoItemAssigned extends Notification
             'rencana_aksi_id' => $this->todoItem->rencana_aksi_id,
             'todo_item_id' => $this->todoItem->id,
             'title' => 'To-Do Baru Ditugaskan Kepada Anda',
-            'message' => $this->todoItem->deskripsi,
+            'message' => "Anda telah ditugaskan mengerjakan <strong>{$this->todoItem->deskripsi}</strong>.",
             'type' => 'todo_item_assigned',
         ];
     }

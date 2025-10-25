@@ -22,7 +22,6 @@ function RencanaAksiPage() {
     const [loading, setLoading] = useState({ kategori: false, kegiatan: false, rencana: false });
     const [currentItem, setCurrentItem] = useState(null);
 
-    const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
     const [selectedRencanaAksi, setSelectedRencanaAksi] = useState(null);
     const { user: currentUser } = useContext(AuthContext);
 
@@ -84,6 +83,12 @@ function RencanaAksiPage() {
         }
     }, [selectedKegiatan, selectedDate, fetchRencanaAksi]);
 
+    useEffect(() => {
+        if (!loading.rencana && window.HSStaticMethods) {
+            window.HSStaticMethods.autoInit();
+        }
+    }, [rencanaAksiList, loading.rencana]);
+
     const handleKategoriChange = (e) => {
         const kategoriId = e.target.value;
         setSelectedKategori(kategoriId);
@@ -94,14 +99,11 @@ function RencanaAksiPage() {
         setCurrentItem(item);
     };
 
-    const handleOpenTodoModal = (item) => {
+    const handleRencanaAksiSelect = (item) => {
         setSelectedRencanaAksi(item);
-        setIsTodoModalOpen(true);
     };
 
     const handleCloseTodoModal = (shouldRefetch = false) => {
-        setIsTodoModalOpen(false);
-        setSelectedRencanaAksi(null);
         if (shouldRefetch) {
             fetchRencanaAksi();
         }
@@ -287,7 +289,8 @@ function RencanaAksiPage() {
                 jabatanTree={jabatanTree}
                 onSaveSuccess={fetchRencanaAksi}
             />
-            {isTodoModalOpen && <TodoModal 
+            {selectedRencanaAksi && <TodoModal 
+                modalId="todo-modal"
                 rencanaAksi={selectedRencanaAksi} 
                 selectedDate={selectedDate}
                 jabatanTree={jabatanTree}

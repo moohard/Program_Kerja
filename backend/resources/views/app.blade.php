@@ -7,14 +7,11 @@
 
         <title>Program Kerja</title>
 
-        <!-- Vite-generated CSS -->
-        <link rel="stylesheet" crossorigin href="{{ asset('assets/index-BHW68fSP.css') }}">
+        @viteReactRefresh
+        @vite('src/main.jsx')
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
         <div id="root"></div>
-
-        <!-- Vite-generated JS -->
-        <script type="module" crossorigin src="{{ asset('assets/index-kK03ZpaK.js') }}"></script>
     </body>
 </html>

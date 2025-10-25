@@ -29,11 +29,11 @@ class RencanaAksiAssigned extends Notification
         return [
             'notification' => FirebaseNotification::create()
                 ->withTitle('Tugas Baru Untuk Anda!')
-                ->withBody($this->rencanaAksi->deskripsi_aksi),
+                ->withBody("Anda ditugaskan untuk: {$this->rencanaAksi->deskripsi_aksi}"),
             'data' => [
                 'type' => 'rencana_aksi_assigned',
                 'title' => 'Tugas Baru Untuk Anda!',
-                'body' => $this->rencanaAksi->deskripsi_aksi,
+                'body' => "Anda ditugaskan untuk: {$this->rencanaAksi->deskripsi_aksi}",
                 'rencana_aksi_id' => (string) $this->rencanaAksi->id,
                 'click_action' => '/rencana-aksi'
             ]
@@ -45,7 +45,7 @@ class RencanaAksiAssigned extends Notification
         return [
             'rencana_aksi_id' => $this->rencanaAksi->id,
             'title' => 'Tugas Baru Untuk Anda!',
-            'message' => $this->rencanaAksi->deskripsi_aksi,
+            'message' => "Anda telah ditugaskan bertanggung jawab dalam <strong>{$this->rencanaAksi->deskripsi_aksi}</strong>.",
             'type' => 'rencana_aksi_assigned',
             'timestamp' => now()->toISOString()
         ];

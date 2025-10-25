@@ -97,9 +97,11 @@ class TodoItemController extends Controller
 
             if ($validated['status_approval'] === 'approved') {
                 $validated['progress_percentage'] = 100;
+                $validated['rejection_note'] = null; // Hapus catatan penolakan saat disetujui
                 $note = "To-do '{$todoItem->deskripsi}' disetujui oleh PIC.";
             } elseif (in_array($validated['status_approval'], ['pending_upload', 'rejected'])) { // Handle ditolak/revisi
                 $validated['progress_percentage'] = 0;
+                // Catatan penolakan sudah ada di $validated dari request
                 $note = "To-do '{$todoItem->deskripsi}' ditolak oleh PIC, butuh perbaikan.";
             }
         }

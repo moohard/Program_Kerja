@@ -151,7 +151,7 @@ const RencanaAksiModal = ({ currentData, kegiatanId, jabatanTree, onSaveSuccess 
             case 'insidentil':
             case 'bulanan':
                 return (
-                    <div className="grid grid-cols-4 gap-2 p-2 border rounded-md">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-2 border rounded-md">
                         {months.map((name, index) => {
                             const monthNumber = index + 1;
                             return (
@@ -183,7 +183,7 @@ const RencanaAksiModal = ({ currentData, kegiatanId, jabatanTree, onSaveSuccess 
                 );
             case 'rutin':
                 return (
-                    <div className="grid grid-cols-4 gap-2 p-2 border rounded-md">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-2 border rounded-md">
                         {days.map((name, index) => (
                             <label key={index} className="flex items-center space-x-2 p-1 rounded-md hover:bg-gray-100 cursor-pointer">
                                 <input
@@ -204,7 +204,7 @@ const RencanaAksiModal = ({ currentData, kegiatanId, jabatanTree, onSaveSuccess 
 
     return (
         <div id="rencana-aksi-modal" className="hs-overlay hidden size-full fixed top-0 start-0 z-[80] overflow-x-hidden overflow-y-auto pointer-events-none">
-            <div className="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all sm:max-w-2xl sm:w-full m-3 sm:mx-auto">
+            <div className="hs-overlay-open:mt-7 hs-overlay-open:opacity-100 hs-overlay-open:duration-500 mt-0 opacity-0 ease-out transition-all w-full m-3 max-w-2xl mx-auto">
                 <div className="flex flex-col bg-white border shadow-sm rounded-xl pointer-events-auto">
                     <div className="flex justify-between items-center py-3 px-4 border-b">
                         <h3 className="font-bold text-gray-800">

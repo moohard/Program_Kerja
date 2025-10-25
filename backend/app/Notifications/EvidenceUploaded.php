@@ -38,9 +38,10 @@ class EvidenceUploaded extends Notification
      */
     public function toFcm(object $notifiable): array
     {
+        $rencanaAksiName = $this->todoItem->rencanaAksi->deskripsi_aksi ?? 'Rencana Aksi';
         $pelaksanaName = $this->todoItem->pelaksana->name ?? 'Pelaksana';
         $title = "Eviden Baru Menunggu Validasi";
-        $body = "{$pelaksanaName} telah mengunggah eviden untuk tugas: \"{$this->todoItem->deskripsi}\"" ;
+        $body = "{$pelaksanaName} telah mengunggah eviden untuk {$rencanaAksiName} - {$this->todoItem->deskripsi}" ;
 
         return [
             'notification' => FirebaseNotification::create()
@@ -64,9 +65,10 @@ class EvidenceUploaded extends Notification
      */
     public function toDatabase(object $notifiable): array
     {
+        $rencanaAksiName = $this->todoItem->rencanaAksi->deskripsi_aksi ?? 'Rencana Aksi';
         $pelaksanaName = $this->todoItem->pelaksana->name ?? 'Pelaksana';
         $title = "Eviden Baru Menunggu Validasi";
-        $message = "{$pelaksanaName} telah mengunggah eviden untuk tugas: \"{$this->todoItem->deskripsi}\"" ;
+        $message = "{$pelaksanaName} telah mengupload Eviden untuk <strong>{$rencanaAksiName} - {$this->todoItem->deskripsi}</strong>. Silakan diperiksa.";
 
         return [
             'rencana_aksi_id' => $this->todoItem->rencana_aksi_id,
